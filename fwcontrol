@@ -20,6 +20,7 @@ assert_inside_chroot
 DEFINE_string board '' 'which board the firmware is for' 'b'
 DEFINE_boolean debug false 'debug flag' 'd'
 DEFINE_string infile '' 'the input (zip) file' 'f'
+DEFINE_string issue '' 'the issue number on the issue tracker' 'i'
 DEFINE_string revision '' 'the revision number of the firmware' 'r'
 
 PROG=$0
@@ -35,6 +36,14 @@ FW_PATH="opt/google/touchpad/firmware"
 FW_MODE=755
 FW_OWN="root:root"
 TMP_DIR="/tmp/touch_fw"
+TMP_RESULT="${TMP_DIR}/login.result"
+COOKIE_FILE="${TMP_DIR}/login.cookie"
+
+# Some URLs to set up credentials
+AUTH_URL="https://accounts.google.com/ServiceLoginAuth?hl=en&continue="
+TRACKER_URL="https%3A%2F%2Fcode.google.com%2Fp%2Fchrome-os-partner"\
+"%2Fissues%2Fdetail%3Fid%3D"
+issue_auth_url="$AUTH_URL$TRACKER_URL$FLAGS_issue"
 
 # Per board definitions
 # Only works for lumpy/cypress for now.
@@ -51,9 +60,96 @@ debug_print() {
   fi
 }
 
+# Print the usage and examples, and then exit.
+usage_and_exit() {
+  flags_help
+  die "\nExamples:
+  Specify the issue # and download the firmware from the remote server.
+  \$ $PROG -i 12345 -b lumpy \n
+  Convert the iic file in a local zip file to bin file.
+  \$ $PROG -f /tmp/CYTRA-116001-00-v11.26-Testdrop.zip -b lumpy \n
+  Specify that it is revision 'r2' and also enable the debug flag.
+  \$ $PROG -i 12345 -b lumpy -r r2 -d \n"
+}
+
+# Make sure that exactly an issue number or an local zip file is specified.
+check_argument() {
+  if [ -z "$FLAGS_issue" -a -z "$FLAGS_infile" -o \
+       "$FLAGS_issue" -a "$FLAGS_infile" ]; then
+    echo -e "Specify exactly either an issue number or a local zip file.\n"
+    usage_and_exit
+  elif [ -z "$FLAGS_board" ]; then
+    echo -e "You need to specify a board.\n"
+    usage_and_exit
+  fi
+}
+
 # Set up a temporary directory that only the owner could access.
 setup_tmp_dir() {
   mkdir -p -m 0700 $TMP_DIR
+}
+
+# Prompt the user to type chromium email account and password.
+read_user_and_password() {
+  # Read the user email address and password if not yet.
+  if [ -z $USR -o -z $PASS ]; then
+    echo Please type your user name of chromium account.
+    read -p "Username (without @chromium.org): " USR
+    read -s -p "Password: " PASS
+  fi
+  USR_PASS="Email=${USR}@chromium.org&Passwd=${PASS}"
+}
+
+# Get dsh and GALX
+get_credential() {
+  # Try to get dsh and GALX values.
+  if ! curl -s -c "$COOKIE_FILE" -L -d $USR_PASS $issue_auth_url > \
+      "$TMP_RESULT"; then
+    die "Error: curl failed to get $issue_auth_url"
+  fi
+
+  # The dsh value looks like
+  #    name="dsh" id="dsh" value="3039562716843903054"
+  dsh=`grep -i "dsh" "$TMP_RESULT" | \
+      sed -n "s/.*value=\"\(-*[0-9]*\)\"/\1/p"`
+
+  # The GALX value looks like
+  #          name="GALX"
+  #          value="Bfr17SQrDe4">
+  galx=`grep -i -A1 "GALX" "$TMP_RESULT" | \
+      sed -n "s/.*value=\"\(.*\)\".*/\1/p"`
+
+  if [ -z dsh -o -z galx ]; then
+    die "Error: fail to get dsh or galx."
+  fi
+}
+
+# Get the firmware attachment URL from the specified tracker issue.
+# And then download the firmware zip file.
+download_fw_file() {
+  # The returned attachment syntax looks like
+  #   &nbsp; <a href="//chrome-os-partner.googlecode.com/issues/attachment?
+  #   aid=172300000000&amp;name=CYTRA-116001-00-v11.27-Testdrop.zip&amp;
+  #   token=E9jFSVjVX9abUmyCrGm0ms0YuBI%3A1359083647918">Download</a>
+  local attach_str=`curl -s -b "$COOKIE_FILE" -L -d \
+      "GALX=${galx}&bgresponse=js_disabled&dsh=${dsh}&$USR_PASS" \
+      $issue_auth_url | \
+      grep "href=.*CYTRA.*\.zip.*Download" | \
+      sed -n 's/.*href=\"\(.*\)\">Download.*/\1/p'`
+  attachment_url="https:"`echo $attach_str | sed 's/\&amp;/\&/g'`
+
+  fw_zipfile="${TMP_DIR}/`echo $attachment_url | \
+      sed -n 's/http.*name=\(CYTRA.*\.zip\)\&token=.*/\1/p'`"
+
+  if [ "$attachment_url" = "https:" -a "$fw_zipfile" = "${TMP_DIR}/" ]; then
+    die "\n Error: either the firmware url or the firmware zip name
+                   cannot be found
+         \n firmware url: $attachment_url
+         \n firmware name: $fw_zipfile"
+  else
+    echo Downloading the firmware: $fw_zipfile
+    curl -s -o "$fw_zipfile" "$attachment_url"
+  fi
 }
 
 # Check the existence of the file
@@ -188,7 +284,20 @@ create_tbz2() {
 # main program begins here.
 # -------------------------
 
+check_argument
 setup_tmp_dir
+
+# If an issue number is given, get the firmware zip file from a remote server.
+# This is executed only when '-i' command flag is specified.
+# If '-f' command flag is specified, skip this block.
+if [ $FLAGS_issue ]; then
+  read_user_and_password
+  get_credential
+  download_fw_file
+  infile=$fw_zipfile
+fi
+
+# Now we have the local zip file.
 debug_print infile
 check_file_existence $infile
 get_fw_version
