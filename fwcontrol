@@ -18,6 +18,7 @@ assert_inside_chroot
 # Read command flags
 . /usr/share/misc/shflags
 DEFINE_string board '' 'which board the firmware is for' 'b'
+DEFINE_boolean clean false 'clean up all temporary files' 'c'
 DEFINE_boolean debug false 'debug flag' 'd'
 DEFINE_string infile '' 'the input (zip) file' 'f'
 DEFINE_string issue '' 'the issue number on the issue tracker' 'i'
@@ -69,7 +70,9 @@ usage_and_exit() {
   Convert the iic file in a local zip file to bin file.
   \$ $PROG -f /tmp/CYTRA-116001-00-v11.26-Testdrop.zip -b lumpy \n
   Specify that it is revision 'r2' and also enable the debug flag.
-  \$ $PROG -i 12345 -b lumpy -r r2 -d \n"
+  \$ $PROG -i 12345 -b lumpy -r r2 -d \n
+  Clean up all temporary files after finished.
+  \$ $PROG -c \n"
 }
 
 # Make sure that exactly an issue number or an local zip file is specified.
@@ -280,9 +283,27 @@ create_tbz2() {
           "after uploading the files.\n"
 }
 
+# Clean up unnecessary files in the tmp directory.
+# This function is invoked automatically after the tarball is created.
+clean_up_tmp_files() {
+  # Keep only .tbz2 and .bin files.
+  find "$TMP_DIR" -type f -not -iregex ".*tbz2\|.*bin" | xargs rm
+}
+
+# Clean up the whole tmp directory.
+# This function is invoked when '-c' clean up flag is specified.
+clean_up_tmp_dir() {
+  rm -fr "$TMP_DIR"
+  die "Clean up all temporary files in '$TMP_DIR'."
+}
+
 
 # main program begins here.
 # -------------------------
+
+if [ $FLAGS_clean = $FLAGS_TRUE ]; then
+  clean_up_tmp_dir
+fi
 
 check_argument
 setup_tmp_dir
@@ -303,3 +324,7 @@ check_file_existence $infile
 get_fw_version
 get_bin_fw_file $infile
 create_tbz2 "$relative_bin_file"
+
+# Clean up some unnecessary temporary files.
+# Keep the created tarball and the .bin firmware file.
+clean_up_tmp_files
