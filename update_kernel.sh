@@ -47,7 +47,7 @@ learn_partition_and_ro() {
   if [ "${REMOTE_OUT%%-*}" == "/dev/dm" ]; then
     remote_sh rootdev -s
     REMOTE_VERITY=${FLAGS_TRUE}
-    info "System is using verity: not updating firmware"
+    warn "System is using verity: not updating firmware/modules"
   else
     REMOTE_VERITY=${FLAGS_FALSE}
     info "System is not using verity: updating firmware and modules"
