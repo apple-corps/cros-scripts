@@ -148,7 +148,7 @@ def GetPartitionTable(options, config, image_type):
   for adjustment_str in options.adjust_part.split():
     adjustment = adjustment_str.split(':')
     if len(adjustment) < 2:
-      raise InvalidAdjustment('Adjustment specified was incomplete')
+      raise InvalidAdjustment('Adjustment "%s" is incomplete' % adjustment_str)
 
     label = adjustment[0]
     operator = adjustment[1][0]
@@ -193,7 +193,8 @@ def ApplyPartitionAdjustment(partitions, metadata, label, operator, operand):
   if operand_bytes % metadata['block_size'] == 0:
     operand_blocks = operand_bytes / metadata['block_size']
   else:
-    raise InvalidAdjustment('Adjustment size not divisible by block size')
+    raise InvalidAdjustment('Adjustment size %s not divisible by block size %s'
+                            % (operand_bytes, metadata['block_size']))
 
   if operator == '+':
     partition['blocks'] += operand_blocks
@@ -323,7 +324,7 @@ def GetPartitionByNumber(partitions, num):
     if partition['num'] == int(num):
       return partition
 
-  raise PartitionNotFound('Partition not found')
+  raise PartitionNotFound('Partition %s not found' % num)
 
 
 def GetPartitionByLabel(partitions, label):
@@ -341,7 +342,7 @@ def GetPartitionByLabel(partitions, label):
     if partition['label'] == label:
       return partition
 
-  raise PartitionNotFound('Partition not found')
+  raise PartitionNotFound('Partition "%s" not found' % label)
 
 
 def WritePartitionScript(options, image_type, layout_filename, sfilename):
