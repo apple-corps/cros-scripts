@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import copy
 import json
 import os
 import re
@@ -365,7 +364,7 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
     WriteLayoutFunction(options, f, 'write_partition_table', image_type, config)
 
 
-def GetBlockSize(options, layout_filename):
+def GetBlockSize(_options, layout_filename):
   """Returns the partition table block size.
 
   Args:
@@ -379,7 +378,7 @@ def GetBlockSize(options, layout_filename):
   return config['metadata']['block_size']
 
 
-def GetFilesystemBlockSize(options, layout_filename):
+def GetFilesystemBlockSize(_options, layout_filename):
   """Returns the filesystem block size.
 
   Args:
@@ -498,7 +497,7 @@ def DoParseOnly(options, image_type, layout_filename):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
   """
-  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  _ = GetPartitionTableFromConfig(options, layout_filename, image_type)
 
 
 def main(argv):
@@ -540,7 +539,7 @@ def main(argv):
   parser = OptionParser()
   parser.add_option("--adjust_part", dest="adjust_part",
                     help="adjust partition sizes", default="")
-  (options, args) = parser.parse_args()
+  (options, args) = parser.parse_args(args=argv[1:])
 
   if len(args) < 1 or args[0] not in action_map:
     print 'Usage: %s <action>\n' % sys.argv[0]
