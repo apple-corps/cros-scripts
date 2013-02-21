@@ -215,6 +215,15 @@ build_gpt() {
   cgpt add -i 2 -S 1 "$outdev"
 }
 
+round_up_4096() {
+  local blocks=$1
+  local round_up=$(( blocks % 4096 ))
+  if [ $round_up -ne 0 ]; then
+    blocks=$(( blocks + 4096 - round_up ))
+  fi
+  echo $blocks
+}
+
 # Rebuild an image's partition table with new stateful size.
 #  $1: source image filename
 #  $2: source stateful partition image filename
@@ -230,6 +239,9 @@ update_partition_table() {
 
   rm -f "${dst_img}"
 
+  # Make sure new stateful's size is a multiple of 4096 blocks so that
+  # relocated partitions following it are not misaligned.
+  dst_stateful_blocks=$(round_up_4096 $dst_stateful_blocks)
   # Calculate change in image size.
   local src_stateful_blocks=$(cgpt show -i 1 -s ${src_img})
   local delta_blocks=$(( dst_stateful_blocks - src_stateful_blocks ))
