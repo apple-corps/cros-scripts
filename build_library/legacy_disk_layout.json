@@ -102,7 +102,7 @@
         "num": 5,
         "label":"ROOT-B",
         "type":"rootfs",
-        "blocks":"1"
+        "blocks":"4096"
       }
     ],
     "factory_install": [
@@ -123,7 +123,7 @@
         "num": 5,
         "label":"ROOT-B",
         "type":"rootfs",
-        "blocks":"1"
+        "blocks":"4096"
       },
       {
         "num": 12,
@@ -187,7 +187,7 @@
         "num": 5,
         "label":"ROOT-B",
         "type":"rootfs",
-        "blocks":"1"
+        "blocks":"4096"
       }
     ],
     "2gb-rootfs-updatable": [
@@ -224,7 +224,7 @@
         "num": 5,
         "label":"ROOT-B",
         "type":"rootfs",
-        "blocks":"1"
+        "blocks":"4096"
       }
     ]
   }
