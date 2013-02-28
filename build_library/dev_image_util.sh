@@ -104,6 +104,13 @@ EOF
     done
   fi
 
+  # If bash is not installed on rootfs, we'll need a  bash symlink.
+  # Otherwise, emerge won't work.
+  if [[ ! -e "${root_fs_dir}"/bin/bash ]]; then
+    info "Fixing bash path for developer and test images."
+    sudo ln -sf /usr/local/bin/bash "${root_fs_dir}"/bin/bash
+  fi
+
   info "Developer image built and stored at ${image_name}"
 
   cleanup_mounts
