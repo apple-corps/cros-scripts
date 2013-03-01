@@ -252,6 +252,12 @@ create_base_image() {
   # create /usr/local or /var on host (already exist on target).
   setup_symlinks_on_root "/usr/local" "/var" "${stateful_fs_dir}"
 
+  # Our masking of files will implicitly leave behind a bunch of empty
+  # dirs.  We can't differentiate between empty dirs we want and empty
+  # dirs we don't care about, so just prune ones we know are OK.
+  sudo find "${root_fs_dir}/usr/include" -depth -type d -exec rmdir {} + \
+    2>/dev/null || :
+
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller
   zero_free_space "${root_fs_dir}"

@@ -398,6 +398,8 @@ COMMON_INSTALL_MASK="
   /lib/rc
   /usr/bin/Xnest
   /usr/bin/Xvfb
+  /usr/include/nspr/*
+  /usr/include/X11/*
   /usr/lib/debug
   /usr/lib/gcc
   /usr/lib*/pkgconfig
