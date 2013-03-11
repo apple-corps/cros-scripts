@@ -1,0 +1,14 @@
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Fix the SLOT logic while updating gdb.
+cd /var/db/pkg
+for pkg in cross-*/gdb-* ; do
+  [[ -d ${pkg} ]] || break
+  sudo sed -i 's:.*:0:' ${pkg}/SLOT
+  tmpfile=$(mktemp)
+  bzcat ${pkg}/environment.bz2 | sed '/^declare -x SLOT=/s:=.*:=0:' \
+    | bzip2 > "${tmpfile}"
+  sudo mv "${tmpfile}" ${pkg}/environment.bz2
+done
