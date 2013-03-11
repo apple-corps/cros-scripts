@@ -82,7 +82,7 @@ board_needs_libc_update() {
     return 0
   fi
 
-  local board_version=$(. "${BOARD_SETUP}"; echo "${LIBC_VERSION}")
+  local board_version=$(. "${BOARD_SETUP}"; echo "${LIBC_VERSION:-}")
   local toolchain_version=$(cross_get_version glibc)
   if [[ "${board_version}" = "${toolchain_version}" ]]; then
     return 1
