@@ -205,6 +205,23 @@ _list_repo_projects() {
     | sed 's/.\+name="\([^"]\+\)".\+/\1/'
 }
 
+# Complete equery's <module-name> argument.
+_complete_equery_module_name() {
+  [ ${COMP_CWORD} -eq 1 ] || return 1
+  local command="${COMP_WORDS[1]}"
+  COMPREPLY=($(compgen -W "belongs changes check depends depgraph files has \
+                           hasuse keywords list meta size uses which" \
+                           -- "$command"))
+  return 0
+}
+
+# Complete equery arguments.
+_complete_equery() {
+  COMPREPLY=()
+  _complete_equery_module_name && return 0
+  return 0
+}
+
 # Complete repo's <command> argument.
 _complete_repo_command() {
   [ ${COMP_CWORD} -eq 1 ] || return 1
@@ -256,6 +273,7 @@ complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
 complete -F _cros_workon cros_workon
 complete -F _complete_repo repo
+complete -F _complete_equery equery
 
 ###  Local Variables:
 ###  mode: shell-script
