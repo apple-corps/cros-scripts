@@ -128,23 +128,58 @@ emit_gpt_scripts() {
 
   local start size part x
 
-  cat >"${unpack}" <<EOF
+  local default
+
+  # Write out the header for the script.
+  local gpt_layout=$(${GPT} show "${image}" | sed -e 's/^/# /')
+  for x in "${unpack}" "${pack}" "${mount}" "${umount}"; do
+    cat >"${x}" <<\EOF
 #!/bin/bash -eu
 # File automatically generated. Do not edit.
-TARGET=\${1:-}
-if [[ -z \${TARGET} ]]; then
-  echo "Usage: \$0 <image>" 1>&2
-  echo "Example: \$0 chromiumos_image.bin" 1>&2
-  exit 1
-fi
-set -x
-$(${GPT} show "${image}" | sed -e 's/^/# /')
-EOF
 
-  for x in "${pack}" "${mount}" "${umount}"; do
-    cp "${unpack}" "${x}"
+usage() {
+  local ret=0
+  if [[ $# -gt 0 ]]; then
+    # Write to stderr on errors.
+    exec 1>&2
+    echo "ERROR: $*"
+    echo
+    ret=1
+  fi
+  echo "Usage: $0 [image] [part]"
+  echo "Example: $0 chromiumos_image.bin"
+  exit ${ret}
+}
+
+TARGET=${1:-}
+PART=${2:-}
+case ${TARGET} in
+-h|--help)
+  usage
+  ;;
+"")
+  for TARGET in chromiumos_{,base_}image.bin ""; do
+    if [[ -e ${TARGET} ]]; then
+      echo "autodetected image: ${TARGET}"
+      break
+    fi
+  done
+  if [[ -z ${TARGET} ]]; then
+    usage "could not autodetect an image"
+  fi
+  ;;
+*)
+  if [[ ! -e ${TARGET} ]]; then
+    usage "image does not exist: ${TARGET}"
+  fi
+esac
+
+set -x
+EOF
+    echo "${gpt_layout}" >> "${x}"
   done
 
+  # Read each partition and generate code for it.
   while read start size part x; do
     local file="part_${part}"
     local dir="dir_${part}"
@@ -152,27 +187,55 @@ EOF
     local dd_args="bs=512 count=${size}"
     local start_b=$(( start * 512 ))
     local size_b=$(( size * 512 ))
-    echo "dd if=${target} of=${file} ${dd_args} skip=${start}" >>"${unpack}"
-    echo "dd if=${file} of=${target} ${dd_args} seek=${start} conv=notrunc" \
-      >>"${pack}"
+    local label=$(${GPT} show "${image}" -i ${part} -l)
+
+    for x in "${unpack}" "${pack}" "${mount}" "${umount}"; do
+      cat <<EOF >> "${x}"
+case \${PART:-${part}} in
+${part}|"${label}")
+EOF
+    done
+
+    cat <<EOF >> "${unpack}"
+dd if=${target} of=${file} ${dd_args} skip=${start}
+ln -sfT ${file} "${file}_${label}"
+EOF
+    cat <<EOF >> "${pack}"
+dd if=${file} of=${target} ${dd_args} seek=${start} conv=notrunc
+EOF
+
     if [[ ${size} -gt 1 ]]; then
       cat <<-EOF >>"${mount}"
+(
 mkdir -p ${dir}
 m=( sudo mount -o loop,offset=${start_b},sizelimit=${size_b} ${target} ${dir} )
 if ! "\${m[@]}"; then
   if ! "\${m[@]}" -o ro; then
     rmdir ${dir}
+    exit 0
   fi
 fi
+ln -sfT ${dir} "${dir}_${label}"
+) &
 EOF
       cat <<-EOF >>"${umount}"
 if [[ -d ${dir} ]]; then
+  (
   sudo umount ${dir} || :
   rmdir ${dir}
+  rm -f "${dir}_${label}"
+  ) &
 fi
 EOF
     fi
+
+    for x in "${unpack}" "${pack}" "${mount}" "${umount}"; do
+      echo "esac" >> "${x}"
+    done
   done < <(${GPT} show -q "${image}")
+
+  echo "wait" >> "${mount}"
+  echo "wait" >> "${umount}"
 
   chmod +x "${unpack}" "${pack}" "${mount}" "${umount}"
 }
