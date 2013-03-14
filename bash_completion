@@ -273,7 +273,7 @@ complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
 complete -F _cros_workon cros_workon
 complete -F _complete_repo repo
-complete -F _complete_equery equery
+complete -o bashdefault -o default -F _complete_equery equery
 
 ###  Local Variables:
 ###  mode: shell-script
