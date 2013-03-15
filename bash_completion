@@ -275,6 +275,13 @@ complete -F _cros_workon cros_workon
 complete -F _complete_repo repo
 complete -o bashdefault -o default -F _complete_equery equery
 
+# Use equery completion for equery-$board for known boards
+_boardlist=$(cros_list_overlays | egrep "^.*/overlays/overlay-.*$" |
+             sed -n "s/.*overlay-//p")
+for board in $_boardlist; do
+  complete -o bashdefault -o default -F _complete_equery equery-$board
+done
+
 ###  Local Variables:
 ###  mode: shell-script
 ###  End:
