@@ -73,12 +73,12 @@ install_dev_packages() {
   fi
 
   # If pygtk is installed in stateful-dev, then install a path.
-  if [[ -d \
-      "${root_fs_dir}/usr/local/lib/python2.6/site-packages/gtk-2.0" ]]; then
-    sudo bash -c "\
-        echo gtk-2.0 > \
-        ${root_fs_dir}/usr/local/lib/python2.6/site-packages/pygtk.pth"
-  fi
+  local d
+  for d in "${root_fs_dir}"/usr/local/lib/python*/site-packages/gtk-2.0; do
+    if [[ -d ${d} ]]; then
+      sudo_clobber "${d%/*}/pygtk.pth" <<<"gtk-2.0"
+    fi
+  done
 
   # File searches /usr/share by default, so add a wrapper script so it
   # can find the right path in /usr/local.
