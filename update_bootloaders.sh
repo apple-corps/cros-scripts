@@ -75,9 +75,9 @@ if ! type -p update_x86_bootloaders; then
     fi
 
     # Maintain cros_debug flag in developer and test images.
-    cros_flags="cros_legacy"
+    cros_flags=""
     if echo "$kernel_cmdline" | grep -q 'cros_debug'; then
-      cros_flags="cros_legacy cros_debug"
+      cros_flags=" cros_debug"
     fi
 
     root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" 3)"
@@ -88,10 +88,8 @@ if ! type -p update_x86_bootloaders; then
     grub_dm_table_b=${dm_table//${old_root}/${root_b_uuid}}
     sed -e "s|DMTABLEA|${grub_dm_table_a}|g" \
         -e "s|DMTABLEB|${grub_dm_table_b}|g" \
-        -e "s|cros_legacy|${cros_flags}|g" \
-        "${template_dir}"/efi/boot/grub.cfg |
-        sudo dd of="${esp_fs_dir}"/efi/boot/grub.cfg status=none
-    sed -e "s|/dev/\\\$linuxpartA|${root_a_uuid}|g" \
+        -e "s|cros_efi|&${cros_flags}|g" \
+        -e "s|/dev/\\\$linuxpartA|${root_a_uuid}|g" \
         -e "s|/dev/\\\$linuxpartB|${root_b_uuid}|g" \
         "${template_dir}"/efi/boot/grub.cfg |
         sudo dd of="${esp_fs_dir}"/efi/boot/grub.cfg status=none
@@ -99,19 +97,19 @@ if ! type -p update_x86_bootloaders; then
     # Rewrite syslinux DM_TABLE
     syslinux_dm_table_usb=${dm_table//${old_root}/${root_a_uuid}}
     sed -e "s|DMTABLEA|${syslinux_dm_table_usb}|g" \
-        -e "s|cros_legacy|${cros_flags}|g" \
+        -e "s|cros_legacy|&${cros_flags}|g" \
         "${template_dir}"/syslinux/usb.A.cfg |
         sudo dd of="${esp_fs_dir}"/syslinux/usb.A.cfg status=none
 
     syslinux_dm_table_a=${dm_table//${old_root}/HDROOTA}
     sed -e "s|DMTABLEA|${syslinux_dm_table_a}|g" \
-        -e "s|cros_legacy|${cros_flags}|g" \
+        -e "s|cros_legacy|&${cros_flags}|g" \
         "${template_dir}"/syslinux/root.A.cfg |
         sudo dd of="${esp_fs_dir}"/syslinux/root.A.cfg status=none
 
     syslinux_dm_table_b=${dm_table//${old_root}/HDROOTB}
     sed -e "s|DMTABLEB|${syslinux_dm_table_b}|g" \
-        -e "s|cros_legacy|${cros_flags}|g" \
+        -e "s|cros_legacy|&${cros_flags}|g" \
         "${template_dir}"/syslinux/root.B.cfg |
         sudo dd of="${esp_fs_dir}"/syslinux/root.B.cfg status=none
 
