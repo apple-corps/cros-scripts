@@ -212,9 +212,6 @@ if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
   mod_image_for_test  ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
 fi
 
-# Generating AU generator zip file to run outside chroot
-generate_au_zip || echo "Failed generating AU zip file - ignoring Error..."
-
 # Create a named symlink.
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
 ln -sfT $(basename ${BUILD_DIR}) ${LINK_NAME}

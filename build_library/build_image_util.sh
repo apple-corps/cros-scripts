@@ -166,14 +166,6 @@ delete_prompt() {
   fi
 }
 
-generate_au_zip () {
-  local lgenerateauzip="${BUILD_LIBRARY_DIR}/generate_au_zip.py"
-  local largs="-o ${BUILD_DIR}"
-  test ! -d "${BUILD_DIR}" && mkdir -p "${BUILD_DIR}"
-  info "Running ${lgenerateauzip} ${largs} for generating AU updater zip file"
-  $lgenerateauzip $largs
-}
-
 # Basic command to emerge binary packages into the target image.
 # Arguments to this command are passed as addition options/arguments
 # to the basic emerge command.
