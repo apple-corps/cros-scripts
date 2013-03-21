@@ -74,12 +74,6 @@ if ! type -p update_x86_bootloaders; then
       dm_table=$(echo "$kernel_cmdline" | sed -s 's/.*dm="\([^"]*\)".*/\1/')
     fi
 
-    # Maintain cros_debug flag in developer and test images.
-    cros_flags=""
-    if echo "$kernel_cmdline" | grep -q 'cros_debug'; then
-      cros_flags=" cros_debug"
-    fi
-
     root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" 3)"
     root_b_uuid="PARTUUID=$(part_index_to_uuid "$to" 5)"
 
@@ -88,30 +82,21 @@ if ! type -p update_x86_bootloaders; then
     grub_dm_table_b=${dm_table//${old_root}/${root_b_uuid}}
     sed -e "s|DMTABLEA|${grub_dm_table_a}|g" \
         -e "s|DMTABLEB|${grub_dm_table_b}|g" \
-        -e "s|cros_efi|&${cros_flags}|g" \
         -e "s|/dev/\\\$linuxpartA|${root_a_uuid}|g" \
         -e "s|/dev/\\\$linuxpartB|${root_b_uuid}|g" \
         "${template_dir}"/efi/boot/grub.cfg |
         sudo dd of="${esp_fs_dir}"/efi/boot/grub.cfg status=none
 
-    # Rewrite syslinux DM_TABLE
+    # Rewrite syslinux DM_TABLE for USB booting.
     syslinux_dm_table_usb=${dm_table//${old_root}/${root_a_uuid}}
     sed -e "s|DMTABLEA|${syslinux_dm_table_usb}|g" \
-        -e "s|cros_legacy|&${cros_flags}|g" \
         "${template_dir}"/syslinux/usb.A.cfg |
         sudo dd of="${esp_fs_dir}"/syslinux/usb.A.cfg status=none
 
-    syslinux_dm_table_a=${dm_table//${old_root}/HDROOTA}
-    sed -e "s|DMTABLEA|${syslinux_dm_table_a}|g" \
-        -e "s|cros_legacy|&${cros_flags}|g" \
-        "${template_dir}"/syslinux/root.A.cfg |
-        sudo dd of="${esp_fs_dir}"/syslinux/root.A.cfg status=none
-
-    syslinux_dm_table_b=${dm_table//${old_root}/HDROOTB}
-    sed -e "s|DMTABLEB|${syslinux_dm_table_b}|g" \
-        -e "s|cros_legacy|&${cros_flags}|g" \
-        "${template_dir}"/syslinux/root.B.cfg |
-        sudo dd of="${esp_fs_dir}"/syslinux/root.B.cfg status=none
+    # Note DMTABLE for root.A and root.B does not need to be updated because
+    # postinst will discard all changes in EFI partition and copy from
+    # rootfs:boot/syslinux/root.?.cfg again after installation or AU, because
+    # new rootfs will be apparently different.
 
     # Copy the vmlinuz's into place for syslinux
     sudo cp -f "${template_dir}"/vmlinuz "${esp_fs_dir}"/syslinux/vmlinuz.A

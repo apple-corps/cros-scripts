@@ -171,6 +171,16 @@ mount_gpt_cleanup() {
     -u -r "${rootfs}" -s "${statefs}" -e "${espfs}"
 }
 
+append_boot_flag() {
+  local file="$1"
+  local pattern="$2"
+  local base_pattern="$3"
+
+  [ -f "${file}" ] || return ${FLAGS_TRUE}
+  grep -wq "${pattern}" "${file}" && return ${FLAGS_TRUE}
+  sudo sed -i "s/\b${base_pattern}\b/& ${pattern}/g" "${file}"
+}
+
 make_image_bootable() {
   local image="$1"
   local use_dev_keys=
@@ -189,6 +199,21 @@ make_image_bootable() {
   "${SCRIPTS_DIR}/mount_gpt_image.sh" --from "$(dirname "${image}")" \
     --image "$(basename ${image})" -r "${FLAGS_rootfs_mountpoint}" \
     -s "${FLAGS_statefulfs_mountpoint}"
+
+  # Update legacy boot config templates (in rootfs) before rootfs is locked.
+  # This is required because postinst will copy new legacy boot configurations
+  # from rootfs partition instead of modifying existing entries in partition 12
+  # (EFI partition).
+  if [ ${FLAGS_force_developer_mode} -eq ${FLAGS_TRUE} ]; then
+    append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/syslinux/root.A.cfg" \
+      "cros_debug" "cros_legacy"
+    append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/syslinux/root.B.cfg" \
+      "cros_debug" "cros_legacy"
+    append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/syslinux/usb.A.cfg" \
+      "cros_debug" "cros_legacy"
+    append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/efi/boot/grub.cfg" \
+      "cros_debug" "cros_efi"
+  fi
 
   # The rootfs should never be mounted rw again after this point without
   # re-calling make_image_bootable.
