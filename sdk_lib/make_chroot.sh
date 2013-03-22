@@ -483,11 +483,6 @@ fi
 early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
 
-# dhcpcd is included in 'world' by the stage3 that we pull in for some reason.
-# We have no need to install it in our host environment, so pull it out here.
-info "Deselecting dhcpcd"
-early_enter_chroot $EMERGE_CMD --deselect dhcpcd
-
 info "Running emerge curl sudo ..."
 early_enter_chroot $EMERGE_CMD -uNv $USEPKG --select $EMERGE_JOBS \
   pbzip2 dev-libs/openssl net-misc/curl sudo
