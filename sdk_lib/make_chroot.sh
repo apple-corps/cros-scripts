@@ -197,10 +197,10 @@ init_setup () {
    # and a pointer to pre-built packages.
    # TODO: This should really be part of a profile in the portage.
    info "Setting up /etc/make.*..."
-   mv "${FLAGS_chroot}"/etc/make.conf{,.orig}
+   rm -f "${FLAGS_chroot}"/etc/{,portage/}make.{conf,profile}
+   mkdir -p "${FLAGS_chroot}/etc/portage"
    ln -sf "${CHROOT_CONFIG}/make.conf.amd64-host" \
      "${FLAGS_chroot}/etc/make.conf"
-   mv "${FLAGS_chroot}"/etc/make.profile{,.orig}
    ln -sf "${CHROOT_OVERLAY}/profiles/default/linux/amd64/10.0" \
      "${FLAGS_chroot}/etc/make.profile"
 
@@ -404,7 +404,6 @@ create_bootstrap_host_setup "${FLAGS_chroot}"
 if ! [ -f "$CHROOT_STATE" ];then
   INITIALIZE_CHROOT=1
 fi
-
 
 if ! early_enter_chroot bash -c 'type -P pbzip2' >/dev/null ; then
   # This chroot lacks pbzip2 early on, so we need to disable it.
