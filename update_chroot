@@ -148,8 +148,20 @@ if [[ ${PYTHON_VERSIONS} -gt 1 ]]; then
   cmds+=(
     "python-updater --package-manager-command ${EMERGE_CMD} -- \
       ${PY_UPDATE_FLAGS[*]}"
+  )
+
+  # python-updater does not handle /usr/local, so do it ourselves.
+  # We have to run this after python-updater though since these packages
+  # might rely on other dev-python stuff in /usr.
+  pkgs=( $(qfile -qC /usr/local/lib*/python* | sort -u) )
+  if [[ ${#pkgs[@]} -gt 0 ]]; then
+    cmds+=( "${EMERGE_CMD} ${PY_UPDATE_FLAGS[*]} ${pkgs[*]}" )
+  fi
+
+  cmds+=(
     # Remove empty dirs if possible.
-    'rmdir /usr/lib*/python*/site-packages /usr/lib*/python*/ 2>/dev/null || :'
+    'rmdir /usr/local/lib*/python*/site-packages /usr/local/lib*/python*/ \
+      /usr/lib*/python*/site-packages /usr/lib*/python*/ 2>/dev/null || :'
   )
 fi
 
