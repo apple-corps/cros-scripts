@@ -22,7 +22,7 @@ _make_conf_fetchcommand() {
     output_opt="-O"
   else
     cmd=curl
-    options="-f -y 30 --retry 9 -L"
+    options="--ipv4 -f -y 30 --retry 9 -L"
     resume_opt="-C -"
     output_opt="--output"
   fi
