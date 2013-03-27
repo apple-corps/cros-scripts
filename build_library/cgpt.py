@@ -536,17 +536,38 @@ def main(argv):
     }
   }
 
-  parser = OptionParser()
+  usage = """%prog <action> [options]
+
+For information on the JSON format, see:
+  http://dev.chromium.org/chromium-os/building-chromium-os/disk-layout-format
+
+The --adjust_part flag takes arguments like:
+  <label>:<op><size>
+Where:
+  <label> is a label name as found in the disk layout file
+  <op> is one of the three: + - =
+  <size> is a number followed by an optional size qualifier:
+         B, KiB, MiB, GiB, TiB: bytes, kibi-, mebi-, gibi-, tebi- (base 1024)
+         B,   K,   M,   G,   T: short hand for above
+         B,  KB,  MB,  GB,  TB: bytes, kilo-, mega-, giga-, tera- (base 1000)
+
+This will set the ROOT-A partition size to 1 gibibytes (1024 * 1024 * 1024 * 1):
+  --adjust_part ROOT-A:=1GiB
+This will grow the ROOT-A partition size by 500 mebibytes (1024 * 1024 * 500):
+  --adjust_part ROOT-A:+500MiB
+This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
+  --adjust_part ROOT-A:-20MiB
+
+Actions:
+""" + '\n'.join(['%20s %s' % (x, ' '.join(action_map[x]['usage']))
+                 for x in sorted(action_map)])
+  parser = OptionParser(usage=usage)
   parser.add_option("--adjust_part", dest="adjust_part",
                     help="adjust partition sizes", default="")
   (options, args) = parser.parse_args(args=argv[1:])
 
   if len(args) < 1 or args[0] not in action_map:
-    print 'Usage: %s <action>\n' % sys.argv[0]
-    print 'Valid actions are:'
-    for action in action_map:
-      print '  %s %s' % (action, ' '.join(action_map[action]['usage']))
-    sys.exit(1)
+    parser.error('need a valid action to perform')
   else:
     action_name = args[0]
     action = action_map[action_name]
