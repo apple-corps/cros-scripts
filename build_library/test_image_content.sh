@@ -25,9 +25,11 @@ test_image_content() {
 
   # Check that all .so files, plus the binaries, have the appropriate
   # dependencies.
-  local check_deps="${BUILD_LIBRARY_DIR}/check_deps"
-  if ! "$check_deps"  "$root" "${binaries[@]}" "${libs[@]}"; then
+  local check_deps=$(lddtree -R "${root}" --no-auto-root
+    "${binaries[@]}" "${libs[@]}")
+  if echo "${check_deps}" | grep '\<None$'; then
     error "test_image_content: Failed dependency check"
+    error "${check_deps}"
     returncode=1
   fi
 
