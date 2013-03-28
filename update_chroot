@@ -113,58 +113,14 @@ sudo -E ${EMERGE_CMD} ${EMERGE_FLAGS} \
 # Autodiscard is option "-9" followed by the "YES" confirmation.
 printf '%s\nYES\n' -9 | sudo etc-update
 
-cmds=()
-
 # If the user still has old perl modules installed, update them.
 PERL_VERSIONS=$(find /usr/lib*/perl5/vendor_perl/ -maxdepth 1 -mindepth 1 \
   -type d -printf '%P\n' | sort -u | wc -w)
 if [ "$PERL_VERSIONS" -gt 1 ] ; then
-  cmds+=( 'perl-cleaner --all -- --quiet' )
+  sudo perl-cleaner --all -- --quiet
 fi
 
-# If we've got multiple versions of python installed, clear them out.
-PYTHON_VERSIONS=( $(qlist -ICv -e dev-lang/python | sort -nr) )
-if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
-  info "Cleaning up system python"
-  cmds+=(
-    # Make sure we have the latest version selected.
-    'eselect python update'
-    # Unmerge all the older versions.
-    "CLEAN_DELAY=0 emerge -Cq ${PYTHON_VERSIONS[*]:1}"
-    # Make sure chromite can be found.
-    'rm -f /usr/lib64/python*/site-packages/chromite'
-    "ln -sf /mnt/host/source/chromite \
-      /usr/lib64/python$(eselect python show --ABI)/site-packages/chromite"
-  )
-fi
-
-# If the user still has old python modules installed, update them.
-PYTHON_VERSIONS=$(ls -d /usr/lib*/python*/ | cut -d/ -f4 | sort -u | wc -w)
-if [[ ${PYTHON_VERSIONS} -gt 1 ]]; then
-  PY_UPDATE_FLAGS=()
-  if [[ "${FLAGS_jobs}" -ne -1 ]]; then
-    PY_UPDATE_FLAGS+=( --jobs=${FLAGS_jobs} )
-  fi
-  cmds+=(
-    "python-updater --package-manager-command ${EMERGE_CMD} -- \
-      ${PY_UPDATE_FLAGS[*]}"
-  )
-
-  # python-updater does not handle /usr/local, so do it ourselves.
-  # We have to run this after python-updater though since these packages
-  # might rely on other dev-python stuff in /usr.
-  pkgs=( $(qfile -qC /usr/local/lib*/python* | sort -u) )
-  if [[ ${#pkgs[@]} -gt 0 ]]; then
-    cmds+=( "${EMERGE_CMD} ${PY_UPDATE_FLAGS[*]} ${pkgs[*]}" )
-  fi
-
-  cmds+=(
-    # Remove empty dirs if possible.
-    'rmdir /usr/local/lib*/python*/site-packages /usr/local/lib*/python*/ \
-      /usr/lib*/python*/site-packages /usr/lib*/python*/ 2>/dev/null || :'
-  )
-fi
-
-sudo_multi "${cmds[@]}"
+# If the user has old python stuff, update them.
+"${SCRIPTS_DIR}/python_cleaner" --jobs ${FLAGS_jobs}
 
 command_completed
