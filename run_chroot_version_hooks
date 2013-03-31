@@ -149,6 +149,10 @@ if [ "${LATEST_VERSION}" -gt "${CHROOT_VERSION}" ]; then
     update_version "${n}"
   done
   popd 1> /dev/null
+elif [ "${LATEST_VERSION}" -lt "${CHROOT_VERSION}" ]; then
+  error "Fatal: Missing upgrade hook for ${CHROOT_VERSION}"
+  error "Chroot version is too new. Consider running cros_sdk --replace"
+  exit 1
 fi
 
 command_completed
