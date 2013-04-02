@@ -203,6 +203,8 @@ cat <<EOF - "${FLAGS_working_dir}/boot.config" >> "${config}"
 loglevel=7
 init=/sbin/init
 cros_secure
+oops=panic
+panic=-1
 EOF
 
 if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
@@ -218,8 +220,6 @@ i915.modeset=1
 tpm_tis.force=1
 tpm_tis.interrupts=0
 nmi_watchdog=panic,lapic
-oops=panic
-panic=-1
 EOF
   WORK="${WORK} ${FLAGS_working_dir}/config.txt"
 
