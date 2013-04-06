@@ -34,6 +34,7 @@ switch_to_strict_mode
 CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
+do_cleanup=${FLAGS_FALSE}
 cmds=()
 
 # If we've got multiple versions of python installed, clear them out.
@@ -45,11 +46,8 @@ if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
     'eselect python update'
     # Unmerge all the older versions.
     "CLEAN_DELAY=0 emerge -Cq ${PYTHON_VERSIONS[*]:1}"
-    # Make sure chromite can be found.
-    'rm -f /usr/lib64/python*/site-packages/chromite'
-    "ln -sf /mnt/host/source/chromite \
-      /usr/lib64/python$(eselect python show --ABI)/site-packages/chromite"
   )
+  do_cleanup=${FLAGS_TRUE}
 fi
 
 # If the user still has old python modules installed, update them.
@@ -71,8 +69,17 @@ if [[ ${PYTHON_VERSIONS} -gt 1 ]]; then
   if [[ ${#pkgs[@]} -gt 0 ]]; then
     cmds+=( "${EMERGE_CMD} ${PY_UPDATE_FLAGS[*]} ${pkgs[*]}" )
   fi
+  do_cleanup=${FLAGS_TRUE}
+fi
 
+if [[ ${do_cleanup} -eq ${FLAGS_TRUE} ]]; then
   cmds+=(
+    # Make sure chromite can be found.  We also clean up old chromite paths
+    # that might have been accidentally created (make_chroot/etc...).
+    'rm -f /usr/lib64/python*/{site-packages/,}chromite'
+    'ln -sf /mnt/host/source/chromite \
+      /usr/lib64/python$(eselect python show --ABI)/site-packages/chromite'
+
     # Remove empty dirs if possible.
     'rmdir /usr/local/lib*/python*/site-packages /usr/local/lib*/python*/ \
       /usr/lib*/python*/site-packages /usr/lib*/python*/ 2>/dev/null || :'

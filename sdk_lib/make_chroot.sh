@@ -243,6 +243,7 @@ EOF
 
    # Add chromite into python path.
    for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
+     python_path+="/site-packages"
      sudo mkdir -p "${python_path}"
      sudo ln -s "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"
    done
