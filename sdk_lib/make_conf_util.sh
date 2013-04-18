@@ -60,7 +60,8 @@ _make_conf_private() {
   chromeos_overlay="$CHROOT_TRUNK_DIR/$chromeos_overlay"
   if [ -d "$chromeos_overlay" ]; then
     local boto_config="$chromeos_overlay/googlestorage_account.boto"
-    local gsutil_cmd='gsutil cp \"${URI}\" \"${DISTDIR}/${FILE}\"'
+    local gs_fetch_binpkg='/mnt/host/source/chromite/bin/gs_fetch_binpkg'
+    local gsutil_cmd=${gs_fetch_binpkg}' \"${URI}\" \"${DISTDIR}/${FILE}\"'
     cat <<EOF
 source $chromeos_overlay/make.conf
 

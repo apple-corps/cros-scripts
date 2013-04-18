@@ -171,7 +171,8 @@ print_board_make_conf() {
   if [[ -f "$chromeos_overlay/googlestorage_account.boto" ]]; then
     boto_config="$chromeos_overlay/googlestorage_account.boto"
   fi
-  local gsutil_cmd='gsutil cp \"${URI}\" \"${DISTDIR}/${FILE}\"'
+  local gs_fetch_binpkg='/mnt/host/source/chromite/bin/gs_fetch_binpkg'
+  local gsutil_cmd=${gs_fetch_binpkg}' \"${URI}\" \"${DISTDIR}/${FILE}\"'
   echo
   echo FETCHCOMMAND_GS="\"bash -c 'BOTO_CONFIG=$boto_config $gsutil_cmd'\""
   echo RESUMECOMMAND_GS='"$FETCHCOMMAND_GS"'
