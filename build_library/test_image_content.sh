@@ -21,13 +21,16 @@ test_image_content() {
     fi
   done
 
-  local libs=( $(sudo find "$root" -type f -name '*.so*') )
+  # Keep `local` decl split from assignment so return code is checked.
+  local libs check_deps
+  local lddtree='/mnt/host/source/chromite/bin/lddtree'
 
   # Check that all .so files, plus the binaries, have the appropriate
-  # dependencies.
-  local check_deps=$(lddtree -R "${root}" --no-auto-root
+  # dependencies.  Need to use sudo as some files are set*id.
+  libs=( $(sudo find "${root}" -type f -name '*.so*') )
+  check_deps=$(sudo ${lddtree} -l -R "${root}" --no-auto-root --skip-non-elfs \
     "${binaries[@]}" "${libs[@]}")
-  if echo "${check_deps}" | grep '\<None$'; then
+  if echo "${check_deps}" | grep '^[^/]'; then
     error "test_image_content: Failed dependency check"
     error "${check_deps}"
     returncode=1
