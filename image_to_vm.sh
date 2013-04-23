@@ -37,7 +37,7 @@ DEFINE_string format "qemu" \
   "Output format, either qemu, vmware or virtualbox"
 DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
-DEFINE_string disk_layout "vm" \
+DEFINE_string disk_layout "usb" \
   "The disk layout type to use for this image."
 DEFINE_boolean make_vmx ${FLAGS_TRUE} \
   "Create a vmx file for use with vmplayer (vmware only)."
@@ -55,17 +55,6 @@ DEFINE_string vmdk "${DEFAULT_VMDK}" \
   "Filename for the vmware disk image (vmware only)."
 DEFINE_string vmx "${DEFAULT_VMX}" \
   "Filename for the vmware config (vmware only)."
-
-# The following arguments are ignored.
-# They are here as part of a transition for CL #29931 beacuse the buildbots
-# specify these arguments.
-DEFINE_integer vdisk_size 3072 \
-  "virtual disk size in MBs."
-DEFINE_boolean full "${FLAGS_FALSE}" "Build full image with all partitions."
-DEFINE_integer rootfs_partition_size 1024 \
-  "rootfs parition size in MBs."
-DEFINE_integer statefulfs_size 2048 \
-  "Stateful partition size in MBs."
 
 # Parse command line
 FLAGS "$@" || exit 1
