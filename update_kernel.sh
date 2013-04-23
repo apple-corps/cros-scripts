@@ -19,6 +19,7 @@ DEFINE_string partition "" "Override kernel partition reported by target"
 DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
+DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
 
 # Parse command line.
 FLAGS "$@" || exit 1
@@ -103,6 +104,27 @@ check_kernelbuildtime() {
   fi
 }
 
+update_syslinux_kernel() {
+  # ARM does not have the syslinux directory, so skip it when the
+  # partition or the syslinux vmlinuz target is missing.
+  echo "updating syslinux kernel"
+  remote_sh grep $(echo ${FLAGS_device}12 | cut -d/ -f3) /proc/partitions
+  if [ $(echo "$REMOTE_OUT" | wc -l) -eq 1 ]; then
+    remote_sh mkdir -p /tmp/12
+    remote_sh mount ${FLAGS_device}12 /tmp/12
+
+    if [ "$FLAGS_partition" = "${FLAGS_device}2" ]; then
+      target="/tmp/12/syslinux/vmlinuz.A"
+    else
+      target="/tmp/12/syslinux/vmlinuz.B"
+    fi
+    remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
+
+    remote_sh umount /tmp/12
+    remote_sh rmdir /tmp/12
+  fi
+}
+
 main() {
   trap cleanup EXIT
 
@@ -133,23 +155,8 @@ main() {
     echo "copying kernel"
     remote_send_to /build/"${FLAGS_board}"/boot/ /boot/
 
-    # ARM does not have the syslinux directory, so skip it when the
-    # partition or the syslinux vmlinuz target is missing.
-    echo "updating syslinux kernel"
-    remote_sh grep $(echo ${FLAGS_device}12 | cut -d/ -f3) /proc/partitions
-    if [ $(echo "$REMOTE_OUT" | wc -l) -eq 1 ]; then
-        remote_sh mkdir -p /tmp/12
-        remote_sh mount ${FLAGS_device}12 /tmp/12
-
-        if [ "$FLAGS_partition" = "${FLAGS_device}2" ]; then
-            target="/tmp/12/syslinux/vmlinuz.A"
-        else
-            target="/tmp/12/syslinux/vmlinuz.B"
-        fi
-        remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
-
-        remote_sh umount /tmp/12
-        remote_sh rmdir /tmp/12
+    if [ ${FLAGS_syslinux} -eq ${FLAGS_TRUE} ]; then
+      update_syslinux_kernel
     fi
 
     echo "copying modules"
