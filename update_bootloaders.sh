@@ -161,10 +161,7 @@ sudo mount "${ESP_DEV}" "${ESP_FS_DIR}"
 if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
   # Populate the EFI bootloader configuration
   sudo mkdir -p "${ESP_FS_DIR}/efi/boot"
-  sudo cp "${FLAGS_from}"/efi/boot/bootx64.efi \
-          "${ESP_FS_DIR}/efi/boot/bootx64.efi"
-  sudo cp "${FLAGS_from}/efi/boot/grub.cfg" \
-          "${ESP_FS_DIR}/efi/boot/grub.cfg"
+  sudo cp -r "${FLAGS_from}"/efi/boot/. "${ESP_FS_DIR}"/efi/boot
 
   # Prepopulate the syslinux directories too and update for verified boot values
   # after the rootfs work is done.

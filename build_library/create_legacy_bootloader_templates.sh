@@ -159,13 +159,23 @@ EOF
 
   if [[ -f /bin/grub2-mkimage ]];then
     # Use the newer grub2 1.99+
-    sudo grub2-mkimage -p /efi/boot -O x86_64-efi \
-     -o "${FLAGS_to}/efi/boot/bootx64.efi" \
-     part_gpt fat ext2 hfs hfsplus normal boot chain configfile linux
+    grub_args=(
+      -p /efi/boot
+      part_gpt fat ext2 hfs hfsplus normal boot chain configfile linux
+    )
+    sudo grub2-mkimage -O x86_64-efi \
+      -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
+    sudo i386-grub2-mkimage -O i386-efi \
+      -o "${FLAGS_to}/efi/boot/bootia32.efi" "${grub_args[@]}"
   else
     # Remove this else case after a few weeks (sometime in Dec 2011)
-    sudo grub-mkimage -p /efi/boot -o "${FLAGS_to}/efi/boot/bootx64.efi" \
-     part_gpt fat ext2 normal boot sh chain configfile linux
+    grub_args=(
+      -p /efi/boot
+      part_gpt fat ext2 normal boot sh chain configfile linux
+    )
+    sudo grub-mkimage -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
+    sudo i386-grub-mkimage -o "${FLAGS_to}/efi/boot/bootia32.efi" \
+      "${grub_args[@]}"
   fi
   # Templated variables:
   #  DMTABLEA, DMTABLEB -> '0 xxxx verity ... '
