@@ -3,11 +3,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import copy
 import json
+import optparse
 import os
 import re
 import sys
-from optparse import OptionParser
 
 # First sector we can use.
 START_SECTOR = 64
@@ -20,6 +21,11 @@ class InvalidLayout(Exception):
   pass
 class InvalidAdjustment(Exception):
   pass
+
+
+BASE_LAYOUT = 'base'
+PRIMARY_ROOT_PARTITION = 'ROOT-A'
+ROOT_PARTITION_VAR = 'ROOTFS_PARTITION_SIZE'
 
 
 def LoadPartitionConfig(filename):
@@ -132,10 +138,12 @@ def GetPartitionTable(options, config, image_type):
     Object representing a selected partition table
   """
 
-  partitions = config['layouts']['base']
+  # We make a deep copy so that changes to the dictionaries in this list do not
+  # persist across calls.
+  partitions = copy.deepcopy(config['layouts'][BASE_LAYOUT])
   metadata = config['metadata']
 
-  if image_type != 'base':
+  if image_type != BASE_LAYOUT:
     for partition_t in config['layouts'][image_type]:
       for partition in partitions:
         if partition['type'] == 'blank' or partition_t['type'] == 'blank':
@@ -231,6 +239,7 @@ def GetPartitionTableFromConfig(options, layout_filename, image_type):
 
   return partitions
 
+
 def GetScriptShell():
   """Loads and returns the skeleton script for our output script.
 
@@ -308,6 +317,19 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
   sfile.write('}\n')
 
 
+def WriteRootPartitionSize(options, sfile, config):
+  """Writes out the partition size variable that can be extracted by a caller.
+
+  Args:
+    options: Flags passed to the script
+    sfile: File handle we're writing to
+    config: Partition configuration file object
+  """
+  partitions = GetPartitionTable(options, config, BASE_LAYOUT)
+  partition = GetPartitionByLabel(partitions, PRIMARY_ROOT_PARTITION)
+  sfile.write('%s=%s\n' % (ROOT_PARTITION_VAR, partition['bytes']))
+
+
 def GetPartitionByNumber(partitions, num):
   """Given a partition table and number returns the partition object.
 
@@ -360,8 +382,9 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
     script_shell = GetScriptShell()
     f.write(script_shell)
 
-    WriteLayoutFunction(options, f, 'write_base_table', 'base', config)
+    WriteLayoutFunction(options, f, 'write_base_table', BASE_LAYOUT, config)
     WriteLayoutFunction(options, f, 'write_partition_table', image_type, config)
+    WriteRootPartitionSize(options, f, config)
 
 
 def GetBlockSize(_options, layout_filename):
@@ -486,7 +509,7 @@ def DoDebugOutput(options, image_type, layout_filename):
       else:
         print '%s - %s' % (partition['label'], size)
     else:
-      print 'blank - %s' %  size
+      print 'blank - %s' % size
 
 
 def DoParseOnly(options, image_type, layout_filename):
@@ -561,7 +584,7 @@ This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
 Actions:
 """ + '\n'.join(['%20s %s' % (x, ' '.join(action_map[x]['usage']))
                  for x in sorted(action_map)])
-  parser = OptionParser(usage=usage)
+  parser = optparse.OptionParser(usage=usage)
   parser.add_option("--adjust_part", dest="adjust_part",
                     help="adjust partition sizes", default="")
   (options, args) = parser.parse_args(args=argv[1:])

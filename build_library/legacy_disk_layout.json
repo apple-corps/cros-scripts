@@ -5,7 +5,7 @@
     "fs_block_size": 4096
   },
   "layouts":{
-    "base":[
+    "base": [
       {
         "num": 11,
         "label":"RWFW",
