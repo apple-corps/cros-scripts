@@ -91,21 +91,25 @@ create_base_image() {
 
   local fs_block_size=$(get_fs_block_size)
 
+  # These are often not in non-root $PATH, but they contain tools that
+  # we can run just fine w/non-root users when we work on plain files.
+  PATH+=":/sbin:/usr/sbin"
+
   # Build root FS image.
   info "Building ${root_fs_img}"
   dd if=/dev/zero of="${root_fs_img}" bs=1 count=1 \
     seek=$((root_fs_bytes - 1)) status=none
-  sudo mkfs.ext2 -F -q -b ${fs_block_size} "${root_fs_img}" \
+  mkfs.ext2 -F -q -b ${fs_block_size} "${root_fs_img}" \
     "$((root_fs_bytes / fs_block_size))"
-  sudo tune2fs -L "${root_fs_label}" \
-               -U clear \
-               -T 20091119110000 \
-               -c 0 \
-               -i 0 \
-               -m 0 \
-               -r 0 \
-               -e remount-ro \
-                "${root_fs_img}"
+  tune2fs -L "${root_fs_label}" \
+          -U clear \
+          -T 20091119110000 \
+          -c 0 \
+          -i 0 \
+          -m 0 \
+          -r 0 \
+          -e remount-ro \
+          "${root_fs_img}"
   mkdir -p "${root_fs_dir}"
   sudo mount -o loop "${root_fs_img}" "${root_fs_dir}"
 
@@ -115,9 +119,9 @@ create_base_image() {
   info "Building ${stateful_fs_img}"
   dd if=/dev/zero of="${stateful_fs_img}" bs=1 count=1 \
     seek=$((stateful_fs_bytes - 1)) status=none
-  sudo mkfs.ext4 -F -q "${stateful_fs_img}"
-  sudo tune2fs -L "${stateful_fs_label}" -U "${stateful_fs_uuid}" \
-               -c 0 -i 0 "${stateful_fs_img}"
+  mkfs.ext4 -F -q "${stateful_fs_img}"
+  tune2fs -L "${stateful_fs_label}" -U "${stateful_fs_uuid}" \
+          -c 0 -i 0 "${stateful_fs_img}"
   mkdir -p "${stateful_fs_dir}"
   sudo mount -o loop "${stateful_fs_img}" "${stateful_fs_dir}"
 
@@ -125,17 +129,20 @@ create_base_image() {
   info "Building ${esp_fs_img}"
   dd if=/dev/zero of="${esp_fs_img}" bs=1 count=1 \
     seek=$((esp_fs_bytes - 1)) status=none
-  sudo mkfs.vfat "${esp_fs_img}"
+  mkfs.vfat "${esp_fs_img}"
 
   # Build OEM FS disk image.
   info "Building ${oem_fs_img}"
   dd if=/dev/zero of="${oem_fs_img}" bs=1 count=1 \
     seek=$((oem_fs_bytes - 1)) status=none
-  sudo mkfs.ext4 -F -q "${oem_fs_img}"
-  sudo tune2fs -L "${oem_fs_label}" -U "${oem_fs_uuid}" \
-               -c 0 -i 0 "${oem_fs_img}"
+  mkfs.ext4 -F -q "${oem_fs_img}"
+  tune2fs -L "${oem_fs_label}" -U "${oem_fs_uuid}" \
+          -c 0 -i 0 "${oem_fs_img}"
   mkdir -p "${oem_fs_dir}"
   sudo mount -o loop "${oem_fs_img}" "${oem_fs_dir}"
+
+  # mke2fs is funky and sets the root dir owner to current uid:gid.
+  sudo chown 0:0 "${root_fs_dir}" "${stateful_fs_dir}" "${oem_fs_dir}"
 
   # Prepare stateful partition with some pre-created directories.
   sudo mkdir "${stateful_fs_dir}/dev_image"
