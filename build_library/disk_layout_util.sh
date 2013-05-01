@@ -41,6 +41,7 @@ write_partition_script() {
   cgpt_py write "${image_type}" "${DISK_LAYOUT_PATH}" \
           "${temp_script_file}"
   sudo mv "${temp_script_file}" "${partition_script_path}"
+  sudo chmod a+r "${partition_script_path}"
 }
 
 run_partition_script() {
