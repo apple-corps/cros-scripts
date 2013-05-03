@@ -159,11 +159,10 @@ def GetPartitionTable(options, config, image_type):
   if image_type != BASE_LAYOUT:
     for partition_t in config['layouts'][image_type]:
       for partition in partitions:
-        if partition['type'] == 'blank' or partition_t['type'] == 'blank':
-          continue
-        if partition_t['num'] == partition['num']:
-          for k, v in partition_t.items():
-            partition[k] = v
+        if 'num' in partition_t and 'num' in partition:
+          if partition_t['num'] == partition['num']:
+            for k, v in partition_t.items():
+              partition[k] = v
 
   for adjustment_str in options.adjust_part.split():
     adjustment = adjustment_str.split(':')
@@ -331,10 +330,16 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
       ]
 
   # Set default priorities on kernel partitions.
+  prio = 15
+  for n in (2, 4, 6):
+    partition = GetPartitionByNumber(partitions, n)
+    if partition['type'] != 'blank':
+      lines += [
+        '${GPT} add -i %s -S 0 -T 15 -P %i $1' % (n, prio)
+      ]
+      prio = 0
+
   lines += [
-    '${GPT} add -i 2 -S 0 -T 15 -P 15 $1',
-    '${GPT} add -i 4 -S 0 -T 15 -P 0 $1',
-    '${GPT} add -i 6 -S 0 -T 15 -P 0 $1',
     '${GPT} boot -p -b $2 -i 12 $1',
     '${GPT} show $1',
   ]
@@ -364,9 +369,7 @@ def GetPartitionByNumber(partitions, num):
     An object for the selected partition
   """
   for partition in partitions:
-    if partition['type'] == 'blank':
-      continue
-    if partition['num'] == int(num):
+    if partition.get('num', None) == int(num):
       return partition
 
   raise PartitionNotFound('Partition %s not found' % num)
