@@ -51,8 +51,8 @@ if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
 fi
 
 # If the user still has old python modules installed, update them.
-PYTHON_VERSIONS=$(ls -d /usr/lib*/python*/ | cut -d/ -f4 | sort -u | wc -w)
-if [[ ${PYTHON_VERSIONS} -gt 1 ]]; then
+PYTHON_VERSIONS=( $(ls -d /usr/lib*/python*/ | cut -d/ -f4 | sort -uV) )
+if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
   PY_UPDATE_FLAGS=()
   if [[ ${FLAGS_jobs} -ne -1 ]]; then
     PY_UPDATE_FLAGS+=( --jobs=${FLAGS_jobs} )
@@ -69,7 +69,10 @@ if [[ ${PYTHON_VERSIONS} -gt 1 ]]; then
   if [[ ${#pkgs[@]} -gt 0 ]]; then
     cmds+=( "${EMERGE_CMD} ${PY_UPDATE_FLAGS[*]} ${pkgs[*]}" )
   fi
+  old_py_dir=${PYTHON_VERSIONS[0]}
   do_cleanup=${FLAGS_TRUE}
+else
+  old_py_dir=
 fi
 
 if [[ ${do_cleanup} -eq ${FLAGS_TRUE} ]]; then
@@ -79,7 +82,20 @@ if [[ ${do_cleanup} -eq ${FLAGS_TRUE} ]]; then
     'rm -f /usr/lib64/python*/{site-packages/,}chromite'
     'ln -sf /mnt/host/source/chromite \
       /usr/lib64/python$(eselect python show --ABI)/site-packages/chromite'
+  )
 
+  if [[ -n ${old_py_dir} ]]; then
+    cmds+=(
+      # Trim generated pyc files if they've been left behind.
+      "find /usr/lib*/${old_py_dir}/ /usr/local/lib*/${old_py_dir}/ \
+        -name '*.pyc' -delete 2>/dev/null || :"
+
+      "find /usr/lib*/${old_py_dir}/ /usr/local/lib*/${old_py_dir}/ \
+        -depth -type d -delete 2>/dev/null || :"
+    )
+  fi
+
+  cmds+=(
     # Remove empty dirs if possible.
     'rmdir /usr/local/lib*/python*/site-packages /usr/local/lib*/python*/ \
       /usr/lib*/python*/site-packages /usr/lib*/python*/ 2>/dev/null || :'
