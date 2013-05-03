@@ -595,7 +595,9 @@ Actions:
     action_name = args[0]
     action = action_map[action_name]
     if len(action['usage']) == len(args) - 1:
-      print action['func'](options, *args[1:])
+      ret = action['func'](options, *args[1:])
+      if ret is not None:
+        print ret
     else:
       sys.exit('Usage: %s %s %s' % (sys.argv[0], args[0],
                ' '.join(action['usage'])))
