@@ -494,22 +494,34 @@ def DoDebugOutput(options, image_type, layout_filename):
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
 
+  label_len = max([len(x['label']) for x in partitions if 'label' in x])
+  type_len = max([len(x['type']) for x in partitions if 'type' in x])
+
+  msg = 'num:%4s label:%-*s type:%-*s size:%-10s fs_size:%-10s features:%s'
   for partition in partitions:
     if partition['bytes'] < 1024 * 1024:
-      size = '%d bytes' % partition['bytes']
+      size = '%d B' % partition['bytes']
     else:
-      size = '%d MB' % (partition['bytes'] / 1024 / 1024)
-    if 'label' in partition:
-      if 'fs_bytes' in partition:
-        if partition['fs_bytes'] < 1024 * 1024:
-          fs_size = '%d bytes' % partition['fs_bytes']
-        else:
-          fs_size = '%d MB' % (partition['fs_bytes'] / 1024 / 1024)
-        print '%s - %s/%s' % (partition['label'], fs_size, size)
+      size = '%d MiB' % (partition['bytes'] / 1024 / 1024)
+
+    if 'fs_bytes' in partition:
+      if partition['fs_bytes'] < 1024 * 1024:
+        fs_size = '%d B' % partition['fs_bytes']
       else:
-        print '%s - %s' % (partition['label'], size)
+        fs_size = '%d MiB' % (partition['fs_bytes'] / 1024 / 1024)
     else:
-      print 'blank - %s' % size
+      fs_size = 'auto'
+
+    print msg % (
+        partition.get('num', 'auto'),
+        label_len,
+        partition.get('label', ''),
+        type_len,
+        partition.get('type', ''),
+        size,
+        fs_size,
+        partition.get('features', ''),
+    )
 
 
 def DoParseOnly(options, image_type, layout_filename):
