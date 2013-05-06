@@ -26,6 +26,7 @@ class InvalidAdjustment(Exception):
 BASE_LAYOUT = 'base'
 PRIMARY_ROOT_PARTITION = 'ROOT-A'
 ROOT_PARTITION_VAR = 'ROOTFS_PARTITION_SIZE'
+_INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features',))
 
 
 def LoadPartitionConfig(filename):
@@ -38,9 +39,8 @@ def LoadPartitionConfig(filename):
   """
 
   valid_keys = set(('_comment', 'metadata', 'layouts'))
-  valid_layout_keys = set((
-      '_comment', 'type', 'num', 'label', 'blocks', 'block_size', 'fs_blocks',
-      'fs_block_size', 'features'))
+  valid_layout_keys = _INHERITED_LAYOUT_KEYS | set((
+      '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size'))
 
   if not os.path.exists(filename):
     raise ConfigNotFound('Partition config %s was not found!' % filename)
@@ -59,12 +59,25 @@ def LoadPartitionConfig(filename):
     if len(config['layouts']) <= 0:
       raise InvalidLayout('Missing "layouts" entries')
 
-    for layout_name, layout in config['layouts'].items():
+    if not BASE_LAYOUT in config['layouts'].keys():
+      raise InvalidLayout('Missing "base" config in "layouts"')
+
+    for layout_name, layout in config['layouts'].iteritems():
       for part in layout:
         unknown_keys = set(part.keys()) - valid_layout_keys
         if unknown_keys:
           raise InvalidLayout('Unknown items in layout %s: %r' %
                               (layout_name, unknown_keys))
+
+        if layout_name != BASE_LAYOUT:
+          # Inherit from the base config by num.
+          for base_part in config['layouts'][BASE_LAYOUT]:
+            if ('num' in base_part and 'num' in part and
+                base_part['num'] == part['num']):
+              for k, v in base_part.iteritems():
+                if k in _INHERITED_LAYOUT_KEYS and k not in part:
+                  part[k] = v
+              break
 
         if part['type'] != 'blank':
           for s in ('num', 'label'):
