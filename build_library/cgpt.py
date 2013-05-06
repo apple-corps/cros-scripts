@@ -272,12 +272,14 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
   partitions = GetPartitionTable(options, config, image_type)
   partition_totals = GetTableTotals(config, partitions)
 
-  sfile.write('%s() {\ncreate_image $1 %d %s\n' % (
-      func_name, partition_totals['min_disk_size'],
-      config['metadata']['block_size']))
-
-  sfile.write('CURR=%d\n' % START_SECTOR)
-  sfile.write('$GPT create $1\n')
+  lines = [
+    '%s() {' % func_name,
+    'create_image $1 %d %s' % (
+        partition_totals['min_disk_size'],
+        config['metadata']['block_size']),
+    'local curr=%d' % START_SECTOR,
+    '${GPT} create $1',
+  ]
 
   # Pass 1: Set up the expanding partition size.
   for partition in partitions:
@@ -286,35 +288,44 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
     if partition['type'] != 'blank':
       if partition['num'] == 1:
         if 'features' in partition and 'expand' in partition['features']:
-          sfile.write('if [ -b $1 ]; then\n')
-          sfile.write('STATEFUL_SIZE=$(( $(numsectors $1) - %d))\n' %
-            partition_totals['block_count'])
-          sfile.write('else\n')
-          sfile.write('STATEFUL_SIZE=%s\n' % partition['blocks'])
-          sfile.write('fi\n')
-          partition['var'] = '$STATEFUL_SIZE'
+          lines += [
+            'local stateful_size=%s' % partition['blocks'],
+            'if [ -b $1 ]; then',
+            '  stateful_size=$(( $(numsectors $1) - %d))' %
+                partition_totals['block_count'],
+            'fi',
+          ]
+          partition['var'] = '${stateful_size}'
 
-  sfile.write('STATEFUL_SIZE=$((STATEFUL_SIZE-(STATEFUL_SIZE %% %d)))\n' %
-    config['metadata']['fs_block_size'])
+  lines += [
+    ': $(( stateful_size -= (stateful_size %% %d) ))' % (
+        config['metadata']['fs_block_size'],),
+  ]
 
   # Pass 2: Write out all the cgpt add commands.
   for partition in partitions:
     if partition['type'] != 'blank':
-      sfile.write('$GPT add -i %d -b $CURR -s %s -t %s -l %s $1 && ' % (
-          partition['num'], str(partition['var']), partition['type'],
-          partition['label']))
+      lines += [
+        '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" $1 && ' % (
+            partition['num'], str(partition['var']), partition['type'],
+            partition['label']),
+      ]
 
-    # Increment the CURR counter ready for the next partition.
-    sfile.write('CURR=$(( $CURR + %s ))\n' % partition['var'])
+    # Increment the curr counter ready for the next partition.
+    if partition['var'] != 0:
+      lines += [
+        ': $(( curr += %s ))' % partition['var'],
+      ]
 
-  # Set default priorities on kernel partitions
-  sfile.write('$GPT add -i 2 -S 0 -T 15 -P 15 $1\n')
-  sfile.write('$GPT add -i 4 -S 0 -T 15 -P 0 $1\n')
-  sfile.write('$GPT add -i 6 -S 0 -T 15 -P 0 $1\n')
-
-  sfile.write('$GPT boot -p -b $2 -i 12 $1\n')
-  sfile.write('$GPT show $1\n')
-  sfile.write('}\n')
+  # Set default priorities on kernel partitions.
+  lines += [
+    '${GPT} add -i 2 -S 0 -T 15 -P 15 $1',
+    '${GPT} add -i 4 -S 0 -T 15 -P 0 $1',
+    '${GPT} add -i 6 -S 0 -T 15 -P 0 $1',
+    '${GPT} boot -p -b $2 -i 12 $1',
+    '${GPT} show $1',
+  ]
+  sfile.write('%s\n}\n' % '\n  '.join(lines))
 
 
 def WriteRootPartitionSize(options, sfile, config):
