@@ -26,7 +26,8 @@ class InvalidAdjustment(Exception):
 BASE_LAYOUT = 'base'
 PRIMARY_ROOT_PARTITION = 'ROOT-A'
 ROOT_PARTITION_VAR = 'ROOTFS_PARTITION_SIZE'
-_INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features',))
+_INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features', 'format',
+                              'fs_format',))
 
 
 def LoadPartitionConfig(filename):
@@ -464,6 +465,24 @@ def GetPartitionSize(options, image_type, layout_filename, num):
   return partition['bytes']
 
 
+def GetFilesystemFormat(options, image_type, layout_filename, num):
+  """Returns the filesystem format of a given partition for a given layout type.
+
+  Args:
+    options: Flags passed to the script
+    image_type: Type of image eg base/test/dev/factory_install
+    layout_filename: Path to partition configuration file
+    num: Number of the partition you want to read from
+  Returns:
+    Format of selected partition filesystem
+  """
+
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partition = GetPartitionByNumber(partitions, num)
+
+  return partition.get('fs_format')
+
+
 def GetFilesystemSize(options, image_type, layout_filename, num):
   """Returns the filesystem size of a given partition for a given layout type.
 
@@ -579,6 +598,10 @@ def main(argv):
     'readpartsize': {
       'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
       'func': GetPartitionSize,
+    },
+    'readfsformat': {
+      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
+      'func': GetFilesystemFormat,
     },
     'readfssize': {
       'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],

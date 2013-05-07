@@ -92,6 +92,14 @@ get_partition_size() {
   cgpt_py readpartsize "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
 }
 
+get_filesystem_format() {
+  local image_type=$1
+  local part_id=$2
+  get_disk_layout_path
+
+  cgpt_py readfsformat "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+}
+
 get_filesystem_size() {
   local image_type=$1
   local part_id=$2

@@ -44,6 +44,78 @@ zero_free_space() {
   sudo rm "${fs_mount_point}/filler"
 }
 
+# Usage: mk_fs <image_type> <partition_num> <image_file> <fs_uuid> <mount_dir>
+# Args:
+#   image_type: The layout name used to look up partition info in disk layout.
+#   partition_num: The partition to look up in the disk layout.
+#   image_file: The file to write the fs image to.
+#   fs_uuid: 'clear' will set the UUID to all zeros.  'random' will initialize
+#            the UUID with a new random value.
+#   mount_dir: (optional) Where to mount the image after creating it
+#
+# Note: After we mount the fs, we will attempt to reset the root dir ownership
+#       to 0:0 to workaround a bug in mke2fs (fixed in upstream git now).
+mk_fs() {
+  local image_type=$1
+  local part_num=$2
+  local fs_img=$3
+  local fs_uuid=$4
+  local mount_dir=$5
+
+  # These are often not in non-root $PATH, but they contain tools that
+  # we can run just fine w/non-root users when we work on plain files.
+  local p
+  for p in /sbin /usr/sbin; do
+    if [[ ":${PATH}:" != *:${p}:* ]]; then
+      PATH+=":${p}"
+    fi
+  done
+
+  # Keep `local` decl split from assignment so return code is checked.
+  local fs_bytes fs_label fs_format fs_block_size
+
+  fs_bytes=$(get_filesystem_size ${image_type} ${part_num})
+  fs_label=$(get_label ${image_type} ${part_num})
+  fs_format=$(get_filesystem_format ${image_type} ${part_num})
+  fs_block_size=$(get_fs_block_size)
+
+  info "Building ${fs_img}"
+  truncate -s ${fs_bytes} "${fs_img}"
+  case ${fs_format} in
+  ext[234])
+    mkfs.${fs_format} -F -q -U 00000000-0000-0000-0000-000000000000 \
+      -b ${fs_block_size} "${fs_img}" "$((fs_bytes / fs_block_size))"
+    tune2fs -L "${fs_label}" \
+            -U "${fs_uuid}" \
+            -c 0 \
+            -i 0 \
+            -T 20091119110000 \
+            -m 0 \
+            -r 0 \
+            -e remount-ro \
+            "${fs_img}"
+    ;;
+  fat12|fat16|fat32)
+    mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${fs_img}"
+    ;;
+  fat|vfat)
+    mkfs.vfat -n "${fs_label}" "${fs_img}"
+    ;;
+  *)
+    die "Unknown fs format '${fs_format}' for part ${part_num}";;
+  esac
+
+  if [[ -n ${mount_dir} ]]; then
+    mkdir -p "${mount_dir}"
+    local cmds=(
+      "mount -o loop '${fs_img}' '${mount_dir}'"
+      # mke2fs is funky and sets the root dir owner to current uid:gid.
+      "chown 0:0 '${mount_dir}' 2>/dev/null || :"
+    )
+    sudo_multi "${cmds[@]}"
+  fi
+}
+
 create_base_image() {
   local image_name=$1
   local rootfs_verification_enabled=$2
@@ -51,7 +123,7 @@ create_base_image() {
   local image_type="usb"
 
   if [[ "${FLAGS_disk_layout}" != "default" ]]; then
-      image_type="${FLAGS_disk_layout}"
+    image_type="${FLAGS_disk_layout}"
   else
     if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
       image_type="factory_install"
@@ -74,81 +146,19 @@ create_base_image() {
   cleanup_mounts &> /dev/null
 
   local root_fs_img="${BUILD_DIR}/rootfs.image"
-  local root_fs_bytes=$(get_filesystem_size ${image_type} 3)
-  local root_fs_label=$(get_label ${image_type} 3)
-
   local stateful_fs_img="${BUILD_DIR}/stateful.image"
-  local stateful_fs_bytes=$(get_filesystem_size ${image_type} 1)
-  local stateful_fs_label=$(get_label ${image_type} 1)
-  local stateful_fs_uuid=$(uuidgen)
-
   local esp_fs_img="${BUILD_DIR}/esp.image"
-  local esp_fs_bytes=$(get_filesystem_size ${image_type} 12)
-  local esp_fs_label=$(get_label ${image_type} 12)
-
   local oem_fs_img="${BUILD_DIR}/oem.image"
-  local oem_fs_bytes=$(get_filesystem_size ${image_type} 8)
-  local oem_fs_label=$(get_label ${image_type} 8)
-  local oem_fs_uuid=$(uuidgen)
 
-  local fs_block_size=$(get_fs_block_size)
-
-  # These are often not in non-root $PATH, but they contain tools that
-  # we can run just fine w/non-root users when we work on plain files.
-  PATH+=":/sbin:/usr/sbin"
-
-  # Build root FS image.
-  info "Building ${root_fs_img}"
-  dd if=/dev/zero of="${root_fs_img}" bs=1 count=1 \
-    seek=$((root_fs_bytes - 1)) status=none
-  mkfs.ext2 -F -q -b ${fs_block_size} "${root_fs_img}" \
-    "$((root_fs_bytes / fs_block_size))"
-  tune2fs -L "${root_fs_label}" \
-          -U clear \
-          -T 20091119110000 \
-          -c 0 \
-          -i 0 \
-          -m 0 \
-          -r 0 \
-          -e remount-ro \
-          "${root_fs_img}"
-  mkdir -p "${root_fs_dir}"
-  sudo mount -o loop "${root_fs_img}" "${root_fs_dir}"
-
+  # Build the various FS images.
+  mk_fs "${image_type}" 3 "${root_fs_img}" clear "${root_fs_dir}"
   df -h "${root_fs_dir}"
-
-  # Build stateful FS disk image.
-  info "Building ${stateful_fs_img}"
-  dd if=/dev/zero of="${stateful_fs_img}" bs=1 count=1 \
-    seek=$((stateful_fs_bytes - 1)) status=none
-  mkfs.ext4 -F -q "${stateful_fs_img}"
-  tune2fs -L "${stateful_fs_label}" -U "${stateful_fs_uuid}" \
-          -c 0 -i 0 "${stateful_fs_img}"
-  mkdir -p "${stateful_fs_dir}"
-  sudo mount -o loop "${stateful_fs_img}" "${stateful_fs_dir}"
-
-  # Build ESP disk image.
-  info "Building ${esp_fs_img}"
-  dd if=/dev/zero of="${esp_fs_img}" bs=1 count=1 \
-    seek=$((esp_fs_bytes - 1)) status=none
-  mkfs.vfat "${esp_fs_img}"
-
-  # Build OEM FS disk image.
-  info "Building ${oem_fs_img}"
-  dd if=/dev/zero of="${oem_fs_img}" bs=1 count=1 \
-    seek=$((oem_fs_bytes - 1)) status=none
-  mkfs.ext4 -F -q "${oem_fs_img}"
-  tune2fs -L "${oem_fs_label}" -U "${oem_fs_uuid}" \
-          -c 0 -i 0 "${oem_fs_img}"
-  mkdir -p "${oem_fs_dir}"
-  sudo mount -o loop "${oem_fs_img}" "${oem_fs_dir}"
-
-  # mke2fs is funky and sets the root dir owner to current uid:gid.
-  sudo chown 0:0 "${root_fs_dir}" "${stateful_fs_dir}" "${oem_fs_dir}"
+  mk_fs "${image_type}" 1 "${stateful_fs_img}" random "${stateful_fs_dir}"
+  mk_fs "${image_type}" 12 "${esp_fs_img}" clear
+  mk_fs "${image_type}" 8 "${oem_fs_img}" random "${oem_fs_dir}"
 
   # Prepare stateful partition with some pre-created directories.
-  sudo mkdir "${stateful_fs_dir}/dev_image"
-  sudo mkdir "${stateful_fs_dir}/var_overlay"
+  sudo mkdir "${stateful_fs_dir}/dev_image" "${stateful_fs_dir}/var_overlay"
 
   # Create symlinks so that /usr/local/usr based directories are symlinked to
   # /usr/local/ directories e.g. /usr/local/usr/bin -> /usr/local/bin, etc.
