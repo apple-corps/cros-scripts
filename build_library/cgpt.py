@@ -24,8 +24,6 @@ class InvalidAdjustment(Exception):
 
 
 BASE_LAYOUT = 'base'
-PRIMARY_ROOT_PARTITION = 'ROOT-A'
-ROOT_PARTITION_VAR = 'ROOTFS_PARTITION_SIZE'
 _INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features', 'format',
                               'fs_format',))
 
@@ -347,17 +345,38 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
 
-def WriteRootPartitionSize(options, sfile, config):
+def WritePartitionSizesFunction(options, sfile, func_name, image_type, config):
   """Writes out the partition size variable that can be extracted by a caller.
 
   Args:
     options: Flags passed to the script
     sfile: File handle we're writing to
+    func_name: Function name to write out for specified layout
+    image_type: Type of image eg base/test/dev/factory_install
     config: Partition configuration file object
   """
-  partitions = GetPartitionTable(options, config, BASE_LAYOUT)
-  partition = GetPartitionByLabel(partitions, PRIMARY_ROOT_PARTITION)
-  sfile.write('%s=%s\n' % (ROOT_PARTITION_VAR, partition['bytes']))
+  lines = [
+    '%s() {' % func_name,
+    'DEFAULT_ROOTDEV=%s' % config['metadata'].get('rootdev', ''),
+  ]
+
+  partitions = GetPartitionTable(options, config, image_type)
+  for partition in partitions:
+    for key in ('label', 'num'):
+      if key in partition:
+        shell_label = str(partition[key]).replace('-', '_').upper()
+        part_bytes = partition['bytes']
+        fs_bytes = partition.get('fs_bytes', part_bytes)
+        part_format = partition.get('format', '')
+        fs_format = partition.get('fs_format', '')
+        lines += [
+            'PARTITION_SIZE_%s=%s' % (shell_label, part_bytes),
+            '     DATA_SIZE_%s=%s' % (shell_label, fs_bytes),
+            '        FORMAT_%s=%s' % (shell_label, part_format),
+            '     FS_FORMAT_%s=%s' % (shell_label, fs_format),
+        ]
+
+  sfile.write('%s\n}\n' % '\n  '.join(lines))
 
 
 def GetPartitionByNumber(partitions, num):
@@ -410,9 +429,16 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
     script_shell = GetScriptShell()
     f.write(script_shell)
 
-    WriteLayoutFunction(options, f, 'write_base_table', BASE_LAYOUT, config)
-    WriteLayoutFunction(options, f, 'write_partition_table', image_type, config)
-    WriteRootPartitionSize(options, f, config)
+    for func, layout in (('base', BASE_LAYOUT), ('partition', image_type)):
+      WriteLayoutFunction(options, f, 'write_%s_table' % func, layout, config)
+      WritePartitionSizesFunction(options, f, 'load_%s_vars' % func, layout,
+                                  config)
+
+    # TODO: Backwards compat.  Should be killed off once we update
+    #       cros_generate_update_payload to use the new code.
+    partitions = GetPartitionTable(options, config, BASE_LAYOUT)
+    partition = GetPartitionByLabel(partitions, 'ROOT-A')
+    f.write('ROOTFS_PARTITION_SIZE=%s\n' % (partition['bytes'],))
 
 
 def GetBlockSize(_options, layout_filename):
