@@ -176,6 +176,10 @@ die_notrace() {
   exit 1
 }
 
+# Check for a single string in a list of space-separated strings.
+# e.g. has "foo" "foo bar baz" is true, but has "f" "foo bar baz" is not.
+has() { [[ " ${*:2} " == *" $1 "* ]]; }
+
 # Directory locations inside the dev chroot; try the new default,
 # falling back to user specific paths if the upgrade has yet to
 # happen.
