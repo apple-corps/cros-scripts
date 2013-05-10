@@ -4,6 +4,7 @@
 
 CGPT_PY="${BUILD_LIBRARY_DIR}/cgpt.py"
 PARTITION_SCRIPT_PATH="usr/sbin/write_gpt.sh"
+DISK_LAYOUT_PATH=
 
 cgpt_py() {
   if [[ -n "${FLAGS_adjust_part-}" ]]; then
@@ -19,6 +20,9 @@ cgpt_py() {
 }
 
 get_disk_layout_path() {
+  if [[ -n ${DISK_LAYOUT_PATH} ]]; then
+    return 0
+  fi
   DISK_LAYOUT_PATH="${BUILD_LIBRARY_DIR}/legacy_disk_layout.json"
   local partition_script_path=$(tempfile)
   for overlay in $(cros_list_overlays --board "$BOARD"); do

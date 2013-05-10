@@ -62,6 +62,8 @@ create_base_image() {
   check_valid_layout ${image_type}
 
   info "Using image type ${image_type}"
+  get_disk_layout_path
+  info "Using disk layout ${DISK_LAYOUT_PATH}"
 
   root_fs_dir="${BUILD_DIR}/rootfs"
   stateful_fs_dir="${BUILD_DIR}/stateful"
