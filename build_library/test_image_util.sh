@@ -73,10 +73,6 @@ mod_image_for_test () {
     # Run factory setup script to modify the image
     sudo -E GCLIENT_ROOT="${GCLIENT_ROOT}" ROOT_FS_DIR="${root_fs_dir}" \
             BOARD="${BOARD}" "${mod_factory_script}"
-    local factory_dir="${CHROOT_TRUNK_DIR}/src/platform/factory"
-    local common_factory_script="${factory_dir}/sh/common_mod_factory_image.sh"
-    # Run common mod factory script to modify the image
-    sudo "${common_factory_script}" "${root_fs_dir}"
   fi
 
   # Re-run ldconfig to fix /etc/ldconfig.so.cache.
