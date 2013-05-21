@@ -22,9 +22,9 @@ pv_cat_cmd() {
     # Limit pv's output to 80 columns, for readability.
     local term_cols=$(stty size 2>/dev/null | cut -d' ' -f2)
     if [[ ${term_cols:-0} -gt 80 ]]; then
-      echo pv -w 80
+      echo pv -w 80 -B 4m
     else
-      echo pv
+      echo pv -B 4m
     fi
   else
     echo cat
