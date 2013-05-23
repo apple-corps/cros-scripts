@@ -196,7 +196,7 @@ print_binhost_config() {
   local chrome_binhost_suffix="LATEST_RELEASE_CHROME_BINHOST.conf"
   local partner_overlay="$SRC_ROOT/private-overlays/chromeos-partner-overlay"
   local internal_binhost_dir="$partner_overlay/chromeos/binhost/target"
-  declare -A chrome_arch_map arch_map kernel_map
+  declare -A internal_arch_map arch_map kernel_map
   local chrome_binhost_base kernel
   # Arm prebuilts are kernel-specific so don't use generic prebuilts for them.
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
