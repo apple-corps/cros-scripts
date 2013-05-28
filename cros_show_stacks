@@ -92,16 +92,16 @@ main() {
     # This allows us to get crashes from the currently logged in
     # user as well as from non-logged in users at once.  We remove
     # duplicate crashes (in case cryptohome is not mounted) below.
-    local remote_crash_dirs=" \
-        /var/spool/crash \
-        /home/chronos/user/crash \
-        /mnt/stateful_partition/home/chronos/user/crash"
-    local remote_crash_patterns=""
-    for remote_crash_dir in ${remote_crash_dirs}; do
-      remote_crash_patterns="${remote_crash_patterns} \
-                             ${remote_crash_dir}/*.{dmp,kcrash}"
+    local remote_crash_dirs=(
+        "/var/spool/crash"
+        "/home/user/*/crash"
+        "/mnt/stateful_partition/home/user/*/crash"
+    )
+    local remote_crash_patterns=()
+    for remote_crash_dir in "${remote_crash_dirs[@]}"; do
+      remote_crash_patterns+=( "${remote_crash_dir}/*.{dmp,kcrash}" )
     done
-    remote_sh "ls -1 ${remote_crash_patterns}" 2> /dev/null
+    remote_sh "ls -1 ${remote_crash_patterns[*]}" 2> /dev/null
     local crashes=${REMOTE_OUT}
     # Remove duplicates.
     local unique_crashes=""
@@ -127,7 +127,7 @@ main() {
     done
     remote_rsync_from "${filesfrom}" "${TMP}"
     if [ ${FLAGS_clean} -eq ${FLAGS_TRUE} ]; then
-      remote_sh "rm -rf ${remote_crash_dirs}"
+      remote_sh "rm -rf ${remote_crash_dirs[*]}"
     fi
   else
     [ -n "${FLAGS_ARGV}" ] || usage
