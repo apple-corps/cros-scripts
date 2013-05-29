@@ -196,16 +196,18 @@ print_binhost_config() {
   local chrome_binhost_suffix="LATEST_RELEASE_CHROME_BINHOST.conf"
   local partner_overlay="$SRC_ROOT/private-overlays/chromeos-partner-overlay"
   local internal_binhost_dir="$partner_overlay/chromeos/binhost/target"
-  declare -A internal_arch_map arch_map kernel_map
+  # i_arch_map / e_arch_map: maps architectures to internal / external boards.
+  # i_kernel_map / e_kernel_map: maps kernels to internal / external boards.
+  declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map
   local chrome_binhost_base kernel
-  # Arm prebuilts are kernel-specific so don't use generic prebuilts for them.
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
-  kernel_map=(['chromeos-exynos5']='daisy')
-  arch_map=(
+  e_kernel_map=(['chromeos-exynos5']='daisy')
+  i_kernel_map=(['chromeos-exynos5']='daisy_spring')
+  e_arch_map=(
     ['amd64']='amd64-generic'
     ['x86']='x86-generic'
   )
-  internal_arch_map=(
+  i_arch_map=(
     ['amd64']='lumpy'
     ['x86']='x86-alex'
   )
@@ -214,10 +216,10 @@ print_binhost_config() {
   else
     chrome_binhost_base=${binhost_dir}
   fi
-  local generic="${kernel_map[${kernel:-none}]:-${arch_map[${ARCH}]:-}}"
-  local internal_generic="${internal_arch_map[${ARCH}]:-${generic}}"
+  local e_generic="${e_kernel_map[${kernel:-none}]:-${e_arch_map[${ARCH}]:-}}"
+  local i_generic="${i_kernel_map[${kernel:-none}]:-${i_arch_map[${ARCH}]:-}}"
   local board chrome_binhost internal_binhost preflight_binhost
-  for board in ${BOARD_VARIANT} ${BOARD} ${internal_generic} ${generic}; do
+  for board in ${BOARD_VARIANT} ${BOARD} ${i_generic} ${e_generic}; do
     if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ]]; then
       chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
     fi
