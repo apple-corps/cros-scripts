@@ -11,8 +11,15 @@ test_image_content() {
     "$root/boot/vmlinuz"
     "$root/sbin/session_manager"
     "$root/bin/sed"
-    "$root/opt/google/chrome/chrome"
   )
+  # When chrome is built with USE="pgo_generate", rootfs chrome is actually a
+  # symlink to a real binary which is in the stateful partition. So we do not
+  # check for a valid chrome binary in that case.
+  local chrome_binary="${root}/opt/google/chrome/chrome"
+  if ! portageq-"${BOARD}" has_version "${root}" \
+    'chromeos-base/chromeos-chrome[pgo_generate]'; then
+    binaries+=( "${chrome_binary}" )
+  fi
 
   for test_file in "${binaries[@]}"; do
     if [ ! -f "$test_file" ]; then
