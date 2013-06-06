@@ -295,7 +295,7 @@ EOF
 
    if [[ "${SUDO_USER}" = "chrome-bot" && -d "${SUDO_HOME}/.ssh" ]]; then
      # Copy ssh keys, so chroot'd chrome-bot can scp files from chrome-web.
-     cp -rp "${SUDO_HOME}/.ssh" "$FLAGS_chroot/home/${SUDO_USER}/"
+     user_cp -rp "${SUDO_HOME}/.ssh" "$FLAGS_chroot/home/${SUDO_USER}/"
    fi
 
    if [[ -f ${SUDO_HOME}/.gitconfig ]]; then
