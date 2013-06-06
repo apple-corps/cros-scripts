@@ -174,7 +174,7 @@ if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
 
   # Extract kernel flags
   kernel_cfg=
-  old_root="%U+1"
+  old_root='PARTUUID=%U/PARTNROFF=1'
   if [[ -n "${FLAGS_kernel_cmdline}" ]]; then
     info "Using supplied kernel_cmdline to update templates."
     kernel_cfg="${FLAGS_kernel_cmdline}"
