@@ -161,7 +161,8 @@ EOF
     # Use the newer grub2 1.99+
     grub_args=(
       -p /efi/boot
-      part_gpt fat ext2 hfs hfsplus normal boot chain configfile linux
+      part_gpt gptpriority test fat ext2 hfs hfsplus normal boot chain
+      configfile linux
     )
     sudo grub2-mkimage -O x86_64-efi \
       -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
@@ -171,7 +172,7 @@ EOF
     # Remove this else case after a few weeks (sometime in Dec 2011)
     grub_args=(
       -p /efi/boot
-      part_gpt fat ext2 normal boot sh chain configfile linux
+      part_gpt gptpriority test fat ext2 normal boot sh chain configfile linux
     )
     sudo grub-mkimage -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
     sudo i386-grub-mkimage -o "${FLAGS_to}/efi/boot/bootia32.efi" \
@@ -181,7 +182,17 @@ EOF
   #  DMTABLEA, DMTABLEB -> '0 xxxx verity ... '
   # This should be replaced during postinst when updating the ESP.
   cat <<EOF | sudo dd of="${FLAGS_to}/efi/boot/grub.cfg" 2>/dev/null
-set default=0
+defaultA=0
+defaultB=1
+gptpriority \$grubdisk 2 prioA
+gptpriority \$grubdisk 4 prioB
+
+if [ \$prioA -lt \$prioB ]; then
+  set default=\$defaultB
+else
+  set default=\$defaultA
+fi
+
 set timeout=2
 
 # NOTE: These magic grub variables are a Chrome OS hack. They are not portable.
@@ -210,8 +221,10 @@ menuentry "Alternate USB Boot" {
 }
 EOF
   if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
-    sudo sed -i -e 's/^set default=.*/set default=2/' \
-       "${FLAGS_to}/efi/boot/grub.cfg"
+    sudo sed -i \
+      -e '/^defaultA=/s:=.*:=2:' \
+      -e '/^defaultB=/s:=.*:=3:' \
+      "${FLAGS_to}/efi/boot/grub.cfg"
   fi
   info "Emitted ${FLAGS_to}/efi/boot/grub.cfg"
   exit 0
