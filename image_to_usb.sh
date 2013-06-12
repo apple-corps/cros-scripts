@@ -360,7 +360,8 @@ if [ -b "${FLAGS_to}" -o -c "${FLAGS_to}" ]; then
       --skip_dst_removable \
       --arch="${FLAGS_arch}" \
       --payload_image="${SRC_IMAGE}" \
-      --dst="${FLAGS_to}"
+      --dst="${FLAGS_to}" \
+      --skip_postinstall
   fi
 elif [[ "${FLAGS_to}" == /dev/* ]]; then
   # Did the user attempt to write to a non-existent block device?
