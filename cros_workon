@@ -168,7 +168,7 @@ show_workon_info() {
 }
 
 # Canonicalize package name to category/package.
-canonicalize_name () {
+canonicalize_name() {
   local pkgfile
   local pkgname
 
@@ -204,7 +204,7 @@ canonicalize_name () {
     return
   fi
 
-  pkgname=$(echo "${pkgfile}" |awk -F '/' '{ print $(NF-2) "/" $(NF-1) }')
+  pkgname=$(echo "${pkgfile}" | awk -F '/' '{ print $(NF-2) "/" $(NF-1) }')
 
   # TODO(rcui): remove special casing of chromeos-chrome here when we make it
   # inherit from cros-workon class.  Tracked in chromium-os:19259.
@@ -218,22 +218,20 @@ canonicalize_name () {
 }
 
 # Canonicalize a list of names.
-canonicalize_names () {
+canonicalize_names() {
   local atoms=$1
-  local names=""
+  local names=()
   local atom
 
   for atom in ${atoms}; do
-    local name=$(canonicalize_name "${atom}")
-    [ -n "${name}" ] || return 1
-    names+=" ${name}"
+    names+=( $(canonicalize_name "${atom}") ) || return 1
   done
 
-  echo "${names}"
+  echo "${names[*]}"
 }
 
 # Locate the package name based on the current directory
-locate_package () {
+locate_package() {
   local projectname=$(git config --get remote.cros.projectname ||
                       git config --get remote.cros-internal.projectname)
   if [ -z "${projectname}" ]; then
@@ -249,13 +247,13 @@ locate_package () {
 }
 
 # Display ebuilds currently part of the live branch and open for development.
-show_live_ebuilds () {
+show_live_ebuilds() {
   sed -n 's/^=\(.*\)-9999$/\1/p' "${WORKON_FILE}"
 }
 
 # Display ebuilds currently part of the live branch and open for development
 # for any board that currently has live ebuilds.
-show_all_live_ebuilds () {
+show_all_live_ebuilds() {
   local workon_file
   for workon_file in ${WORKON_DIR}/*; do
     if [[ -s ${workon_file} && ${workon_file} != *.mask ]] ; then
@@ -314,7 +312,7 @@ regen_manifest_and_sync() {
   fi
 }
 
-chrome_to_live () {
+chrome_to_live() {
   # Switch to using repo manifest checkout of chromium src.
   # Run chrome_set_ver to set DEPS
 
@@ -335,7 +333,7 @@ chrome_to_live () {
 
 # Move a stable ebuild to the live development catgeory.  The ebuild
 # src_unpack step fetches the package source for local development.
-ebuild_to_live () {
+ebuild_to_live() {
   local atoms=$1
   local atoms_success=()
   local atom
@@ -359,7 +357,7 @@ ebuild_to_live () {
 }
 
 # Move a live development ebuild back to stable.
-ebuild_to_stable () {
+ebuild_to_stable() {
   local atoms=$1
   local atoms_success=()
   local atom
