@@ -400,6 +400,7 @@ COMMON_INSTALL_MASK="
   /etc/runlevels
   /firmware
   /lib/rc
+  /lib/systemd
   /usr/bin/Xnest
   /usr/bin/Xvfb
   /usr/include/nspr/*
