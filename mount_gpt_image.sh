@@ -87,7 +87,9 @@ unmount_image() {
   fi
   safe_umount "${FLAGS_rootfs_mountpt}/usr/local"
   safe_umount "${FLAGS_rootfs_mountpt}/var"
-  if [[ -n "${FLAGS_esp_mountpt}" ]]; then
+
+  local esp_size=$(partsize ${FLAGS_image} 12)
+  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
     safe_umount "${FLAGS_esp_mountpt}"
   fi
   safe_umount "${FLAGS_stateful_mountpt}"
@@ -104,7 +106,9 @@ get_usb_partitions() {
 
   sudo mount ${safe_flag} "${FLAGS_from}3" "${FLAGS_rootfs_mountpt}"
   sudo mount ${ro_flag} "${FLAGS_from}1" "${FLAGS_stateful_mountpt}"
-  if [[ -n "${FLAGS_esp_mountpt}" ]]; then
+
+  local esp_size=$(partsize ${FLAGS_image} 12)
+  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
     sudo mount ${ro_flag} "${FLAGS_from}12" "${FLAGS_esp_mountpt}"
   fi
 }
@@ -148,7 +152,8 @@ get_gpt_partitions() {
   fi
 
   # Mount the stateful partition using a loopback device.
-  if [[ -n "${FLAGS_esp_mountpt}" ]]; then
+  local esp_size=$(partsize ${FLAGS_image} 12)
+  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
     offset=$(partoffset "${FLAGS_from}/${filename}" 12)
     if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
         "${FLAGS_from}/${filename}" "${FLAGS_esp_mountpt}" ; then

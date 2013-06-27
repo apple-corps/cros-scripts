@@ -278,9 +278,13 @@ build_gpt() {
   $sudo dd if="$rootfs_img" of="$outdev" conv=notrunc bs=512 \
       seek=$(partoffset ${outdev} 3) status=none
 
-  info "Copying EFI system partition..."
-  $sudo dd if="$esp_img" of="$outdev" conv=notrunc bs=512 \
+  if [[ -f "${esp_img}" ]]; then
+    info "Copying EFI system partition..."
+    $sudo dd if="$esp_img" of="$outdev" conv=notrunc bs=512 \
       seek=$(partoffset ${outdev} 12) status=none
+  else
+    info "Skipping EFI system partition (file not found: ${esp_img})"
+  fi
 
   info "Copying OEM partition..."
   $sudo dd if="$oem_img" of="$outdev" conv=notrunc bs=512 \
@@ -361,6 +365,9 @@ update_partition_table() {
     local attr=$(cgpt show -i ${part} -A ${src_img})
     local tguid=$(cgpt show -i ${part} -t ${src_img})
     local uguid=$(cgpt show -i ${part} -u ${src_img})
+    if [[ ${size} -eq 0 ]]; then
+      continue
+    fi
     # Change size of stateful.
     if [ "${label}" = "STATE" ]; then
       size=${dst_stateful_blocks}

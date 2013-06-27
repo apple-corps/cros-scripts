@@ -350,15 +350,17 @@ make_image_bootable() {
     kernel_part=""
   fi
 
-  # Update partition 12
-  ${SCRIPTS_DIR}/update_bootloaders.sh \
-    --arch=${FLAGS_arch} \
-    --to="${bootloader_to}" \
-    --from="${FLAGS_rootfs_mountpoint}"/boot \
-    --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
-    --usb_disk="${usb_disk}" \
-    ${bootloader_to_flags} \
-    $kernel_part
+  if [[ ${esp_size} -gt 0 ]]; then
+    # Update partition 12
+    ${SCRIPTS_DIR}/update_bootloaders.sh \
+      --arch="${FLAGS_arch}" \
+      --to="${bootloader_to}" \
+      --from="${FLAGS_rootfs_mountpoint}"/boot \
+      --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
+      --usb_disk="${usb_disk}" \
+      ${bootloader_to_flags} \
+      $kernel_part
+  fi
 
   # We don't need to keep these files around anymore.
   sudo rm -f "${FLAGS_rootfs_hash}" "${FLAGS_output_dir}/vmlinuz.image" \

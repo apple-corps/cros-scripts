@@ -79,6 +79,11 @@ mk_fs() {
   fs_format=$(get_filesystem_format ${image_type} ${part_num})
   fs_block_size=$(get_fs_block_size)
 
+  if [[ ${fs_bytes} -eq 0 ]]; then
+    info "Skipping ${fs_img} (size == 0 bytes)"
+    return 0
+  fi
+
   info "Building ${fs_img}"
   truncate -s ${fs_bytes} "${fs_img}"
   case ${fs_format} in
