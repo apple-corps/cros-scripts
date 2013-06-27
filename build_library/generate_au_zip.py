@@ -15,16 +15,18 @@ import tempfile
 
 # GLOBALS
 image_sign_dir = '~/trunk/src/platform/vboot_reference/scripts/image_signing'
-EXECUTABLE_FILES = [
+BINARY_EXECUTABLES = [
     '/usr/bin/old_bins/cgpt',
+    '/usr/bin/delta_generator',
+    '/usr/bin/bsdiff',
+    '/usr/bin/bspatch',
+    ]
+EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/cros_generate_update_payload',
     '~/trunk/src/scripts/chromeos-common.sh',
     os.path.join(image_sign_dir, 'convert_recovery_to_ssd.sh'),
     os.path.join(image_sign_dir, 'common_minimal.sh'),
-    '/usr/bin/delta_generator',
-    '/usr/bin/bsdiff',
-    '/usr/bin/bspatch',
     ]
 # We need directories to be copied recursively to a dest within tempdir
 SHELL_LIBRARIES = {'~/trunk/src/scripts/lib/shflags': 'lib/shflags'}
