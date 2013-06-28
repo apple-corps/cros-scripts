@@ -15,7 +15,9 @@ DEFINE_string board "${DEFAULT_BOARD}" \
 DEFINE_string image "" \
   "Source release image to use (${CHROMEOS_RECOVERY_IMAGE_NAME} by default)."
 DEFINE_string baselines "" \
-  "Directory to load security baselines from (default from cros-signing)"
+  "Directory to load security baselines from (default from cros-signing)."
+DEFINE_string vboot_hash "" \
+  "The git rev of the vboot tree to checkout (default to the signer hash)."
 
 FLAGS_HELP="USAGE: security_test_image [flags]
 This script is used to run security tests on a Chrome OS images.
@@ -38,10 +40,12 @@ eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
 SIGNER_DIR="${CHROOT_TRUNK_DIR}/cros-signing"
+SIGNER_CONFIG="${SIGNER_DIR}/signer/configs/cros_common.config"
 SIGNING_TOOLS_DIR="${SIGNER_DIR}/signer/signingtools-bin"
 SECURITY_BASELINE_DIR="${SIGNER_DIR}/security_test_baselines"
-VBOOT_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference/scripts/"\
-"image_signing"
+VBOOT_SRC_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference/.git"
+VBOOT_TMP_DIR="$(mktemp -d -u -t --tmpdir vboot.XXXXXX)"
+VBOOT_DIR="${VBOOT_TMP_DIR}/scripts/image_signing"
 
 # No security baselines provided.  Use the standard one.
 if [[ -z ${FLAGS_baselines} ]]; then
@@ -65,6 +69,25 @@ if [[ -z ${FLAGS_image} ]]; then
   FLAGS_image="${DEFAULT_IMAGE_DIR}/${CHROMEOS_RECOVERY_IMAGE_NAME}"
 fi
 info "Using ${FLAGS_image}"
+
+# See what vboot git rev we need.
+if [[ -z ${FLAGS_vboot_hash} ]]; then
+  FLAGS_vboot_hash=$(sed -n '/^vboot_stable_hash/s:.*=[[:space:]]*::p' \
+    "${SIGNER_CONFIG}")
+fi
+if [[ -z ${FLAGS_vboot_hash} ]]; then
+  die "Could not detect vboot_stable_hash in ${SIGNER_CONFIG}"
+fi
+info "Using vboot_reference.git rev ${FLAGS_vboot_hash}"
+git_fail=false
+git clone -q -s -n "${VBOOT_SRC_DIR}" "${VBOOT_TMP_DIR}" || git_fail=true
+pushd "${VBOOT_TMP_DIR}" >/dev/null
+git checkout -q ${FLAGS_vboot_hash} || git_fail=true
+popd >/dev/null
+if ${git_fail}; then
+  rm -rf "${VBOOT_TMP_DIR}"
+  die "checking out ${FLAGS_vboot_hash} from ${VBOOT_SRC_DIR} failed"
+fi
 
 # The signer uses these binaries, so we should too.
 PATH="${SIGNING_TOOLS_DIR}:${PATH}"
@@ -105,6 +128,7 @@ for check in "${sec_checks[@]}"; do
   run_check "${check}"
 done
 
+rm -rf "${VBOOT_TMP_DIR}"
 if [[ ${failed_count} -gt 0 ]]; then
   die_notrace "${failed_count} tests failed"
 else
