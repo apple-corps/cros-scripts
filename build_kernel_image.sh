@@ -12,6 +12,8 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 # Flags.
 DEFINE_string arch "x86" \
   "The boot architecture: arm, x86, or amd64. (Default: x86)"
+DEFINE_string board "${DEFAULT_BOARD}" \
+  "Board we're building for."
 DEFINE_string to "/tmp/vmlinuz.image" \
   "The path to the kernel image to be created. (Default: /tmp/vmlinuz.image)"
 DEFINE_string hd_vblock "/tmp/vmlinuz_hd.vblock" \
@@ -79,6 +81,61 @@ hashstart() {
 veritysize() {
   echo $((root_fs_blocks * 32 * 2 / 512))
 }
+
+# Construct a kernel image that is verifiable in some way - vboot, signed, etc.
+# $1 - Destination file.
+# $2 - Kernel binary.
+# $3 - Bootloader binary.
+# $4 - Directory where the signing keys are stored.
+# $5 - Keyblock file for vboot, installer of recovery.
+# $6 - Output vblock file for the kernel.
+# $7 - Configuration file containing boot args.
+# $8 - Architecture we are building on (x86, arm, etc).
+build_verified_kernel() {
+  local dst=$1 kernel=$2 bootloader_path=$3 keydir=$4 keyblock=$5 vblock=$6
+  local configfile=$7 arch=$8
+  # Create and sign the kernel blob
+  vbutil_kernel \
+    --pack "${dst}" \
+    --keyblock "${keydir}/${keyblock}" \
+    --signprivate "${keydir}/recovery_kernel_data_key.vbprivk" \
+    --version 1 \
+    --config "${configfile}" \
+    --bootloader "${bootloader_path}" \
+    --vmlinuz "${kernel}" \
+    --arch "${arch}"
+
+  # And verify it.
+  vbutil_kernel \
+    --verify "${dst}" \
+    --signpubkey "${keydir}/recovery_key.vbpubk"
+
+  # Now we re-sign the same image using the normal keys. This is the kernel
+  # image that is put on the hard disk by the installer. Note: To save space on
+  # the USB image, we're only emitting the new verfication block, and the
+  # installer just replaces that part of the hard disk's kernel partition.
+  vbutil_kernel \
+    --repack "${vblock}" \
+    --vblockonly \
+    --keyblock "${keydir}/kernel.keyblock" \
+    --signprivate "${keydir}/kernel_data_key.vbprivk" \
+    --oldblob "${dst}"
+
+  # To verify it, we have to replace the vblock from the original image.
+  local tempfile=$(mktemp)
+  trap "rm -f '${tempfile}'" EXIT
+  cp "${vblock}" "${tempfile}"
+  dd if="${dst}" bs=65536 skip=1 >> "${tempfile}"
+
+  vbutil_kernel \
+    --verify $tempfile \
+    --signpubkey "${keydir}/kernel_subkey.vbpubk"
+
+  rm -f "${tempfile}"
+  trap - EXIT
+}
+
+load_board_specific_script "${FLAGS_board}" "build_kernel_image.sh"
 
 device_mapper_args=
 # Even with a rootfs_image, root= is not changed unless specified.
@@ -253,47 +310,10 @@ else
   info "DEBUG: use recovery signing key"
 fi
 
-# Create and sign the kernel blob
-vbutil_kernel \
-  --pack "${FLAGS_to}" \
-  --keyblock "${FLAGS_keys_dir}/${USB_KEYBLOCK}" \
-  --signprivate "${FLAGS_keys_dir}/recovery_kernel_data_key.vbprivk" \
-  --version 1 \
-  --config "${FLAGS_working_dir}/config.txt" \
-  --bootloader "${bootloader_path}" \
-  --vmlinuz "${kernel_image}" \
-  --arch "${FLAGS_arch}"
 
-# And verify it.
-vbutil_kernel \
-  --verify "${FLAGS_to}" \
-  --signpubkey "${FLAGS_keys_dir}/recovery_key.vbpubk"
-
-
-# Now we re-sign the same image using the normal keys. This is the kernel
-# image that is put on the hard disk by the installer. Note: To save space on
-# the USB image, we're only emitting the new verfication block, and the
-# installer just replaces that part of the hard disk's kernel partition.
-vbutil_kernel \
-  --repack "${FLAGS_hd_vblock}" \
-  --vblockonly \
-  --keyblock "${FLAGS_keys_dir}/kernel.keyblock" \
-  --signprivate "${FLAGS_keys_dir}/kernel_data_key.vbprivk" \
-  --oldblob "${FLAGS_to}"
-
-
-# To verify it, we have to replace the vblock from the original image.
-tempfile=$(mktemp)
-trap "rm -f $tempfile" EXIT
-cat "${FLAGS_hd_vblock}" > $tempfile
-dd if="${FLAGS_to}" bs=65536 skip=1 >> $tempfile
-
-vbutil_kernel \
-  --verify $tempfile \
-  --signpubkey "${FLAGS_keys_dir}/kernel_subkey.vbpubk"
-
-rm -f $tempfile
-trap - EXIT
+build_verified_kernel "${FLAGS_to}" "${kernel_image}" "${bootloader_path}" \
+  "${FLAGS_keys_dir}" "${USB_KEYBLOCK}" "${FLAGS_hd_vblock}" \
+  "${FLAGS_working_dir}/config.txt" "${FLAGS_arch}"
 
 set +e  # cleanup failure is a-ok
 

@@ -922,6 +922,21 @@ get_board_and_variant() {
   fi
 }
 
+# Load configuration files that allow board-specific overrides of default
+# functionality to be specified in overlays.
+# $1 - Board to match overlays to.
+# $2 - File to load.
+load_board_specific_script() {
+  local board=$1 file=$2 overlay
+  [[ $# -ne 2 ]] && die "load_board_specific_script requires exactly 2 params"
+  for overlay in $(cros_list_overlays --board "${board}"); do
+    local setup_sh="${overlay}/scripts/${file}"
+    if [[ -e ${setup_sh} ]]; then
+      source "${setup_sh}"
+    fi
+  done
+}
+
 # Check that the specified file exists.  If the file path is empty or the file
 # doesn't exist on the filesystem generate useful error messages.  Otherwise
 # show the user the name and path of the file that will be used.  The padding
