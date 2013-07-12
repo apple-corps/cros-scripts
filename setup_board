@@ -61,6 +61,8 @@ DEFINE_boolean regen_configs ${FLAGS_FALSE} \
   "Regenerate all config files (useful for modifying profiles w/out rebuild)."
 DEFINE_boolean chrome_binhost_only $FLAGS_FALSE \
   "Only fetch packages from the Chrome binhost."
+DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
+  "Don't emerge any packages during setup_board into the board root."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -547,7 +549,8 @@ else
   # config to make.conf.board.
   print_board_binhost_config | sudo_append $BOARD_ETC/make.conf.board
 
-  if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
+  if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE}  && \
+        ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
     # Emerge the kernel headers into the board build root.  Use rdeps to
     # avoid pulling any spurious DEPEND things in that we don't care about.
     KERNEL_EMERGE_FLAGS="--select --quiet --root-deps=rdeps"
@@ -558,7 +561,6 @@ else
 
     sudo -E "${EMERGE_WRAPPER}" ${KERNEL_EMERGE_FLAGS} \
       sys-kernel/linux-headers
-
     unset KERNEL_EMERGE_FLAGS
   fi
 fi
