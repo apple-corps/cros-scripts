@@ -244,6 +244,7 @@ if [[ -n ${FLAGS_enable_serial} ]]; then
   console=${FLAGS_enable_serial}
   if [[ ${console} != *,* ]]; then
     console+=",115200n8"
+    console+=" keep_bootcon"  # Do not switch serial console off mid boot.
   fi
   cat <<EOF > "${config}"
 console=${console}
