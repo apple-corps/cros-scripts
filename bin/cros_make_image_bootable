@@ -254,7 +254,6 @@ make_image_bootable() {
   # Builds the kernel partition image.  The temporary files are kept around
   # so that we can perform a load_kernel_test later on the final image.
   ${SCRIPTS_DIR}/build_kernel_image.sh \
-    --board="${FLAGS_board}" \
     --arch="${FLAGS_arch}" \
     --to="${FLAGS_output_dir}/vmlinuz.image" \
     --hd_vblock="${FLAGS_output_dir}/vmlinuz_hd.vblock" \
@@ -317,12 +316,8 @@ make_image_bootable() {
   # In original CL: http://codereview.chromium.org/2868044, this was done in
   # create_base_image(). However, it could break the build if it is a clean
   # build because vmlinuz_hd.vblock hasn't been created by build_kernel_image.sh
-  # In some builds that don't use vboot to verify the kernel, this file might
-  # not get created as part of the build, so only copy them if they were.
-  if [ -f "${FLAGS_output_dir}/vmlinuz_hd.vblock" ]; then
-    sudo cp "${FLAGS_output_dir}/vmlinuz_hd.vblock" \
-            "${FLAGS_statefulfs_mountpoint}"
-  fi
+  sudo cp "${FLAGS_output_dir}/vmlinuz_hd.vblock" \
+          "${FLAGS_statefulfs_mountpoint}"
 
   local koffset="$(partoffset ${image} 2)"
   sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
@@ -363,8 +358,8 @@ make_image_bootable() {
   fi
 
   # We don't need to keep these files around anymore.
-  sudo rm -f "${FLAGS_rootfs_hash}" "${FLAGS_output_dir}/vmlinuz.image" \
-             "${FLAGS_output_dir}/vmlinuz_hd.vblock"
+  sudo rm "${FLAGS_rootfs_hash}" "${FLAGS_output_dir}/vmlinuz.image" \
+          "${FLAGS_output_dir}/vmlinuz_hd.vblock"
 
   trap - EXIT
   ${SCRIPTS_DIR}/mount_gpt_image.sh -u -r "${FLAGS_rootfs_mountpoint}" \
