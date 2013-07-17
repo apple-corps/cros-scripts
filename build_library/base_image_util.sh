@@ -179,9 +179,12 @@ create_base_image() {
   sudo mount --bind "${stateful_fs_dir}/var_overlay" "${root_fs_dir}/var"
   sudo mkdir -p "${root_fs_dir}/dev"
 
-  info "Binding directories from OEM partition onto the rootfs"
-  sudo mkdir -p "${root_fs_dir}/usr/share/oem"
-  sudo mount --bind "${oem_fs_dir}" "${root_fs_dir}/usr/share/oem"
+  local oem_fs_bytes=$(get_filesystem_size ${image_type} 8)
+  if [[ ${oem_fs_bytes} -gt 0 ]]; then
+    info "Binding directories from OEM partition onto the rootfs"
+    sudo mkdir -p "${root_fs_dir}/usr/share/oem"
+    sudo mount --bind "${oem_fs_dir}" "${root_fs_dir}/usr/share/oem"
+  fi
 
   # We need to install libc manually from the cross toolchain.
   # TODO: Improve this? It would be ideal to use emerge to do this.
