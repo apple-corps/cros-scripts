@@ -217,6 +217,10 @@ print_board_binhost_config() {
   else
     chrome_binhost_base=${binhost_dir}
   fi
+  # External generic boards have no firmware or drivers, so their binhosts can
+  # be shared everywhere. The same isn't true for internal "generic" boards.
+  # For that reason, the internal "generic" boards can only be used for the
+  # Chrome binhost.
   local e_generic="${e_kernel_map[${kernel:-none}]:-${e_arch_map[${ARCH}]:-}}"
   local i_generic="${i_kernel_map[${kernel:-none}]:-${i_arch_map[${ARCH}]:-}}"
   local board chrome_binhost internal_binhost preflight_binhost
@@ -224,6 +228,8 @@ print_board_binhost_config() {
     if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ]]; then
       chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
     fi
+  done
+  for board in ${BOARD_VARIANT} ${BOARD} ${e_generic}; do
     if [[ -z ${preflight_binhost} || ! -f ${preflight_binhost} ]]; then
       preflight_binhost="${binhost_dir}/${board}-PREFLIGHT_BINHOST.conf"
     fi
