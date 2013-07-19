@@ -427,6 +427,8 @@ COMMON_INSTALL_MASK="
 # Mask for base, dev, and test images (build_image, build_image --test)
 DEFAULT_INSTALL_MASK="
   ${COMMON_INSTALL_MASK}
+  /boot/config-*
+  /boot/System.map-*
   /usr/local/autotest
   /lib/modules/*/kernel/drivers/input/misc/uinput.ko
   /lib/modules/*/build
