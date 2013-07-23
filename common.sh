@@ -429,6 +429,7 @@ DEFAULT_INSTALL_MASK="
   ${COMMON_INSTALL_MASK}
   /boot/config-*
   /boot/System.map-*
+  /usr/local/build/autotest
   /usr/local/autotest
   /lib/modules/*/kernel/drivers/input/misc/uinput.ko
   /lib/modules/*/build
@@ -451,6 +452,16 @@ FACTORY_TEST_INSTALL_MASK="
   /usr/local/autotest/client/site_tests/platform_ToolchainOptions
   /usr/local/autotest/client/site_tests/realtimecomm_GTalk*
   /usr/local/autotest/client/tests
+  /usr/local/build/autotest/[^c]*
+  /usr/local/build/autotest/conmux
+  /usr/local/build/autotest/client/deps/chrome_test
+  /usr/local/build/autotest/client/deps/piglit
+  /usr/local/build/autotest/client/deps/pyauto_dep
+  /usr/local/build/autotest/client/deps/realtimecomm_*
+  /usr/local/build/autotest/client/site_tests/graphics_WebGLConformance
+  /usr/local/build/autotest/client/site_tests/platform_ToolchainOptions
+  /usr/local/build/autotest/client/site_tests/realtimecomm_GTalk*
+  /usr/local/build/autotest/client/tests
   /usr/local/factory/bundle
   "
 
