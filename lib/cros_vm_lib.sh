@@ -6,6 +6,7 @@
 
 DEFINE_string kvm_pid "" \
   "Use this pid file.  If it exists and is set, use the vm specified by pid."
+DEFINE_boolean copy ${FLAGS_FALSE} "Copy the image file before starting the VM."
 DEFINE_boolean no_graphics ${FLAGS_FALSE} "Runs the KVM instance silently."
 DEFINE_boolean persist "${FLAGS_FALSE}" "Persist vm."
 DEFINE_boolean snapshot ${FLAGS_FALSE} "Don't commit changes to image."
@@ -84,8 +85,18 @@ start_kvm() {
       snapshot="-snapshot"
     fi
 
+    local vm_image="$1"
+    if [ ${FLAGS_copy} -eq ${FLAGS_TRUE} ]; then
+      local our_copy=$(mktemp "${vm_image}.copy.XXXXXXXXXX")
+      if cp "${vm_image}" "${our_copy}"; then
+          vm_image="${our_copy}"
+      else
+          die "Copy failed. Continuing without copy."
+      fi
+    fi
+
     local net_option="-net nic,model=virtio"
-    if [ -f "$(dirname "$1")/.use_e1000" ]; then
+    if [ -f "$(dirname "${vm_image}")/.use_e1000" ]; then
       info "Detected older image, using e1000 instead of virtio."
       net_option="-net nic,model=e1000"
     fi
@@ -104,10 +115,10 @@ start_kvm() {
       ${nographics} \
       ${snapshot} \
       -net user,hostfwd=tcp::${FLAGS_ssh_port}-:22 \
-      -drive "file=${1},index=0,media=disk,cache=${cache_type}"
+      -drive "file=${vm_image},index=0,media=disk,cache=${cache_type}"
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
-    LIVE_VM_IMAGE="${1}"
+    LIVE_VM_IMAGE="${vm_image}"
   fi
 }
 
