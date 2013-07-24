@@ -157,16 +157,16 @@ EOF
   # To cover all of our bases, now populate templated boot support for efi.
   sudo mkdir -p "${FLAGS_to}"/efi/boot
 
-  if [[ -f /bin/grub2-mkimage ]];then
+  if [[ -f /lib64/grub/x86_64-efi/search_fs_uuid.mod ]];then
     # Use the newer grub2 1.99+
     grub_args=(
       -p /efi/boot
       part_gpt gptpriority test fat ext2 hfs hfsplus normal boot chain
       configfile linux
     )
-    sudo grub2-mkimage -O x86_64-efi \
+    sudo grub-mkimage -O x86_64-efi \
       -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
-    sudo i386-grub2-mkimage -O i386-efi \
+    sudo i386-grub-mkimage -O i386-efi \
       -o "${FLAGS_to}/efi/boot/bootia32.efi" "${grub_args[@]}"
   else
     # Remove this else case after a few weeks (sometime in Dec 2011)
