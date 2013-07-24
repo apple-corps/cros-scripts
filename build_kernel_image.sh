@@ -122,7 +122,7 @@ if [[ -n "${FLAGS_rootfs_image}" && -n "${FLAGS_rootfs_hash}" ]]; then
     if [[ ${FLAGS_enable_bootcache} -eq ${FLAGS_TRUE} ]]; then
       base_root='254:0'  # major:minor numbers for /dev/dm-0
     else
-      base_root='%U+1'  # kern_guid + 1
+      base_root='PARTUUID=%U/PARTNROFF=1'  # kern_guid + 1
     fi
     table=${table//HASH_DEV/${base_root}}
     table=${table//ROOT_DEV/${base_root}}
@@ -134,8 +134,9 @@ if [[ -n "${FLAGS_rootfs_image}" && -n "${FLAGS_rootfs_hash}" ]]; then
     size_limit=512
     max_trace=20000
     max_pages=100000
-    bootcache_args="%U+1 ${cachestart} ${signature} ${size_limit}"
-    bootcache_args="${bootcache_args} ${max_trace} ${max_pages}"
+    bootcache_args="PARTUUID=%U/PARTNROFF=1"
+    bootcache_args+=" ${cachestart} ${signature} ${size_limit}"
+    bootcache_args+=" ${max_trace} ${max_pages}"
     bootcache_dev="vboot none ro 1,0 ${cachestart} bootcache ${bootcache_args}"
     device_mapper_args="dm=\"2 ${bootcache_dev}, ${verity_dev}\""
   else
@@ -165,6 +166,7 @@ else
   fi
 fi
 
+# kern_guid should eventually be changed to use PARTUUID
 cat <<EOF > "${FLAGS_working_dir}/boot.config"
 root=${root_dev}
 rootwait
