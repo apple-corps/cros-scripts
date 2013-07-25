@@ -338,15 +338,14 @@ if [ -b "${FLAGS_to}" -o -c "${FLAGS_to}" ]; then
     are_you_sure
   fi
 
-  mount_list=$(mount | grep ^"${FLAGS_to}" | awk '{print $1}')
+  mount_list=$(grep ^"${FLAGS_to}" /proc/mounts | awk '{print $1}')
   if [ -n "${mount_list}" ]; then
     echo "Attempting to unmount any mounts on the target device..."
     for i in ${mount_list}; do
-      if safe_umount "$i" 2>&1 >/dev/null | grep "not found"; then
-        die_notrace "$i needs to be unmounted outside the chroot"
+      if ! safe_umount "$i" ; then
+        die_notrace "$i could not be unmounted; aborting."
       fi
     done
-    sleep 3
   fi
 
   if [ ${FLAGS_install} -ne ${FLAGS_TRUE} ]; then
