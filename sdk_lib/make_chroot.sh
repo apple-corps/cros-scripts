@@ -110,11 +110,15 @@ early_enter_chroot() {
     -- "${ENTER_CHROOT_ARGS[@]}" "${early_env[@]}" "$@"
 }
 
-# Run a command within the chroot.  The main usage of this is to avoid
-# the overhead of enter_chroot, and do not need access to the source tree,
-# don't need the actual chroot profile env, and can run the command as root.
+# Run a command within the chroot.  The main usage of this is to avoid the
+# overhead of enter_chroot.  It's when we do not need access to the source
+# tree, don't need the actual chroot profile env, and can run the command as
+# root.  We do have to make sure PATH includes all the right programs as
+# found inside of the chroot since the environment outside of the chroot
+# might be insufficient (like distros with merged /bin /sbin and /usr).
 bare_chroot() {
-  chroot "${FLAGS_chroot}" "$@"
+  PATH=/bin:/sbin:/usr/bin:/usr/sbin:${PATH} \
+    chroot "${FLAGS_chroot}" "$@"
 }
 
 cleanup() {
