@@ -432,6 +432,12 @@ echo STAGE3=$STAGE3 > $CHROOT_STATE
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet portage
 
+# Clear out openrc if it's installed as we don't want it.
+if [[ -e ${FLAGS_chroot}/usr/share/openrc ]]; then
+  info "Uninstalling openrc"
+  early_enter_chroot env CLEAN_DELAY=0 emerge -qC sys-apps/openrc
+fi
+
 # Make sure we have python-2.x available.
 if [[ -z $(ls "${FLAGS_chroot}"/usr/bin/python2* 2>/dev/null) ]]; then
   info "Installing python-2.x"
