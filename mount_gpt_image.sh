@@ -85,15 +85,18 @@ unmount_image() {
       "${FLAGS_stateful_mountpt}"
     fix_broken_symlinks "${FLAGS_rootfs_mountpt}"
   fi
-  safe_umount "${FLAGS_rootfs_mountpt}/usr/local"
-  safe_umount "${FLAGS_rootfs_mountpt}/var"
 
-  local esp_size=$(partsize ${FLAGS_image} 12)
-  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
-    safe_umount "${FLAGS_esp_mountpt}"
-  fi
-  safe_umount "${FLAGS_stateful_mountpt}"
-  safe_umount "${FLAGS_rootfs_mountpt}"
+  local m mnts=(
+    "${FLAGS_esp_mountpt}"
+    "${FLAGS_stateful_mountpt}"
+    "${FLAGS_rootfs_mountpt}"
+  )
+  for m in "${mnts[@]}"; do
+    if [[ -n ${m} ]]; then
+      safe_umount_tree "${m}"
+    fi
+  done
+
   switch_to_strict_mode
 }
 
@@ -107,8 +110,7 @@ get_usb_partitions() {
   sudo mount ${safe_flag} "${FLAGS_from}3" "${FLAGS_rootfs_mountpt}"
   sudo mount ${ro_flag} "${FLAGS_from}1" "${FLAGS_stateful_mountpt}"
 
-  local esp_size=$(partsize ${FLAGS_image} 12)
-  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
+  if [[ -n "${FLAGS_esp_mountpt}" && -e ${FLAGS_from}12 ]]; then
     sudo mount ${ro_flag} "${FLAGS_from}12" "${FLAGS_esp_mountpt}"
   fi
 }
@@ -152,14 +154,17 @@ get_gpt_partitions() {
   fi
 
   # Mount the stateful partition using a loopback device.
-  local esp_size=$(partsize ${FLAGS_image} 12)
-  if [[ -n "${FLAGS_esp_mountpt}" && ${esp_size} -gt 0 ]]; then
-    offset=$(partoffset "${FLAGS_from}/${filename}" 12)
-    if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
-        "${FLAGS_from}/${filename}" "${FLAGS_esp_mountpt}" ; then
-      error "mount failed: options=${ro_flag} offset=$(( offset * 512 ))" \
-          "target=${FLAGS_esp_mountpt}"
-      return 1
+  local esp_size
+  if [[ -n "${FLAGS_esp_mountpt}" ]]; then
+    esp_size=$(partsize "${FLAGS_from}/${filename}" 12)
+    if [[ ${esp_size} -gt 0 ]]; then
+      offset=$(partoffset "${FLAGS_from}/${filename}" 12)
+      if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
+          "${FLAGS_from}/${filename}" "${FLAGS_esp_mountpt}" ; then
+        error "mount failed: options=${ro_flag} offset=$(( offset * 512 ))" \
+            "target=${FLAGS_esp_mountpt}"
+        return 1
+      fi
     fi
   fi
 }
