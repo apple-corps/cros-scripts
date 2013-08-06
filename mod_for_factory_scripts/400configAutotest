@@ -6,7 +6,7 @@
 
 echo "Configure autotest setting."
 
-GLOBAL_CONFIG="${ROOT_FS_DIR}/usr/local/autotest/global_config.ini"
+GLOBAL_CONFIG="${ROOT_FS_DIR}/usr/local/build/autotest/global_config.ini"
 
 if [ -f "${GLOBAL_CONFIG}" ]; then
   echo -e "File ${GLOBAL_CONFIG} already exists."

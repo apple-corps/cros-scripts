@@ -10,7 +10,7 @@ die() {
 }
 
 echo "Rebasing autotest/client folder for factory."
-base_dir="${ROOT_FS_DIR}/usr/local/autotest"
+base_dir="${ROOT_FS_DIR}/usr/local/build/autotest"
 
 [ -d "${base_dir}/client" ] || die "Missing client in root: ${base_dir}"
 rm -rf ${base_dir}/packages || die "Failed to wipe packages directory."
