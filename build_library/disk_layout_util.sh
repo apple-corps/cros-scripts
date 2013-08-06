@@ -286,9 +286,13 @@ build_gpt() {
     info "Skipping EFI system partition (file not found: ${esp_img})"
   fi
 
-  info "Copying OEM partition..."
-  $sudo dd if="$oem_img" of="$outdev" conv=notrunc bs=512 \
-      seek=$(partoffset ${outdev} 8) status=none
+  if [[ -f "${oem_img}" ]]; then
+    info "Copying OEM partition..."
+    $sudo dd if="$oem_img" of="$outdev" conv=notrunc bs=512 \
+        seek=$(partoffset ${outdev} 8) status=none
+  else
+    info "Skipping OEM partition (file not found: ${oem_img})"
+  fi
 
   # Pre-set "sucessful" bit in gpt, so we will never mark-for-death
   # a partition on an SDCard/USB stick.
