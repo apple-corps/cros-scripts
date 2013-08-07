@@ -186,20 +186,22 @@ set timeout=2
 # NOTE: These magic grub variables are a Chrome OS hack. They are not portable.
 
 menuentry "local image A" {
-  linux \$grubpartA/boot/vmlinuz ${common_args} i915.modeset=1 cros_efi root=/dev/\$linuxpartA
+  linux /syslinux/vmlinuz.A ${common_args} i915.modeset=1 cros_efi \
+      root=/dev/\$linuxpartA
 }
 
 menuentry "local image B" {
-  linux \$grubpartB/boot/vmlinuz ${common_args} i915.modeset=1 cros_efi root=/dev/\$linuxpartB
+  linux /syslinux/vmlinuz.B ${common_args} i915.modeset=1 cros_efi \
+      root=/dev/\$linuxpartB
 }
 
 menuentry "verified image A" {
-  linux \$grubpartA/boot/vmlinuz ${common_args} ${verity_common} \
+  linux /syslinux/vmlinuz.A ${common_args} ${verity_common} \
       i915.modeset=1 cros_efi root=${ROOTDEV} dm=\\"DMTABLEA\\"
 }
 
 menuentry "verified image B" {
-  linux \$grubpartB/boot/vmlinuz ${common_args} ${verity_common} \
+  linux /syslinux/vmlinuz.B ${common_args} ${verity_common} \
       i915.modeset=1 cros_efi root=${ROOTDEV} dm=\\"DMTABLEB\\"
 }
 
