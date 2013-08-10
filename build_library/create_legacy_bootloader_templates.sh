@@ -164,7 +164,7 @@ EOF
   )
   sudo grub-mkimage -O x86_64-efi \
     -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
-  sudo i386-grub-mkimage -O i386-efi \
+  sudo grub-mkimage -O i386-efi \
     -o "${FLAGS_to}/efi/boot/bootia32.efi" "${grub_args[@]}"
   # Templated variables:
   #  DMTABLEA, DMTABLEB -> '0 xxxx verity ... '
