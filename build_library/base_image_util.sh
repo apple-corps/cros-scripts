@@ -173,6 +173,8 @@ create_base_image() {
   # Perform binding rather than symlinking because directories must exist
   # on rootfs so that we can bind at run-time since rootfs is read-only.
   info "Binding directories from stateful partition onto the rootfs"
+  sudo mkdir -p "${root_fs_dir}/mnt/stateful_partition"
+  sudo mount --bind "${stateful_fs_dir}" "${root_fs_dir}/mnt/stateful_partition"
   sudo mkdir -p "${root_fs_dir}/usr/local"
   sudo mount --bind "${stateful_fs_dir}/dev_image" "${root_fs_dir}/usr/local"
   sudo mkdir -p "${root_fs_dir}/var"
