@@ -141,22 +141,31 @@ dump_file() {
   # Dump symbols as root in order to read all files.
   if ! sudo "${dump_syms_prog}" "${text_file}" "${debug_directory}" \
        > "${SYM_FILE}" 2> /dev/null; then
-    # Try dumping just the main file to get public-only symbols.
-    ERR_FILE=$(mktemp -t "breakpad.err.XXXXXX")
-    if ! sudo "${dump_syms_prog}" "${text_file}" > "${SYM_FILE}" \
-         2> "${ERR_FILE}"; then
-      # A lot of files (like kernel files) contain no debug information, do
-      # not consider such occurrences as errors.
-      if grep -q "file contains no debugging information" "${ERR_FILE}"; then
-        warn "No symbols found for ${text_file}"
-        _worker_finished 0
-        exit 0
+    # Try dumping w/out extended cfi.  Some versions of dump_syms like to
+    # crash.  At least we can get the symbols.  http://crbug.com/266064
+    debug "Normal dumping failed; retrying with -c -r"
+    if ! sudo "${dump_syms_prog}" -c -r "${text_file}" "${debug_directory}" \
+         > "${SYM_FILE}" 2> /dev/null; then
+      # Try dumping just the main file to get public-only symbols.
+      debug "Normal dumping still failed; retrying w/out debug symbols"
+      ERR_FILE=$(mktemp -t "breakpad.err.XXXXXX")
+      if ! sudo "${dump_syms_prog}" "${text_file}" > "${SYM_FILE}" \
+           2> "${ERR_FILE}"; then
+        # A lot of files (like kernel files) contain no debug information, do
+        # not consider such occurrences as errors.
+        if grep -q "file contains no debugging information" "${ERR_FILE}"; then
+          warn "No symbols found for ${text_file}"
+          _worker_finished 0
+          exit 0
+        fi
+        error "Unable to dump symbols for ${text_file}:"
+        error "$(<"${ERR_FILE}")"
+        exit 1
+      else
+        warn "File ${text_file} did not have debug info, using linkage symbols"
       fi
-      error "Unable to dump symbols for ${text_file}:"
-      error "$(<"${ERR_FILE}")"
-      exit 1
     else
-      warn "File ${text_file} did not have debug info, using linkage symbols"
+      warn "Dumping ${text_file} w/CFI failed; generated syms w/out it"
     fi
   fi
   local file_id=$(head -1 ${SYM_FILE} | cut -d' ' -f4)
