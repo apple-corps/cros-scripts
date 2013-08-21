@@ -107,6 +107,7 @@ EOF
     local cmds=() path python_paths=(
       /usr/{local/,}bin/python
       /usr/{local/,}bin/python${pyver:0:1}
+      /usr/bin/python${pyver}
     )
     for path in "${python_paths[@]}"; do
       cmds+=(
