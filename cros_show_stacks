@@ -71,8 +71,8 @@ generate_symbols() {
   done
   if [ ${module_count} -gt 0 ]; then
     info "Generating breakpad symbols for ${module_count} modules"
-    ${SCRIPTS_DIR}/cros_generate_breakpad_symbols --board=${FLAGS_board} \
-      ${modules}
+    "${GCLIENT_ROOT}/chromite/bin/cros_generate_breakpad_symbols" \
+      --board=${FLAGS_board} ${modules}
   fi
 }
 
