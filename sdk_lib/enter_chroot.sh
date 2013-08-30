@@ -163,7 +163,7 @@ copy_ssh_config() {
 
 copy_into_chroot_if_exists() {
   # $1 is file path outside of chroot to copy to path $2 inside chroot.
-  [ -e "$1" ] && cp -p "$1" "${FLAGS_chroot}/$2"
+  [ -e "$1" ] && user_cp -p "$1" "${FLAGS_chroot}/$2"
 }
 
 # Usage: promote_api_keys
