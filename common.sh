@@ -987,7 +987,7 @@ reinterpret_path_for_chroot() {
       fi
 
       # Prepend the chroot repository path.
-      echo "/home/${USER}/trunk/${relative_path}"
+      echo "/mnt/host/source/${relative_path}"
     fi
   else
     # Path is already inside the chroot :).
