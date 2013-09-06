@@ -553,15 +553,15 @@ else
         ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
     # Emerge the kernel headers into the board build root.  Use rdeps to
     # avoid pulling any spurious DEPEND things in that we don't care about.
-    KERNEL_EMERGE_FLAGS="--select --quiet --root-deps=rdeps"
+    BASE_EMERGE_FLAGS="--select --quiet --root-deps=rdeps"
     if [[ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ||
           "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]]; then
-      KERNEL_EMERGE_FLAGS+=" --getbinpkg --usepkg"
+      BASE_EMERGE_FLAGS+=" --getbinpkg --usepkg"
     fi
 
-    sudo -E "${EMERGE_WRAPPER}" ${KERNEL_EMERGE_FLAGS} \
-      sys-kernel/linux-headers
-    unset KERNEL_EMERGE_FLAGS
+    sudo -E "${EMERGE_WRAPPER}" ${BASE_EMERGE_FLAGS} \
+      sys-kernel/linux-headers sys-libs/gcc-libs
+    unset BASE_EMERGE_FLAGS
   fi
 fi
 

@@ -406,7 +406,6 @@ COMMON_INSTALL_MASK="
   /usr/include/nspr/*
   /usr/include/X11/*
   /usr/lib/debug
-  /usr/lib/gcc
   /usr/lib*/pkgconfig
   /usr/local/autotest-chrome
   /usr/man

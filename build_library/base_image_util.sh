@@ -211,11 +211,6 @@ create_base_image() {
     sudo tar xpf - -C "${root_fs_dir}" ./usr/${CHOST} \
       --strip-components=3 "${libc_excludes[@]/#/--exclude=}"
 
-  board_ctarget=$(get_ctarget_from_board "${BOARD}")
-  for atom in $(portageq match / cross-$board_ctarget/gcc); do
-    copy_gcc_libs "${root_fs_dir}" $atom
-  done
-
   if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
     # Install our custom factory install kernel with the appropriate use flags
     # to the image.
