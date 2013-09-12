@@ -72,6 +72,9 @@ fi
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
 EMERGE_BOARD_CMD="emerge-$BOARD"
 
+# Files to preserve from original stateful, if minimize_image is true.
+# If minimize_image is false, everything is always preserved.
+WHITELIST="vmlinuz_hd.vblock unencrypted/import_extensions"
 
 get_install_vblock() {
   # If it exists, we need to copy the vblock over to stateful
@@ -229,29 +232,81 @@ install_recovery_kernel() {
   return 0
 }
 
+find_sectors_needed() {
+  # Find the minimum disk sectors needed for a file system to hold a list of
+  # files or directories.
+  local base_dir file_list
+
+  base_dir="$1"
+  file_list="$2"
+
+  local sectors_needed=1
+  local size name
+  for name in ${file_list}; do
+    if [ -e "${base_dir}/${name}" ]; then
+      size=$(du -B512 -s "${base_dir}/${name}" | awk '{ print $1 }')
+      sectors_needed=$((${sectors_needed} + ${size}))
+    fi
+  done
+  # Add 5% overhead for the FS, rounded down.
+  sectors_needed=$((${sectors_needed} + (${sectors_needed} / 20)))
+
+  echo "${sectors_needed}"
+}
+
 maybe_resize_stateful() {
   # If we're not minimizing, then just copy and go.
   if [ $FLAGS_minimize_image -eq $FLAGS_FALSE ]; then
     return 0
   fi
 
-  # Rebuild the image with a 1 sector stateful partition
-  local err=0
-  local small_stateful=$(mktemp)
+  local old_stateful_offset old_stateful_mnt sectors_needed
+  local small_stateful new_stateful_mnt
+
+  # Mount the old stateful partition so we can copy selected values
+  # off of it.
+  old_stateful_offset=$(partoffset "$FLAGS_image" 1)
+  old_stateful_mnt=$(mktemp -d)
+
+  sudo mount -o ro,loop,offset=$((old_stateful_offset * 512)) \
+    "$FLAGS_image" $old_stateful_mnt
+
+  # Add 5% overhead for the FS, rounded down.
+  sectors_needed=$(find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}")
+
+  if [ ${FLAGS_statefulfs_sectors} -gt ${sectors_needed} ]; then
+    sectors_needed="${FLAGS_statefulfs_sectors}"
+  fi
+
+  # Rebuild the image with stateful partition sized by sectors_needed.
+  small_stateful=$(mktemp)
   dd if=/dev/zero of="$small_stateful" bs=512 \
-    count=${FLAGS_statefulfs_sectors} 1>&2
+    count="${sectors_needed}" 1>&2
   trap "rm $small_stateful" RETURN
   # Don't bother with ext3 for such a small image.
   /sbin/mkfs.ext2 -F -b 4096 "$small_stateful" 1>&2
 
   # If it exists, we need to copy the vblock over to stateful
   # This is the real vblock and not the recovery vblock.
-  local new_stateful_mnt=$(mktemp -d)
+  new_stateful_mnt=$(mktemp -d)
 
-  set +e
   sudo mount -o loop $small_stateful $new_stateful_mnt
-  sudo cp "$INSTALL_VBLOCK" "$new_stateful_mnt/vmlinuz_hd.vblock"
+
+  # Create the directories that are going to be needed below. With correct
+  # permissions.
+  mkdir --mode=766 "${new_stateful_mnt}/unencrypted"
+
+  # Copy over any files that need to be preserved.
+  for name in ${WHITELIST}; do
+    if [ -e "${old_stateful_mnt}/${name}" ]; then
+      sudo cp -a "${old_stateful_mnt}/${name}" "${new_stateful_mnt}/${name}"
+    fi
+  done
+
+  # Cleanup everything.
+  safe_umount "$old_stateful_mnt"
   safe_umount "$new_stateful_mnt"
+  rmdir "$old_stateful_mnt"
   rmdir "$new_stateful_mnt"
   switch_to_strict_mode
 
@@ -259,9 +314,9 @@ maybe_resize_stateful() {
   # TODO(wad) Make the developer script case create a custom GPT with
   # just the kernel image and stateful.
   update_partition_table "${FLAGS_image}" "$small_stateful" \
-                         ${FLAGS_statefulfs_sectors} \
+                         "${sectors_needed}" \
                          "${RECOVERY_IMAGE}" 1>&2
-  return $err
+  return 0
 }
 
 cleanup() {
