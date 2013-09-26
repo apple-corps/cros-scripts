@@ -23,6 +23,8 @@ DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
 
+ORIG_ARGS=("$@")
+
 # Parse command line.
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
@@ -144,7 +146,24 @@ update_syslinux_kernel() {
   fi
 }
 
+multi_main() {
+  local host
+
+  IFS=","
+  for host in ${FLAGS_remote}; do
+    "$0" "${ORIG_ARGS[@]}" --remote="${host}" \
+      |& sed "s/^/${V_BOLD_YELLOW}${host}: ${V_VIDOFF}/" &
+  done
+  wait
+}
+
 main() {
+  # If there are commas in the --remote, run the script in parallel.
+  if [[ ${FLAGS_remote} == *,* ]]; then
+    multi_main
+    return $?
+  fi
+
   trap cleanup EXIT
 
   TMP=$(mktemp -d /tmp/update_kernel.XXXXXX)
