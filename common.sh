@@ -399,6 +399,7 @@ COMMON_INSTALL_MASK="
   /etc/init.d
   /etc/runlevels
   /firmware
+  /lib/modules/*/vdso
   /lib/rc
   /lib/systemd
   /usr/bin/Xnest
