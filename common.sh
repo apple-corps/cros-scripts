@@ -801,9 +801,9 @@ setup_symlinks_on_root() {
 # mount the filesystem as read-write -- only read-only[2].
 #
 # [1] 32-bit flag we are modifying:
-#  http://git.chromium.org/cgi-bin/gitweb.cgi?p=kernel.git;a=blob;f=include/linux/ext2_fs.h#l417
+#  https://chromium.googlesource.com/chromiumos/third_party/kernel.git/+/master/include/linux/ext2_fs.h#l417
 # [2] Mount behavior is enforced here:
-#  http://git.chromium.org/cgi-bin/gitweb.cgi?p=kernel.git;a=blob;f=fs/ext2/super.c#l857
+#  https://chromium.googlesource.com/chromiumos/third_party/kernel.git/+/master/ext2/super.c#l857
 #
 # N.B., if the high order feature bits are used in the future, we will need to
 #       revisit this technique.

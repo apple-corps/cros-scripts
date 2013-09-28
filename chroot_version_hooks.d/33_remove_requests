@@ -4,7 +4,7 @@
 
 # We intended to use some extra python modules for autotest in the chroot,
 # but decided against it.  They're removed from hard-host-depends in
-# https://gerrit.chromium.org/gerrit/21816
+# https://chromium-review.googlesource.com/21816
 
 
 pkgs=( dev-python/requests dev-python/chardet dev-python/certifi )
