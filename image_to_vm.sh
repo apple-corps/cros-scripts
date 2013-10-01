@@ -149,6 +149,17 @@ sudo mount -o loop "${TEMP_ESP}" "${TEMP_ESP_MNT}"
 # Modify the unverified usb template which uses a default usb_disk of sdb3
 sudo sed -i -e 's/sdb3/sda3/g' "${TEMP_MNT}/boot/syslinux/usb.A.cfg"
 
+# add loading of cirrus fb module
+if [ "${FLAGS_format}" = "qemu" ]; then
+  sudo_clobber "${TEMP_MNT}/etc/init/cirrusfb.conf" <<END
+start on starting boot-splash
+task
+exec modprobe cirrus
+END
+fi
+# TODO as these image modifying hacks accumulate, we should consider
+# creating a better solution
+
 # Unmount everything prior to building a final image
 trap - INT TERM EXIT
 cleanup
