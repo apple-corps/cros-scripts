@@ -94,6 +94,7 @@ install_toolchain_in_provided() {
   local gcc_ver="$1"
   local glibc_ver="$2"
   # Tell portage that toolchain packages are already installed in the sysroot.
+  sudo mkdir -p "$BOARD_PROFILE"
   sudo_clobber "$BOARD_PROFILE/package.provided" << EOF
 sys-devel/gcc-$gcc_ver
 sys-libs/glibc-$glibc_ver
@@ -155,7 +156,9 @@ install_toolchain_in_board() {
     install_toolchain_in_provided "$gcc_ver" "$libc_ver"
 
     # Configure new libc version in make.conf.board_setup.
-    sudo sed -i -e "/^LIBC_VERSION=/d" "$BOARD_SETUP"
+    if [[ -e ${BOARD_SETUP} ]]; then
+      sudo sed -i -e "/^LIBC_VERSION=/d" "${BOARD_SETUP}"
+    fi
     echo "LIBC_VERSION=\"$libc_ver\"" | sudo_append "$BOARD_SETUP"
   fi
 }
