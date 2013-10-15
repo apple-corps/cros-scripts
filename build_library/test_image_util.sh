@@ -75,7 +75,7 @@ mod_image_for_test () {
             BOARD="${BOARD}" "${mod_factory_script}"
   fi
 
-  # Re-run ldconfig to fix /etc/ldconfig.so.cache.
+  # Re-run ldconfig to fix /etc/ld.so.cache.
   sudo ldconfig -r "${root_fs_dir}"
 
   cleanup_mounts

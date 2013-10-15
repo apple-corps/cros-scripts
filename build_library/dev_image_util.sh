@@ -45,8 +45,8 @@ install_dev_packages() {
 
   sudo mkdir -p ${root_fs_dir}/etc/make.profile
 
-  # Re-run ldconfig to fix /etc/ldconfig.so.cache.
-  sudo /sbin/ldconfig -r "${root_fs_dir}"
+  # Re-run ldconfig to fix /etc/ld.so.cache.
+  sudo ldconfig -r "${root_fs_dir}"
 
   # Mark the image as a developer image (input to chromeos_startup).
   # TODO(arkaitzr): Remove this file when applications no longer rely on it

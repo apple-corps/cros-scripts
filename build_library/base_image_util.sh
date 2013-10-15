@@ -223,6 +223,9 @@ create_base_image() {
   # trim the image size as much as possible.
   emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE}
 
+  # Run ldconfig to create /etc/ld.so.cache.
+  sudo ldconfig -r "${root_fs_dir}"
+
   # Set /etc/lsb-release on the image.
   "${OVERLAY_CHROMEOS_DIR}/scripts/cros_set_lsb_release" \
   --root="${root_fs_dir}" \
