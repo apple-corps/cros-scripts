@@ -189,8 +189,6 @@ main() {
   remote_sh sync
 
   if [ ${FLAGS_reboot} -eq ${FLAGS_TRUE} ]; then
-    echo "rebooting"
-
     remote_reboot
 
     remote_sh uname -r -v
