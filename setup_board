@@ -43,8 +43,6 @@ DEFINE_integer jobs -1 \
 DEFINE_boolean latest_toolchain $FLAGS_FALSE \
   "Use the latest ebuild for all toolchain packages (gcc, binutils, libc, \
 kernel). This overrides the other toolchain version options."
-DEFINE_string libc_version "[stable]" \
-  "Version of libc to use."
 DEFINE_string profile "" \
   "The portage configuration profile to use. Profile must be located in overlay-board/profiles"
 DEFINE_boolean quiet $FLAGS_FALSE \
