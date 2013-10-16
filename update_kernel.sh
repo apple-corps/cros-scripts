@@ -21,6 +21,7 @@ DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
 DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
+DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
 
 # Parse command line.
 FLAGS "$@" || exit 1
@@ -70,9 +71,19 @@ learn_partition_and_ro() {
   fi
 }
 
+get_bootargs() {
+  if [ ${FLAGS_remote_bootargs} -eq ${FLAGS_TRUE} ] ; then
+    info "Using remote bootargs"
+    remote_sh cat /proc/cmdline && echo "${REMOTE_OUT}"
+  else
+    cat "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+  fi
+}
+
 make_kernelimage() {
   local bootloader_path
   local kernel_image
+  local config_path="$(mktemp /tmp/config.txt.XXXXX)"
   if [[ "${FLAGS_arch}" == "arm" ]]; then
     name="bootloader.bin"
     bootloader_path="${SRC_ROOT}/build/images/${FLAGS_board}/latest/${name}"
@@ -81,14 +92,16 @@ make_kernelimage() {
     bootloader_path="/lib64/bootstub/bootstub.efi"
     kernel_image="/build/${FLAGS_board}/boot/vmlinuz"
   fi
+  get_bootargs > "${config_path}"
   vbutil_kernel --pack $TMP/new_kern.bin \
     --keyblock /usr/share/vboot/devkeys/kernel.keyblock \
     --signprivate /usr/share/vboot/devkeys/kernel_data_key.vbprivk \
     --version 1 \
-    --config "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt" \
+    --config ${config_path} \
     --bootloader "${bootloader_path}" \
     --vmlinuz "${kernel_image}" \
     --arch "${FLAGS_arch}"
+  rm "${config_path}"
 }
 
 copy_kernelimage() {
