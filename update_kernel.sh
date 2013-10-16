@@ -20,6 +20,7 @@ DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
 DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
+DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 
 # Parse command line.
 FLAGS "$@" || exit 1
@@ -104,6 +105,11 @@ check_kernelbuildtime() {
   fi
 }
 
+mark_boot_once() {
+  local idx=${FLAGS_partition##*[^0-9]}
+  remote_sh cgpt add -i ${idx} -S 0 -T 1 -P 15 ${FLAGS_device}
+}
+
 update_syslinux_kernel() {
   # ARM does not have the syslinux directory, so skip it when the
   # partition or the syslinux vmlinuz target is missing.
@@ -171,6 +177,11 @@ main() {
     copy_kernelimage
   else
     info "Skipping update of vboot (per request)"
+  fi
+
+  if [ ${FLAGS_bootonce} -eq ${FLAGS_TRUE} ]; then
+    info "Marking kernel partition ${FLAGS_partition} as boot once"
+    mark_boot_once
   fi
 
   # An early kernel panic can prevent the normal sync on reboot.  Explicitly
