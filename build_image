@@ -14,7 +14,7 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 
 # Developer-visible flags.
 DEFINE_string adjust_part "" \
-  "Adjustments to apply to the partition table"
+  "Adjustments to apply to partition table (LABEL:[+-=]SIZE) e.g. ROOT-A:+1G"
 DEFINE_string board "${DEFAULT_BOARD}" \
   "The board to build an image for."
 DEFINE_string boot_args "noinitrd" \
@@ -51,6 +51,14 @@ Examples:
 
 build_image --board=<board> dev test - builds developer and test images.
 build_image --board=<board> factory_install - builds a factory install shim.
+
+Note if you want to build an image with custom size partitions, either consider
+adding a new disk layout in build_library/legacy_disk_layout.json OR use
+--adjust_part. See the help above but here are a few examples:
+
+--adjust_part='STATE:+1G' -- add one GB to the size the stateful partition
+--adjust_part='ROOT-A:-1G' -- remove one GB from the primary rootfs partition
+--adjust_part='STATE:=1G' --  make the stateful partition 1 GB
 ...
 "
 show_help_if_requested "$@"
