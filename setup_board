@@ -437,8 +437,13 @@ ${SAVED_VERSION}
 EOF
 
 if ! ${HOST_BOARD}; then
-  sudo ln -sf "${CHROMIUMOS_CONFIG}/make.conf.${ARCH}-target" \
-    "${BOARD_ETC}/make.conf"
+  for a in ${ARCH} generic; do
+    conf="${CHROMIUMOS_CONFIG}/make.conf.${a}-target"
+    if [[ -e ${conf} ]]; then
+      sudo ln -sf "${conf}" "${BOARD_ETC}/make.conf"
+      break
+    fi
+  done
   print_board_make_conf | sudo_clobber $BOARD_ETC/make.conf.board
 
   # We install the toolchain related bits after the BOARD_ROOT, BOARD_PROFILE
