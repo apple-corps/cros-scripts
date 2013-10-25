@@ -87,11 +87,13 @@ start_kvm() {
 
     local vm_image="$1"
     if [ ${FLAGS_copy} -eq ${FLAGS_TRUE} ]; then
+      # This filename template must be kept in sync with cbuildbot_stages.py.
       local our_copy=$(mktemp "${vm_image}.copy.XXXXXXXXXX")
       if cp "${vm_image}" "${our_copy}"; then
+          info "Copied ${vm_image} to ${our_copy}."
           vm_image="${our_copy}"
       else
-          die "Copy failed. Continuing without copy."
+          die "Copy failed. Aborting."
       fi
     fi
 
