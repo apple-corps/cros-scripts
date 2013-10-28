@@ -436,6 +436,9 @@ early_enter_chroot emerge -uNv --quiet portage
 if [[ -e ${FLAGS_chroot}/usr/share/openrc ]]; then
   info "Uninstalling openrc"
   early_enter_chroot env CLEAN_DELAY=0 emerge -qC sys-apps/openrc
+  # Now update baselayout to get our functions.sh.  The unmerge
+  # above removed our copy in the process.
+  early_enter_chroot emerge -uNvq sys-apps/baselayout
 fi
 
 # The stage3 contains an old version of Python. Upgrade it first so that
