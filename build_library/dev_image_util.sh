@@ -48,14 +48,8 @@ install_dev_packages() {
   # Re-run ldconfig to fix /etc/ld.so.cache.
   sudo ldconfig -r "${root_fs_dir}"
 
-  # Mark the image as a developer image (input to chromeos_startup).
-  # TODO(arkaitzr): Remove this file when applications no longer rely on it
-  # (crosbug.com/16648). The preferred way of determining developer mode status
-  # is via crossystem cros_debug?1 (checks boot args for "cros_debug").
-  sudo mkdir -p "${root_fs_dir}/root"
-  sudo touch "${root_fs_dir}/root/.dev_mode"
-
   # Additional changes to developer image.
+  sudo mkdir -p "${root_fs_dir}/root"
 
   # Leave core files for developers to inspect.
   sudo touch "${root_fs_dir}/root/.leave_core"
