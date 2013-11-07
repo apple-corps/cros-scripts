@@ -438,13 +438,15 @@ if [[ -e ${FLAGS_chroot}/usr/share/openrc ]]; then
   early_enter_chroot env CLEAN_DELAY=0 emerge -qC sys-apps/openrc
 fi
 
-# Make sure we have python-2.x available.
-if [[ -z $(ls "${FLAGS_chroot}"/usr/bin/python2* 2>/dev/null) ]]; then
-  info "Installing python-2.x"
-  early_enter_chroot emerge -uNvq =dev-lang/python-2*
-  early_enter_chroot eselect python set 1
-  early_enter_chroot env CLEAN_DELAY=0 emerge -qC =dev-lang/python-3*
-fi
+# The stage3 contains an old version of Python. Upgrade it first so that
+# parallel_emerge (and chromite libs) can use the latest Python syntax.
+info "Updating python-2.x"
+early_enter_chroot emerge -uNvq =dev-lang/python-2*
+
+# New versions of the stage3 have Python 3 set as the default. Get rid of it,
+# as our scripts are only compatible with Python 2.
+early_enter_chroot eselect python set 1
+early_enter_chroot env CLEAN_DELAY=0 emerge -qC =dev-lang/python-3* || true
 
 # Packages that inherit cros-workon commonly get a circular dependency
 # curl->openssl->git->curl that is broken by emerging an early version of git
