@@ -4,11 +4,11 @@
 
 # We moved a lot of files to the public overlay.  Make sure we regen the
 # boards profile settings and such so we pull in the public bits.
-BOARD=butterfly
-
-if [[ -d /build/${BOARD} ]]; then
-  ~/trunk/src/scripts/setup_board \
-    --board=${BOARD} \
-    --skip_chroot_upgrade \
-    --regen_configs
-fi
+for b in x86-zgb{,_he}; do
+  if [[ -d /build/${b} ]]; then
+    ~/trunk/src/scripts/setup_board \
+      --board=${b} \
+      --skip_chroot_upgrade \
+      --regen_configs
+  fi
+done
