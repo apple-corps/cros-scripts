@@ -479,7 +479,10 @@ class PingUpdateResponse(StringUpdateResponse):
                                                      self.file_sha256,
                                                      self.file_size,
                                                      url,
-                                                     False,
+                                                     False, # Is Delta.
+                                                     None,  # Metadata size.
+                                                     None,  # Signed md hash.
+                                                     None,  # Public key.
                                                      protocol)
     else:
       self.string = (autoupdate_lib.GetNoUpdateResponse(protocol))
