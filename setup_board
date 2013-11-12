@@ -120,7 +120,7 @@ EOF
   wrappers+=( "${wrapper}" )
 
   for wrapper in 'emerge --root-deps' ebuild eclean equery portageq \
-                 qcheck qfile qlist; do
+                 qcheck qfile qlist qsize; do
     _generate_wrapper ${wrapper}
   done
 
