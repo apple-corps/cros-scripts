@@ -2,6 +2,5 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This is to clear the incremental binaries for chrome to cope with a
-# toolchain revert.
-sudo rm -rf /var/cache/chromeos-chrome/* || true
+# Placeholder, see 81_toolchain_downgrade.
+true
