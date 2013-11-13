@@ -62,17 +62,19 @@ mod_image_for_test () {
   if [ ${FLAGS_factory} -eq ${FLAGS_TRUE} ] ||
       should_build_image "${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"; then
     emerge_to_image --root="${root_fs_dir}" factorytest-init
+
+
+    # Install the factory tests and their dependencies into the autotest client
+    # library.
     INSTALL_MASK="${FACTORY_TEST_INSTALL_MASK}"
     emerge_to_image --root="${root_fs_dir}/usr/local" \
-      chromeos-base/autotest chromeos-base/autotest-all \
+      chromeos-base/autotest-factory-install \
       chromeos-base/chromeos-factory
+
     prepare_hwid_for_factory "${BUILD_DIR}"
 
-    local mod_factory_script
-    mod_factory_script="${SCRIPTS_DIR}/mod_for_factory_scripts/factory_setup.sh"
-    # Run factory setup script to modify the image
-    sudo -E GCLIENT_ROOT="${GCLIENT_ROOT}" ROOT_FS_DIR="${root_fs_dir}" \
-            BOARD="${BOARD}" "${mod_factory_script}"
+    echo "Modifying Release Description for Factory."
+    sudo sed -i 's/Test/Factory/' "${root_fs_dir}/etc/lsb-release"
   fi
 
   # Re-run ldconfig to fix /etc/ld.so.cache.

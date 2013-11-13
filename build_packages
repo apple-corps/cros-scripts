@@ -204,6 +204,7 @@ if [[ $# -eq 0 ]]; then
     PACKAGES+=( chromeos-base/chromeos-factory )
     PACKAGES+=( chromeos-base/factorytest-init )
     PACKAGES+=( chromeos-base/chromeos-hwid )
+    PACKAGES+=( chromeos-base/autotest-factory-install )
   fi
   if [[ "${FLAGS_withtest}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( chromeos-base/chromeos-test )
