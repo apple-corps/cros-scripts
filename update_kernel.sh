@@ -45,7 +45,6 @@ learn_device() {
 
 # Ask the target what the kernel partition is
 learn_partition_and_ro() {
-  [ -n "${FLAGS_partition}" ] && return
   ! remote_sh rootdev
   if [ "${REMOTE_OUT%%-*}" == "/dev/dm" ]; then
     remote_sh rootdev -s
@@ -55,6 +54,7 @@ learn_partition_and_ro() {
     REMOTE_VERITY=${FLAGS_FALSE}
     info "System is not using verity: updating firmware and modules"
   fi
+  [ -n "${FLAGS_partition}" ] && return
   if [ "${REMOTE_OUT}" == "${FLAGS_device}3" ]; then
     FLAGS_partition="${FLAGS_device}2"
   else
