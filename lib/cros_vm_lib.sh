@@ -26,6 +26,14 @@ get_pid() {
   sudo cat "${KVM_PID_FILE}"
 }
 
+# Configure paths to KVM pipes. Must not be called until after KVM_PID_FILE
+# has been updated. (See, e.g., start_kvm.)
+set_kvm_pipes() {
+  KVM_PIPE_PREFIX="${KVM_PID_FILE/pid/monitor}"
+  KVM_PIPE_IN="${KVM_PIPE_PREFIX}.in"  # to KVM
+  KVM_PIPE_OUT="${KVM_PIPE_PREFIX}.out"  # from KVM
+}
+
 # General purpose blocking kill on a pid.
 # This function sends a specified kill signal [0-9] to a pid and waits for it
 # die up to a given timeout.  It exponentially backs off it's timeout starting
@@ -87,7 +95,6 @@ start_kvm() {
 
     local vm_image="$1"
     if [ ${FLAGS_copy} -eq ${FLAGS_TRUE} ]; then
-      # This filename template must be kept in sync with cbuildbot_stages.py.
       local our_copy=$(mktemp "${vm_image}.copy.XXXXXXXXXX")
       if cp "${vm_image}" "${our_copy}"; then
           info "Copied ${vm_image} to ${our_copy}."
@@ -108,10 +115,19 @@ start_kvm() {
       cache_type="unsafe"
     fi
 
+    set_kvm_pipes
+    for pipe in "${KVM_PIPE_IN}" "${KVM_PIPE_OUT}"; do
+      sudo rm -f "${pipe}"  # assumed safe because, the PID is not running
+      sudo mknod "${pipe}" p
+      sudo chmod 600 "${pipe}"
+    done
+
     sudo "${KVM_BINARY}" -m 2G \
       -smp 4 \
       -vga cirrus \
       -pidfile "${KVM_PID_FILE}" \
+      -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}" \
+      -mon chardev=control_pipe \
       -daemonize \
       ${net_option} \
       ${nographics} \
@@ -162,10 +178,14 @@ stop_kvm() {
       "--kvm_pid ${KVM_PID_FILE} to re-connect to it." >&2
   else
     echo "Stopping the KVM instance" >&2
+    set_kvm_pipes
     local pid=$(get_pid)
     if [ -n "${pid}" ]; then
-      blocking_kill ${pid} 1 16 || blocking_kill ${pid} 9 1
+      sudo sh -c "echo system_powerdown > ${KVM_PIPE_IN}"
+      blocking_kill ${pid} 0 16 || blocking_kill ${pid} 9 1
       sudo rm "${KVM_PID_FILE}"
+      sudo rm "${KVM_PIPE_IN}"
+      sudo rm "${KVM_PIPE_OUT}"
     else
       echo "No kvm pid found to stop." >&2
       return 1
