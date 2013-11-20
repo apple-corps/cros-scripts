@@ -7,6 +7,7 @@
 DEFINE_string kvm_pid "" \
   "Use this pid file.  If it exists and is set, use the vm specified by pid."
 DEFINE_boolean copy ${FLAGS_FALSE} "Copy the image file before starting the VM."
+DEFINE_string mem_path "" "VM memory image to save or restore."
 DEFINE_boolean no_graphics ${FLAGS_FALSE} "Runs the KVM instance silently."
 DEFINE_boolean persist "${FLAGS_FALSE}" "Persist vm."
 DEFINE_boolean snapshot ${FLAGS_FALSE} "Don't commit changes to image."
@@ -58,6 +59,56 @@ kvm_version_greater_equal() {
 
   [ $(echo -e "${test_version}\n${kvm_version}" | sort -r -V | head -n 1) = \
     $kvm_version ]
+}
+
+# Send a command to the KVM monitor. The caller is responsible for
+# escaping the command, so that it survives sudo sh -c "$arg".
+# Additionally, |set_kvm_pipes| must have been called before this
+# function.
+send_monitor_command() {
+  local command="${1}"
+  sudo sh -c "echo ${1} > ${KVM_PIPE_IN}"
+}
+
+# Send a command to the KVM monitor, and wait for KVM to issue another
+# prompt. The caller is responsible for escaping the command, so that
+# it survives sudo sh -c "$arg".  Additionally, |set_kvm_pipes| must
+# have been called before this function.
+send_monitor_command_and_wait() {
+  local command="${1}"
+  sudo sh -c "echo ${1} > ${KVM_PIPE_IN}"
+  # Wait for the command prompt. Note that we send an empty command
+  # before waiting, because the monitor's command prompt doesn't
+  # include a newline. (And grep waits for a newline.)
+  sudo sh -c "echo > ${KVM_PIPE_IN}"
+  sudo grep -F -q "(qemu)" "${KVM_PIPE_OUT}"
+}
+
+# Return a command which will read stdin, and write a (compressed)
+# bytestream to stdout, for the compression format implied by
+# |filename|.
+get_compressor() {
+  local filename="${1}"
+  local extra_flag="${2:-}"
+  case "${filename}" in
+    *.gz)
+      compressor="pigz -c ${extra_flag}"
+      ;;
+    *.bz2)
+      compressor="pbzip2 -c ${extra_flag}"
+      ;;
+    *)
+      compressor="cat"
+      ;;
+  esac
+  echo "${compressor}"
+}
+
+# Return a command which will read stdin, and write a (decompressed)
+# bytestream to stdout, for the compression format implied by
+# |filename|.
+get_decompressor() {
+  get_compressor "${1}" "-d"
 }
 
 # $1: Path to the virtual image to start.
@@ -115,6 +166,14 @@ start_kvm() {
       cache_type="unsafe"
     fi
 
+    local incoming=""
+    local incoming_option=""
+    if [ -n "${FLAGS_mem_path}" ]; then
+      local decompressor=$(get_decompressor "${FLAGS_mem_path}")
+      incoming="-incoming"
+      incoming_option="exec: ${decompressor} ${FLAGS_mem_path}"
+    fi
+
     set_kvm_pipes
     for pipe in "${KVM_PIPE_IN}" "${KVM_PIPE_OUT}"; do
       sudo rm -f "${pipe}"  # assumed safe because, the PID is not running
@@ -122,6 +181,9 @@ start_kvm() {
       sudo chmod 600 "${pipe}"
     done
 
+    # Note: the goofiness around the expansion of |incoming_option| is
+    # to ensure that it is quoted if set, but _not_ quoted if
+    # unset. (QEMU chokes on empty arguments).
     sudo "${KVM_BINARY}" -m 2G \
       -smp 4 \
       -vga cirrus \
@@ -133,6 +195,7 @@ start_kvm() {
       ${nographics} \
       ${snapshot} \
       -net user,hostfwd=tcp::${FLAGS_ssh_port}-:22 \
+      ${incoming} ${incoming_option:+"$incoming_option"} \
       -drive "file=${vm_image},index=0,media=disk,cache=${cache_type}"
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
@@ -181,7 +244,32 @@ stop_kvm() {
     set_kvm_pipes
     local pid=$(get_pid)
     if [ -n "${pid}" ]; then
-      sudo sh -c "echo system_powerdown > ${KVM_PIPE_IN}"
+      if [ -n "${FLAGS_mem_path}" ]; then
+        local mem_path="${FLAGS_mem_path}"
+        local compressor=$(get_compressor "${mem_path}")
+        echo "Saving memory snapshot to ${mem_path}..."
+        echo "    freezing VM..."
+        send_monitor_command_and_wait "stop"
+        echo "    saving memory, piping through ${compressor}..."
+        # Create file as current user, so that it will be readable by
+        # the current user. (Otherwise, it would be owned by root.)
+        touch "${mem_path}"
+        send_monitor_command_and_wait \
+            "migrate \\\"exec:${compressor} \> ${mem_path}\\\""
+        # Flush any disk I/O that is buffered in KVM.
+        echo "    flushing disk buffers..."
+        send_monitor_command_and_wait "commit all"
+        # Quit KVM now, so that we don't modify the filesystem which
+        # this memory image depends on.
+        echo "    asking KVM to quit..."
+        send_monitor_command "quit"
+        echo "    done."
+      else
+        # Initiate the power-off sequence inside the guest. Note that
+        # this monitor command does not wait for the guest to power
+        # off the system.
+        send_monitor_command "system_powerdown"
+      fi
       blocking_kill ${pid} 0 16 || blocking_kill ${pid} 9 1
       sudo rm "${KVM_PID_FILE}"
       sudo rm "${KVM_PIPE_IN}"
