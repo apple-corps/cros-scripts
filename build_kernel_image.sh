@@ -61,6 +61,10 @@ eval set -- "${FLAGS_ARGV}"
 # Die on error
 switch_to_strict_mode
 
+# N.B.  Ordering matters for some of the libraries below, because
+# some of the files contain initialization used by later files.
+. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+
 rootdigest() {
   local digest=${table#*root_hexdigest=}
   echo ${digest% salt*}
@@ -135,7 +139,7 @@ build_verified_kernel() {
   trap - EXIT
 }
 
-load_board_specific_script "${FLAGS_board}" "build_kernel_image.sh"
+load_board_specific_script "${BOARD}" "build_kernel_image.sh"
 
 device_mapper_args=
 # Even with a rootfs_image, root= is not changed unless specified.
