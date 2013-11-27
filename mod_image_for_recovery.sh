@@ -132,6 +132,7 @@ create_recovery_kernel_image() {
 
   # TODO(wad) add FLAGS_boot_args support too.
   ${SCRIPTS_DIR}/build_kernel_image.sh \
+    --board="${FLAGS_board}" \
     --arch="${ARCH}" \
     --to="$RECOVERY_KERNEL_IMAGE" \
     --hd_vblock="$RECOVERY_KERNEL_VBLOCK" \
