@@ -28,6 +28,42 @@ _INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features', 'format',
                               'fs_format',))
 
 
+def ParseHumanNumber(operand):
+  """Parse a human friendly number
+
+  This handles things like 4GiB and 4MB and such.  See the usage string for
+  full details on all the formats supported.
+
+  Args:
+    operand: The number to parse (may be an int or string)
+  Returns:
+    An integer
+  """
+  operand = str(operand)
+  negative = -1 if operand.startswith('-') else 1
+  if negative == -1:
+    operand = operand[1:]
+  operand_digits = re.sub(r'\D', r'', operand)
+
+  size_factor = block_factor = 1
+  suffix = operand[len(operand_digits):].strip()
+  if suffix:
+    size_factors = { 'B': 0, 'K': 1, 'M': 2, 'G': 3, 'T': 4, }
+    try:
+      size_factor = size_factors[suffix[0].upper()]
+    except KeyError:
+      raise InvalidAdjustment('Unknown size type %s' % suffix)
+    if size_factor == 0 and len(suffix) > 1:
+      raise InvalidAdjustment('Unknown size type %s' % suffix)
+    block_factors = { '': 1024, 'B': 1000, 'IB': 1024, }
+    try:
+      block_factor = block_factors[suffix[1:].upper()]
+    except KeyError:
+      raise InvalidAdjustment('Unknown size type %s' % suffix)
+
+  return int(operand_digits) * pow(block_factor, size_factor) * negative
+
+
 def LoadPartitionConfig(filename):
   """Loads a partition tables configuration file into a Python object.
 
@@ -49,7 +85,7 @@ def LoadPartitionConfig(filename):
   try:
     metadata = config['metadata']
     for key in ('block_size', 'fs_block_size'):
-      metadata[key] = int(metadata[key])
+      metadata[key] = ParseHumanNumber(metadata[key])
 
     unknown_keys = set(config.keys()) - valid_keys
     if unknown_keys:
@@ -83,11 +119,11 @@ def LoadPartitionConfig(filename):
             if not s in part:
               raise InvalidLayout('Layout "%s" missing "%s"' % (layout_name, s))
 
-        part['blocks'] = int(part['blocks'])
+        part['blocks'] = ParseHumanNumber(part['blocks'])
         part['bytes'] = part['blocks'] * metadata['block_size']
 
         if 'fs_blocks' in part:
-          part['fs_blocks'] = int(part['fs_blocks'])
+          part['fs_blocks'] = ParseHumanNumber(part['fs_blocks'])
           part['fs_bytes'] = part['fs_blocks'] * metadata['fs_block_size']
 
           if part['fs_bytes'] > part['bytes']:
@@ -189,25 +225,7 @@ def ApplyPartitionAdjustment(partitions, metadata, label, operator, operand):
 
   partition = GetPartitionByLabel(partitions, label)
 
-  operand_digits = re.sub('\D', '', operand)
-  size_factor = block_factor = 1
-  suffix = operand[len(operand_digits):]
-  if suffix:
-    size_factors = { 'B': 0, 'K': 1, 'M': 2, 'G': 3, 'T': 4, }
-    try:
-      size_factor = size_factors[suffix[0].upper()]
-    except KeyError:
-      raise InvalidAdjustment('Unknown size type %s' % suffix)
-    if size_factor == 0 and len(suffix) > 1:
-      raise InvalidAdjustment('Unknown size type %s' % suffix)
-    block_factors = { '': 1024, 'B': 1000, 'IB': 1024, }
-    try:
-      block_factor = block_factors[suffix[1:].upper()]
-    except KeyError:
-      raise InvalidAdjustment('Unknown size type %s' % suffix)
-
-  operand_bytes = int(operand_digits) * pow(block_factor, size_factor)
-
+  operand_bytes = ParseHumanNumber(operand)
   if operand_bytes % metadata['block_size'] == 0:
     operand_blocks = operand_bytes / metadata['block_size']
   else:
