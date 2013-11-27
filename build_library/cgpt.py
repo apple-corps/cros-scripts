@@ -89,6 +89,52 @@ def ParseRelativeNumber(max_number, number):
       return number
 
 
+def _LoadStackedPartitionConfig(filename):
+  """Loads a partition table and its possible parent tables.
+
+  This does very little validation.  It's just enough to walk all of the parent
+  files and merge them with the current config.  Overall validation is left to
+  the caller.
+
+  Args:
+    filename: Filename to load into object
+  Returns:
+    Object containing disk layout configuration
+  """
+  if not os.path.exists(filename):
+    raise ConfigNotFound('Partition config %s was not found!' % filename)
+  with open(filename) as f:
+    config = json.load(f)
+
+  dirname = os.path.dirname(filename)
+  for parent in config.get('parent', '').split():
+    parent_filename = os.path.join(dirname, parent)
+    parent_config = _LoadStackedPartitionConfig(parent_filename)
+
+    # Now hand merge the current config over the parent config.  Each field
+    # has its own stacking rules, so we have to do this.
+    parent_config.setdefault('metadata', {})
+    parent_config['metadata'].update(config.get('metadata', {}))
+
+    parent_config.setdefault('layouts', config.get('layouts', {}))
+    for layout_name, layout in config['layouts'].iteritems():
+      for part in layout:
+        if 'num' not in part:
+          continue
+        num = part['num']
+        for parent_part in parent_config['layouts'].get(layout_name, []):
+          if parent_part.get('num') == num:
+            for k, v in part.iteritems():
+              if k not in _INHERITED_LAYOUT_KEYS and k in part:
+                parent_part[k] = v
+            break
+
+    config = parent_config
+
+  config.pop('parent', None)
+  return config
+
+
 def LoadPartitionConfig(filename):
   """Loads a partition tables configuration file into a Python object.
 
@@ -98,14 +144,11 @@ def LoadPartitionConfig(filename):
     Object containing disk layout configuration
   """
 
-  valid_keys = set(('_comment', 'metadata', 'layouts'))
+  valid_keys = set(('_comment', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = _INHERITED_LAYOUT_KEYS | set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size'))
 
-  if not os.path.exists(filename):
-    raise ConfigNotFound('Partition config %s was not found!' % filename)
-  with open(filename) as f:
-    config = json.load(f)
+  config = _LoadStackedPartitionConfig(filename)
 
   try:
     metadata = config['metadata']
