@@ -64,6 +64,31 @@ def ParseHumanNumber(operand):
   return int(operand_digits) * pow(block_factor, size_factor) * negative
 
 
+def ParseRelativeNumber(max_number, number):
+  """Return the number that is relative to |max_number| by |number|
+
+  We support three forms:
+   90% - |number| is a percentage of |max_number|
+   100 - |number| is the answer already (and |max_number| is ignored)
+   -90 - |number| is subtracted from |max_number|
+
+  Args:
+    max_number: The limit to use when |number| is negative or a percent
+    number: The (possibly relative) number to parse (may be an int or string)
+  """
+  max_number = int(max_number)
+  number = str(number)
+  if number.endswith('%'):
+    percent = float(number[:-1]) / 100
+    return int(max_number * percent)
+  else:
+    number = ParseHumanNumber(number)
+    if number < 0:
+      return max_number + number
+    else:
+      return number
+
+
 def LoadPartitionConfig(filename):
   """Loads a partition tables configuration file into a Python object.
 
@@ -123,7 +148,9 @@ def LoadPartitionConfig(filename):
         part['bytes'] = part['blocks'] * metadata['block_size']
 
         if 'fs_blocks' in part:
-          part['fs_blocks'] = ParseHumanNumber(part['fs_blocks'])
+          max_fs_blocks = part['bytes'] / metadata['fs_block_size']
+          part['fs_blocks'] = ParseRelativeNumber(max_fs_blocks,
+                                                  part['fs_blocks'])
           part['fs_bytes'] = part['fs_blocks'] * metadata['fs_block_size']
 
           if part['fs_bytes'] > part['bytes']:
