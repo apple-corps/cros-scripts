@@ -239,6 +239,7 @@ setup_env() {
     install -C -m644 /etc/hosts ${FLAGS_chroot}/etc/hosts
 
     debug "Mounting chroot environment."
+    mount --make-rslave /
     MOUNT_CACHE=$(echo $(awk '{print $2}' /proc/mounts))
     setup_mount none "-t proc" /proc
     setup_mount none "-t sysfs" /sys
