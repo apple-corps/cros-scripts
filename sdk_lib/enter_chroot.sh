@@ -397,7 +397,8 @@ setup_env() {
     fi
     if [[ -n "$CHROME_ROOT" ]]; then
       if [[ ! -d "${CHROME_ROOT}/src" ]]; then
-        error "Not mounting chrome source"
+        error "Not mounting chrome source: could not find CHROME_ROOT/src dir."
+        error "Full path we tried: ${CHROME_ROOT}/src"
         rm -f "${FLAGS_chroot}${CHROME_ROOT_CONFIG}"
         if [[ ! "$CHROME_ROOT_AUTO" ]]; then
           exit 1
