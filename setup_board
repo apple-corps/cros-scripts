@@ -453,7 +453,7 @@ if ! ${HOST_BOARD}; then
   fi
 fi
 # Setup make.globals and the profile.
-if [[ ! -e /etc/make.conf.user ]]; then
+if [[ ! -s /etc/make.conf.user ]]; then
   sudo_clobber /etc/make.conf.user <<\EOF
 # This file is useful for doing global (chroot and all board) changes.
 # Tweak emerge settings, ebuild env, etc...
