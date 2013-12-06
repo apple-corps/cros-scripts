@@ -144,7 +144,7 @@ def LoadPartitionConfig(filename):
     Object containing disk layout configuration
   """
 
-  valid_keys = set(('_comment', 'metadata', 'layouts', 'parent'))
+  valid_keys = set(('_comment', 'hybrid_mbr', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = _INHERITED_LAYOUT_KEYS | set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size'))
 
@@ -426,10 +426,11 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
       ]
       prio = 0
 
-  lines += [
-    '${GPT} boot -p -b $2 -i 12 $1',
-    '${GPT} show $1',
-  ]
+  lines += ['${GPT} boot -p -b $2 -i 12 $1']
+  if config.get('hybrid_mbr'):
+    lines += ['install_hybrid_mbr $1']
+  lines += ['${GPT} show $1']
+
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
 
