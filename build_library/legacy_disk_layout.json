@@ -58,7 +58,8 @@
         "label":"OEM",
         "type":"data",
         "fs_format":"ext4",
-        "blocks":"32768"
+        "blocks":"32768",
+        "uuid": "random"
       },
       {
         "type":"blank",
@@ -69,7 +70,8 @@
         "label":"EFI-SYSTEM",
         "type":"efi",
         "fs_format":"vfat",
-        "blocks":"32768"
+        "blocks":"32768",
+        "uuid": "clear"
       },
       {
         "num": 5,
@@ -85,7 +87,8 @@
         "type":"rootfs",
         "fs_format":"ext2",
         "blocks":"4194304",
-        "fs_blocks":"262144"
+        "fs_blocks":"262144",
+        "uuid": "clear"
       },
       {
         "num": 1,
@@ -93,7 +96,8 @@
         "type":"data",
         "fs_format":"ext4",
         "blocks":"2097152",
-        "features":["expand"]
+        "features":["expand"],
+        "uuid": "random"
       }
     ],
     "usb": [
