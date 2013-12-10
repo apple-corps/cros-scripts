@@ -134,6 +134,12 @@ EOF
     )
   fi
 
+  # Create a link so gdb can automatically locate debug files for the target.
+  cmds+=(
+    "mkdir -p '$(dirname "/usr/lib/debug/${BOARD_ROOT}")'"
+    "ln -sfT '${BOARD_ROOT}/usr/lib/debug' '/usr/lib/debug/${BOARD_ROOT}'"
+  )
+
   wrapper="/usr/local/bin/cros_workon-${BOARD_VARIANT}"
   sudo_clobber "${wrapper}" <<EOF
 #!/bin/bash
