@@ -8,12 +8,12 @@ cfgd="/usr/local/portage/chromiumos/chromeos/config"
 for board_root in /build/*; do
   envd="${board_root}/etc/portage/env"
   if [ -d "${envd}" ]; then
-    sudo rm -rf "${envd}"
+    sudo rm -rf --one-file-system "${envd}"
     sudo ln -s "${cfgd}/env" "${envd}"
   fi
 done
 
 # Make sure we have bashrc on the host.
-sudo ln -sf "${cfgd}/bashrc-host" /etc/portage/bashrc
+sudo ln -sfT "${cfgd}/bashrc-host" /etc/portage/bashrc
 
 exit 0

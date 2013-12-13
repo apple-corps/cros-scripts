@@ -61,7 +61,7 @@ update_pkgs() {
     fi
   fi
 
-  sudo rm -rf "${root}"/usr/{,local/}lib*/python${OLD_PY_VER}
+  sudo rm -rf --one-file-system "${root}"/usr/{,local/}lib*/python${OLD_PY_VER}
 }
 
 b() {

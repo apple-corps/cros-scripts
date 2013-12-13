@@ -19,7 +19,7 @@ upgrade_path() {
       # User has already built it- thus wipe the src and use what's in
       # the chrome specific cache.
       info "[$1/4] Cleaning $src; this could take a while"
-      sudo rm -rf "$src"
+      sudo rm -rf --one-file-system "$src"
     else
       sudo mv "$src" "$dest"
     fi

@@ -4,7 +4,7 @@
 python_path=$(python -c 'import sys;print sys.version[:3]')
 python_path="/usr/lib/python${python_path}/site-packages/chromite"
 if [ ! -L "${python_path}" ]; then
-  sudo rm -rf "${python_path}" \
+  sudo rm -rf --one-file-system "${python_path}" \
       "/home/${PORTAGE_USERNAME:-${SUDO_USER:-${USER}}}/.local/lib/python2.6/site-packages/chromite"
   sudo mkdir -p "$(dirname "${python_path}")"
   sudo ln -s "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"

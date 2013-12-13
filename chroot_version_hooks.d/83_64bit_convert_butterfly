@@ -12,7 +12,7 @@ build="/build/${board}"
 if [[ -d ${build} ]] ; then
   info "Moving 32bit ${board} to ${board}.32bit"
   info "If you don't need it, please run "
-  info "sudo rm -rf ${build}.32bit"
+  info "sudo rm -rf --one-file-system ${build}.32bit"
   sudo mv ${build}{,.32bit}
   info "Running setup_board --board=${board}"
   ~/trunk/src/scripts/setup_board --board=${board} --skip_chroot_upgrade

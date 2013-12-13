@@ -13,7 +13,7 @@ for board_root in /build/* ; do
     if [[ -d ${build} ]] ; then
       # The board has a build root to clear.
       info "Deleting ${board} build root at ${build}"
-      sudo rm -rf ${build}
+      sudo rm -rf --one-file-system ${build}
       info "Running setup_board --board=${board}"
       ~/trunk/src/scripts/setup_board --board=${board} --skip_chroot_upgrade
     fi
@@ -21,4 +21,4 @@ for board_root in /build/* ; do
 done
 
 # Delete Chrome artifacts.
-sudo rm -rf /var/cache/chromeos-chrome/* || true
+sudo rm -rf --one-file-system /var/cache/chromeos-chrome/* || true

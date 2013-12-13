@@ -4,5 +4,4 @@
 
 # Delete /does/not to fix metrics unit test, which depends on this
 # directory not existing.
-sudo rm -rf /does/not
-exit 0
+exec sudo rm -rf --one-file-system /does/not

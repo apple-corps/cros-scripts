@@ -13,12 +13,12 @@ for board in butterfly; do
     case ${HOSTNAME:-$(hostname)} in
     *.golo.chromium.org)
       # Do not keep on buildbots.
-      sudo rm -rf "${build}"
+      sudo rm -rf --one-file-system "${build}"
       ;;
     *)
       info "Moving 64bit ${board} to ${board}.64bit"
       info "If you don't need it, please run "
-      info "sudo rm -rf ${build}.64bit"
+      info "sudo rm -rf --one-file-system ${build}.64bit"
       sudo mv ${build}{,.64bit}
       info "Running setup_board --board=${board}"
       ~/trunk/src/scripts/setup_board --board=${board} --skip_chroot_upgrade

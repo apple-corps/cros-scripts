@@ -8,7 +8,7 @@
 
 if scanelf -qRiy /build/daisy/ 2>/dev/null | grep -q '^/lib/ld-linux.so.3'; then
   info "You have a stale daisy build; punting!"
-  sudo rm -rf /build/daisy/
+  sudo rm -rf --one-file-system /build/daisy
   info "Running setup_board --board=daisy"
   ~/trunk/src/scripts/setup_board --board=daisy --skip_chroot_upgrade
 fi

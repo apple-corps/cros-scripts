@@ -24,9 +24,9 @@ for ldso in /build/*/lib/ld-linux.so.3; do
     fi
     info "Migrating ${board} to ${board}.old.ldso"
     info "If you don't need it, please run "
-    info "sudo rm -rf ${build}.old.ldso"
+    info "sudo rm -rf --one-file-system ${build}.old.ldso"
     if [[ -e ${build}.old.ldso ]]; then
-      sudo rm -rf ${build}.old.ldso
+      sudo rm -rf --one-file-system ${build}.old.ldso
     fi
     sudo mv ${build}{,.old.ldso}
     info "Running setup_board --board=${board}"

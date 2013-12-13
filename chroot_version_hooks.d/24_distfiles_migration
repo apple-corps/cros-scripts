@@ -23,7 +23,7 @@ upgrade_path() {
   fi
   # Suppress failures.  User just has to download in that case.
   sudo find "$src"/ -maxdepth 1 -mindepth 1 -exec sudo mv -t "$dest/" {} + || :
-  sudo rm -rf "$src"
+  sudo rm -rf --one-file-system "$src"
   sudo ln -s ../../cache/distfiles/"$2" "$src"
 }
 
