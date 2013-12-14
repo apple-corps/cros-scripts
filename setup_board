@@ -372,7 +372,7 @@ if [ -d "${BOARD_ROOT}" ]; then
     # Removal takes long. Make it asynchronous.
     TEMP_DIR=`mktemp -d`
     sudo mv "${BOARD_ROOT}" "${TEMP_DIR}"
-    sudo rm -rf "${TEMP_DIR}" &
+    sudo rm -rf --one-file-system "${TEMP_DIR}" &
   elif [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
     if ! ${HOST_BOARD}; then
       { print_board_make_conf; print_board_binhost_config; } | \
@@ -493,7 +493,7 @@ if ! cros_choose_profile \
        --variant "${FLAGS_variant}" \
        --profile "${FLAGS_profile}"; then
   error "Selecting profile failed, removing incomplete board directory!"
-  sudo rm -rf "${BOARD_ROOT}"
+  sudo rm -rf --one-file-system "${BOARD_ROOT}"
   exit 1
 fi
 
