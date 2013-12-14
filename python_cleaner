@@ -51,7 +51,10 @@ if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
 fi
 
 # If the user still has old python modules installed, update them.
-PYTHON_VERSIONS=( $(ls -d /usr/lib*/python*/ | cut -d/ -f4 | sort -uV) )
+PYTHON_VERSIONS=(
+  # Filter out the new python-exec package.
+  $(ls -d /usr/lib*/python*/ | cut -d/ -f4 | grep -v python-exec | sort -uV)
+)
 if [[ ${#PYTHON_VERSIONS[@]} -gt 1 ]]; then
   PY_UPDATE_FLAGS=()
   if [[ ${FLAGS_jobs} -ne -1 ]]; then
