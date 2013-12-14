@@ -165,10 +165,10 @@ init_users () {
 init_setup () {
    info "Running init_setup()..."
    mkdir -p -m 755 "${FLAGS_chroot}/usr" \
-     "${FLAGS_chroot}/usr/local/portage" \
+     "${FLAGS_chroot}${OVERLAYS_ROOT}" \
      "${FLAGS_chroot}"/"${CROSSDEV_OVERLAY}"
-   ln -sf "${CHROOT_TRUNK_DIR}/src/third_party/portage" \
-     "${FLAGS_chroot}/usr/portage"
+   ln -sf "${CHROOT_TRUNK_DIR}/src/third_party/eclass-overlay" \
+     "${FLAGS_chroot}"/"${ECLASS_OVERLAY}"
    ln -sf "${CHROOT_TRUNK_DIR}/src/third_party/chromiumos-overlay" \
      "${FLAGS_chroot}"/"${CHROOT_OVERLAY}"
    ln -sf "${CHROOT_TRUNK_DIR}/src/third_party/portage-stable" \
@@ -339,9 +339,11 @@ PORTAGE="${SRC_ROOT}/third_party/portage"
 OVERLAY="${SRC_ROOT}/third_party/chromiumos-overlay"
 CONFIG_DIR="${OVERLAY}/chromeos/config"
 CHROOT_CONFIG="${CHROOT_TRUNK_DIR}/src/third_party/chromiumos-overlay/chromeos/config"
-PORTAGE_STABLE_OVERLAY="/usr/local/portage/stable"
-CROSSDEV_OVERLAY="/usr/local/portage/crossdev"
-CHROOT_OVERLAY="/usr/local/portage/chromiumos"
+OVERLAYS_ROOT="/usr/local/portage"
+ECLASS_OVERLAY="${OVERLAYS_ROOT}/eclass-overlay"
+PORTAGE_STABLE_OVERLAY="${OVERLAYS_ROOT}/stable"
+CROSSDEV_OVERLAY="${OVERLAYS_ROOT}/crossdev"
+CHROOT_OVERLAY="${OVERLAYS_ROOT}/chromiumos"
 CHROOT_STATE="${FLAGS_chroot}/etc/debian_chroot"
 
 # Pass proxy variables into the environment.

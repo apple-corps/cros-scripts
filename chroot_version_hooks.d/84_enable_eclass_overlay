@@ -1,0 +1,10 @@
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# This symlink is dead and we no longer care.
+sudo rm -f /usr/portage
+
+# This is the new eclass overlay we want to use.
+sudo ln -sfT /mnt/host/source/src/third_party/eclass-overlay \
+  /usr/local/portage/eclass-overlay
