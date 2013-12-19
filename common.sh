@@ -683,8 +683,7 @@ safe_umount_tree() {
   fi
 
   # First try to unmount in one shot to speed things up.
-  # Hide output since we may have devices mounted within a mount point.
-  if safe_umount -d ${mounts} 2> /dev/null; then
+  if safe_umount -d ${mounts}; then
     return 0
   fi
 

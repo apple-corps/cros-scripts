@@ -41,6 +41,7 @@ write_partition_script() {
   local temp_script_file=$(mktemp)
 
   sudo mkdir -p "$(dirname "${partition_script_path}")"
+
   cgpt_py write "${image_type}" "${DISK_LAYOUT_PATH}" \
           "${temp_script_file}"
   sudo mv "${temp_script_file}" "${partition_script_path}"
@@ -49,7 +50,7 @@ write_partition_script() {
 
 run_partition_script() {
   local outdev=$1
-  local partition_script=$2
+  local root_fs_img=$2
 
   local pmbr_img
   case ${ARCH} in
@@ -65,8 +66,10 @@ run_partition_script() {
     ;;
   esac
 
-  . "${partition_script}"
+  sudo mount -o loop "${root_fs_img}" "${root_fs_dir}"
+  . "${root_fs_dir}/${PARTITION_SCRIPT_PATH}"
   write_partition_table "${outdev}" "${pmbr_img}"
+  sudo umount "${root_fs_dir}"
 }
 
 get_fs_block_size() {
@@ -95,29 +98,6 @@ get_filesystem_format() {
   get_disk_layout_path
 
   cgpt_py readfsformat "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
-}
-
-get_partitions() {
-  local image_type=$1
-  get_disk_layout_path
-
-  cgpt_py readpartitionnums "${image_type}" "${DISK_LAYOUT_PATH}"
-}
-
-get_uuid() {
-  local image_type=$1
-  local part_id=$2
-  get_disk_layout_path
-
-  cgpt_py readuuid "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
-}
-
-get_type() {
-  local image_type=$1
-  local part_id=$2
-  get_disk_layout_path
-
-  cgpt_py readtype "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
 }
 
 get_filesystem_size() {
@@ -273,138 +253,50 @@ EOF
   chmod +x "${unpack}" "${pack}" "${mount}" "${umount}"
 }
 
-# Usage: mk_fs  <image_file> <image_type> <partition_num>
-# Args:
-#   image_file: The image file.
-#   image_type: The layout name used to look up partition info in disk layout.
-#   partition_num: The partition number to look up in the disk layout.
-#
-# Note: After we mount the fs, we will attempt to reset the root dir ownership
-#       to 0:0 to workaround a bug in mke2fs (fixed in upstream git now).
-mk_fs() {
-  local image_file=$1
-  local image_type=$2
-  local part_num=$3
-
-  # These are often not in non-root $PATH, but they contain tools that
-  # we can run just fine w/non-root users when we work on plain files.
-  local p
-  for p in /sbin /usr/sbin; do
-    if [[ ":${PATH}:" != *:${p}:* ]]; then
-      PATH+=":${p}"
-    fi
-  done
-
-  # Keep `local` decl split from assignment so return code is checked.
-  local fs_bytes fs_label fs_format fs_block_size offset fs_type
-  fs_format=$(get_filesystem_format ${image_type} ${part_num})
-  if [ -z "${fs_format}" ]; then
-    # We only make fs for partitions that specify a format.
-    return 0
-  fi
-
-  fs_bytes=$(get_filesystem_size ${image_type} ${part_num})
-  fs_block_size=$(get_fs_block_size)
-  if [ "${fs_bytes}" -le ${fs_block_size} ]; then
-    # Skip partitions that are too small.
-    info "Skipping partition $part_num as the blocksize is too small."
-    return 0
-  fi
-
-  info "Creating FS for partition ${part_num} with format ${fs_format}."
-
-  fs_label=$(get_label ${image_type} ${part_num})
-  fs_uuid=$(get_uuid ${image_type} ${part_num})
-  fs_type=$(get_type ${image_type} ${part_num})
-
-  # Mount at the correct place in the file.
-  offset=$(( $(partoffset "${image_file}" "${part_num}") * 512 ))
-  # Root is needed to mount on loopback device.
-  # sizelimit is used to denote the FS size for mkfs if not specified.
-  local part_dev=$(sudo losetup -f --show --offset=${offset} \
-      --sizelimit=${fs_bytes} "${image_file}")
-  if [ ! -e "${part_dev}" ]; then
-    die "No free loopback device to create partition."
-  fi
-
-  case ${fs_format} in
-  ext[234])
-    sudo mkfs.${fs_format} -F -q -U 00000000-0000-0000-0000-000000000000 \
-        -b ${fs_block_size} "${part_dev}" "$((fs_bytes / fs_block_size))"
-    sudo tune2fs -L "${fs_label}" \
-            -U "${fs_uuid}" \
-            -c 0 \
-            -i 0 \
-            -T 20091119110000 \
-            -m 0 \
-            -r 0 \
-            -e remount-ro \
-            "${part_dev}"
-    ;;
-  fat12|fat16|fat32)
-    sudo mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${part_dev}"
-    ;;
-  fat|vfat)
-    sudo mkfs.vfat -n "${fs_label}" "${part_dev}"
-    ;;
-  *)
-    die "Unknown fs format '${fs_format}' for part ${part_num}";;
-  esac
-
-  local mount_dir="$(mktemp -d)"
-  local cmds=(
-    "mount '${part_dev}' '${mount_dir}'"
-    # mke2fs is funky and sets the root dir owner to current uid:gid.
-    "chown 0:0 '${mount_dir}' 2>/dev/null || :"
-  )
-
-  # Prepare partitions with well-known mount points.
-  if [ "${fs_label}" = "STATE" ]; then
-    # These directories are used to mount data from stateful onto the rootfs.
-    cmds+=("sudo mkdir '${mount_dir}/dev_image'"
-           "sudo mkdir '${mount_dir}/var_overlay'"
-    )
-  elif [ "${fs_type}" = "rootfs" ]; then
-    # These rootfs mount points are necessary to mount data from other
-    # partitions onto the rootfs. These are used by both build and run times.
-    cmds+=("sudo mkdir -p '${mount_dir}/mnt/stateful_partition'"
-           "sudo mkdir -p '${mount_dir}/usr/local'"
-           "sudo mkdir -p '${mount_dir}/usr/share/oem'"
-           "sudo mkdir '${mount_dir}/var'"
-    )
-  fi
-  sudo_multi "${cmds[@]}"
-
-  # Deletes associated loopback device as well.
-  sudo umount -d "${mount_dir}"
-  rm -rf "${mount_dir}"
-}
-
-# Creates the gpt image for the given disk layout. In addition to creating
-# the partition layout it creates all the initial filesystems. After this file
-# is created, mount_gpt_image.sh can be used to mount all the filesystems onto
-# directories.
-build_gpt_image() {
+build_gpt() {
   local outdev="$1"
-  local disk_layout="$2"
+  local rootfs_img="$2"
+  local stateful_img="$3"
+  local esp_img="$4"
+  local oem_img="$5"
 
-  # Build the partition table. We create a temporary file for this here.
-  local partition_script_path="$(mktemp)"
-  write_partition_script "${disk_layout}" "${partition_script_path}"
-  run_partition_script "${outdev}" "${partition_script_path}"
-  rm "${partition_script_path}"
+  get_disk_layout_type
+  run_partition_script "${outdev}" "${rootfs_img}"
 
-  # Emit the gpt scripts so we can use them from here on out.
-  emit_gpt_scripts "${outdev}" "$(dirname "${outdev}")"
+  local sudo=
+  if [ ! -w "$outdev" ] ; then
+    # use sudo when writing to a block device.
+    sudo=sudo
+  fi
 
-  # Create the filesystem on each partition defined in the layout file.
-  for p in $(get_partitions "${disk_layout}"); do
-    mk_fs "${outdev}" "${disk_layout}" "${p}"
-  done
+  # Now populate the partitions.
+  info "Copying stateful partition..."
+  $sudo dd if="$stateful_img" of="$outdev" conv=notrunc bs=512 \
+      seek=$(partoffset ${outdev} 1) status=none
+
+  info "Copying rootfs..."
+  $sudo dd if="$rootfs_img" of="$outdev" conv=notrunc bs=512 \
+      seek=$(partoffset ${outdev} 3) status=none
+
+  if [[ -f "${esp_img}" ]]; then
+    info "Copying EFI system partition..."
+    $sudo dd if="$esp_img" of="$outdev" conv=notrunc bs=512 \
+      seek=$(partoffset ${outdev} 12) status=none
+  else
+    info "Skipping EFI system partition (file not found: ${esp_img})"
+  fi
+
+  if [[ -f "${oem_img}" ]]; then
+    info "Copying OEM partition..."
+    $sudo dd if="$oem_img" of="$outdev" conv=notrunc bs=512 \
+        seek=$(partoffset ${outdev} 8) status=none
+  else
+    info "Skipping OEM partition (file not found: ${oem_img})"
+  fi
 
   # Pre-set "sucessful" bit in gpt, so we will never mark-for-death
   # a partition on an SDCard/USB stick.
-  cgpt add -i 2 -S 1 "${outdev}"
+  cgpt add -i 2 -S 1 "$outdev"
 }
 
 round_up_4096() {
