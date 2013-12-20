@@ -27,7 +27,6 @@ cleanup_mounts() {
   safe_umount_tree "${root_fs_dir}"
   safe_umount_tree "${stateful_fs_dir}"
   safe_umount_tree "${esp_fs_dir}"
-  safe_umount_tree "${oem_fs_dir}"
 
    # Turn die on error back on.
   set -e
@@ -42,83 +41,6 @@ zero_free_space() {
   ( sudo dd if=/dev/zero of="${fs_mount_point}/filler" bs=4096 conv=fdatasync \
       status=noxfer || true ) 2>&1 | grep -v "No space left on device"
   sudo rm "${fs_mount_point}/filler"
-}
-
-# Usage: mk_fs <image_type> <partition_num> <image_file> <fs_uuid> <mount_dir>
-# Args:
-#   image_type: The layout name used to look up partition info in disk layout.
-#   partition_num: The partition to look up in the disk layout.
-#   image_file: The file to write the fs image to.
-#   fs_uuid: 'clear' will set the UUID to all zeros.  'random' will initialize
-#            the UUID with a new random value.
-#   mount_dir: (optional) Where to mount the image after creating it
-#
-# Note: After we mount the fs, we will attempt to reset the root dir ownership
-#       to 0:0 to workaround a bug in mke2fs (fixed in upstream git now).
-mk_fs() {
-  local image_type=$1
-  local part_num=$2
-  local fs_img=$3
-  local fs_uuid=$4
-  local mount_dir=$5
-
-  # These are often not in non-root $PATH, but they contain tools that
-  # we can run just fine w/non-root users when we work on plain files.
-  local p
-  for p in /sbin /usr/sbin; do
-    if [[ ":${PATH}:" != *:${p}:* ]]; then
-      PATH+=":${p}"
-    fi
-  done
-
-  # Keep `local` decl split from assignment so return code is checked.
-  local fs_bytes fs_label fs_format fs_block_size
-
-  fs_bytes=$(get_filesystem_size ${image_type} ${part_num})
-  fs_label=$(get_label ${image_type} ${part_num})
-  fs_format=$(get_filesystem_format ${image_type} ${part_num})
-  fs_block_size=$(get_fs_block_size)
-
-  if [[ ${fs_bytes} -eq 0 ]]; then
-    info "Skipping ${fs_img} (size == 0 bytes)"
-    return 0
-  fi
-
-  info "Building ${fs_img}"
-  truncate -s ${fs_bytes} "${fs_img}"
-  case ${fs_format} in
-  ext[234])
-    mkfs.${fs_format} -F -q -U 00000000-0000-0000-0000-000000000000 \
-      -b ${fs_block_size} "${fs_img}" "$((fs_bytes / fs_block_size))"
-    tune2fs -L "${fs_label}" \
-            -U "${fs_uuid}" \
-            -c 0 \
-            -i 0 \
-            -T 20091119110000 \
-            -m 0 \
-            -r 0 \
-            -e remount-ro \
-            "${fs_img}"
-    ;;
-  fat12|fat16|fat32)
-    mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${fs_img}"
-    ;;
-  fat|vfat)
-    mkfs.vfat -n "${fs_label}" "${fs_img}"
-    ;;
-  *)
-    die "Unknown fs format '${fs_format}' for part ${part_num}";;
-  esac
-
-  if [[ -n ${mount_dir} ]]; then
-    mkdir -p "${mount_dir}"
-    local cmds=(
-      "mount -o loop '${fs_img}' '${mount_dir}'"
-      # mke2fs is funky and sets the root dir owner to current uid:gid.
-      "chown 0:0 '${mount_dir}' 2>/dev/null || :"
-    )
-    sudo_multi "${cmds[@]}"
-  fi
 }
 
 create_base_image() {
@@ -141,52 +63,24 @@ create_base_image() {
   info "Using image type ${image_type}"
   get_disk_layout_path
   info "Using disk layout ${DISK_LAYOUT_PATH}"
-
   root_fs_dir="${BUILD_DIR}/rootfs"
   stateful_fs_dir="${BUILD_DIR}/stateful"
   esp_fs_dir="${BUILD_DIR}/esp"
-  oem_fs_dir="${BUILD_DIR}/oem"
 
   trap "cleanup_mounts && delete_prompt" EXIT
   cleanup_mounts &> /dev/null
 
-  local root_fs_img="${BUILD_DIR}/rootfs.image"
-  local stateful_fs_img="${BUILD_DIR}/stateful.image"
-  local esp_fs_img="${BUILD_DIR}/esp.image"
-  local oem_fs_img="${BUILD_DIR}/oem.image"
+  mkdir "${root_fs_dir}" "${stateful_fs_dir}" "${esp_fs_dir}"
+  build_gpt_image "${BUILD_DIR}/${image_name}" "${image_type}"
+  mount_image "${BUILD_DIR}/${image_name}" \
+    "${root_fs_dir}" "${stateful_fs_dir}" "${esp_fs_dir}"
 
-  # Build the various FS images.
-  mk_fs "${image_type}" 3 "${root_fs_img}" clear "${root_fs_dir}"
   df -h "${root_fs_dir}"
-  mk_fs "${image_type}" 1 "${stateful_fs_img}" random "${stateful_fs_dir}"
-  mk_fs "${image_type}" 12 "${esp_fs_img}" clear
-  mk_fs "${image_type}" 8 "${oem_fs_img}" random "${oem_fs_dir}"
-
-  # Prepare stateful partition with some pre-created directories.
-  sudo mkdir "${stateful_fs_dir}/dev_image" "${stateful_fs_dir}/var_overlay"
 
   # Create symlinks so that /usr/local/usr based directories are symlinked to
   # /usr/local/ directories e.g. /usr/local/usr/bin -> /usr/local/bin, etc.
   setup_symlinks_on_root "${stateful_fs_dir}/dev_image" \
     "${stateful_fs_dir}/var_overlay" "${stateful_fs_dir}"
-
-  # Perform binding rather than symlinking because directories must exist
-  # on rootfs so that we can bind at run-time since rootfs is read-only.
-  info "Binding directories from stateful partition onto the rootfs"
-  sudo mkdir -p "${root_fs_dir}/mnt/stateful_partition"
-  sudo mount --bind "${stateful_fs_dir}" "${root_fs_dir}/mnt/stateful_partition"
-  sudo mkdir -p "${root_fs_dir}/usr/local"
-  sudo mount --bind "${stateful_fs_dir}/dev_image" "${root_fs_dir}/usr/local"
-  sudo mkdir -p "${root_fs_dir}/var"
-  sudo mount --bind "${stateful_fs_dir}/var_overlay" "${root_fs_dir}/var"
-  sudo mkdir -p "${root_fs_dir}/dev"
-
-  local oem_fs_bytes=$(get_filesystem_size ${image_type} 8)
-  if [[ ${oem_fs_bytes} -gt 0 ]]; then
-    info "Binding directories from OEM partition onto the rootfs"
-    sudo mkdir -p "${root_fs_dir}/usr/share/oem"
-    sudo mount --bind "${oem_fs_dir}" "${root_fs_dir}/usr/share/oem"
-  fi
 
   # We need to install libc manually from the cross toolchain.
   # TODO: Improve this? It would be ideal to use emerge to do this.
@@ -290,19 +184,6 @@ create_base_image() {
   zero_free_space "${root_fs_dir}"
 
   cleanup_mounts
-
-  # Create the GPT-formatted image.
-  build_gpt "${BUILD_DIR}/${image_name}" \
-          "${root_fs_img}" \
-          "${stateful_fs_img}" \
-          "${esp_fs_img}" \
-          "${oem_fs_img}"
-
-  # Clean up temporary files.
-  rm -f "${root_fs_img}" "${stateful_fs_img}" "${esp_fs_img}" "{oem_fs_img}"
-
-  # Emit helpful scripts for testers, etc.
-  emit_gpt_scripts "${BUILD_DIR}/${image_name}" "${BUILD_DIR}"
 
   USE_DEV_KEYS=
   if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then

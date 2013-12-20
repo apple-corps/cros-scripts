@@ -109,6 +109,7 @@ get_usb_partitions() {
 
   sudo mount ${safe_flag} "${FLAGS_from}3" "${FLAGS_rootfs_mountpt}"
   sudo mount ${ro_flag} "${FLAGS_from}1" "${FLAGS_stateful_mountpt}"
+  sudo mount ${ro_flag} "${FLAGS_from}8" "${FLAGS_rootfs_mountpt}/usr/share/oem"
 
   if [[ -n "${FLAGS_esp_mountpt}" && -e ${FLAGS_from}12 ]]; then
     sudo mount ${ro_flag} "${FLAGS_from}12" "${FLAGS_esp_mountpt}"
@@ -122,6 +123,10 @@ get_gpt_partitions() {
   local offset=$(partoffset "${FLAGS_from}/${filename}" 3)
   local ro_flag=""
   local safe_flag=""
+
+  if [ ! -f "${FLAGS_from}/${filename}" ]; then
+    die "Image ${FLAGS_from}/${filename} does not exist."
+  fi
 
   if [ ${FLAGS_read_only} -eq ${FLAGS_TRUE} ]; then
     ro_flag="-o ro"
@@ -153,6 +158,15 @@ get_gpt_partitions() {
     return 1
   fi
 
+  # Mount the oem partition using a loopback device.
+  offset=$(partoffset "${FLAGS_from}/${filename}" 8)
+  if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
+      "${FLAGS_from}/${filename}" "${FLAGS_rootfs_mountpt}/usr/share/oem" ; then
+    error "mount failed: options=${safe_flag} offset=$(( offset * 512 ))" \
+        "target=${FLAGS_rootfs_mountpt}/usr/share/oem"
+    return 1
+  fi
+
   # Mount the stateful partition using a loopback device.
   local esp_size
   if [[ -n "${FLAGS_esp_mountpt}" ]]; then
@@ -176,7 +190,6 @@ mount_image() {
   if [[ -n "${FLAGS_esp_mountpt}" ]]; then
     mkdir -p "${FLAGS_esp_mountpt}"
   fi
-
   # Get the partitions for the image / device.
   if [ -b ${FLAGS_from} ] ; then
     get_usb_partitions
@@ -187,12 +200,14 @@ mount_image() {
   fi
 
   # Mount directories and setup symlinks.
+  sudo mount --bind "${FLAGS_stateful_mountpt}" \
+    "${FLAGS_rootfs_mountpt}/mnt/stateful_partition"
   sudo mount --bind "${FLAGS_stateful_mountpt}/var_overlay" \
     "${FLAGS_rootfs_mountpt}/var"
   sudo mount --bind "${FLAGS_stateful_mountpt}/dev_image" \
     "${FLAGS_rootfs_mountpt}/usr/local"
-  # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
 
+  # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
   if [ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]; then
     setup_symlinks_on_root "${FLAGS_stateful_mountpt}/dev_image" \
       "${FLAGS_stateful_mountpt}/var_overlay" "${FLAGS_stateful_mountpt}"
