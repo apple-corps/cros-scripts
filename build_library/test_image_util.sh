@@ -61,9 +61,6 @@ mod_image_for_test () {
 
   if [ ${FLAGS_factory} -eq ${FLAGS_TRUE} ] ||
       should_build_image "${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"; then
-    emerge_to_image --root="${root_fs_dir}" factorytest-init
-
-
     # Install the factory tests and their dependencies into the autotest client
     # library.
     INSTALL_MASK="${FACTORY_TEST_INSTALL_MASK}"
