@@ -284,6 +284,7 @@ i915.modeset=1
 tpm_tis.force=1
 tpm_tis.interrupts=0
 nmi_watchdog=panic,lapic
+iTCO_vendor_support.vendorsupport=3
 EOF
   WORK="${WORK} ${FLAGS_working_dir}/config.txt"
 
