@@ -3,6 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Parse and operate based on disk layout files."""
+
 import copy
 import json
 import optparse
@@ -14,13 +16,16 @@ import sys
 START_SECTOR = 64
 
 class ConfigNotFound(Exception):
-  pass
+  """Config Not Found"""
+
 class PartitionNotFound(Exception):
-  pass
+  """Partition Not Found"""
+
 class InvalidLayout(Exception):
-  pass
+  """Invalid Layout"""
+
 class InvalidAdjustment(Exception):
-  pass
+  """Invalid Adjustment"""
 
 
 BASE_LAYOUT = 'base'
@@ -36,6 +41,7 @@ def ParseHumanNumber(operand):
 
   Args:
     operand: The number to parse (may be an int or string)
+
   Returns:
     An integer
   """
@@ -98,6 +104,7 @@ def _LoadStackedPartitionConfig(filename):
 
   Args:
     filename: Filename to load into object
+
   Returns:
     Object containing disk layout configuration
   """
@@ -140,6 +147,7 @@ def LoadPartitionConfig(filename):
 
   Args:
     filename: Filename to load into object
+
   Returns:
     Object containing disk layout configuration
   """
@@ -167,6 +175,9 @@ def LoadPartitionConfig(filename):
       raise InvalidLayout('Missing "base" config in "layouts"')
 
     for layout_name, layout in config['layouts'].iteritems():
+      if layout_name == '_comment':
+        continue
+
       for part in layout:
         unknown_keys = set(part.keys()) - valid_layout_keys
         if unknown_keys:
@@ -213,6 +224,7 @@ def GetTableTotals(config, partitions):
   Args:
     config: Partition configuration file object
     partitions: List of partitions to process
+
   Returns:
     Dict containing totals data
   """
@@ -253,6 +265,7 @@ def GetPartitionTable(options, config, image_type):
     options: Flags passed to the script
     config: Partition configuration file object
     image_type: Type of image eg base/test/dev/factory_install
+
   Returns:
     Object representing a selected partition table
   """
@@ -475,6 +488,7 @@ def GetPartitionByNumber(partitions, num):
   Args:
     partitions: List of partitions to search in
     num: Number of partition to find
+
   Returns:
     An object for the selected partition
   """
@@ -491,6 +505,7 @@ def GetPartitionByLabel(partitions, label):
   Args:
     partitions: List of partitions to search in
     label: Label of partition to find
+
   Returns:
     An object for the selected partition
   """
@@ -537,6 +552,7 @@ def GetBlockSize(_options, layout_filename):
   Args:
     options: Flags passed to the script
     layout_filename: Path to partition configuration file
+
   Returns:
     Block size of all partitions in the layout
   """
@@ -548,13 +564,12 @@ def GetBlockSize(_options, layout_filename):
 def GetFilesystemBlockSize(_options, layout_filename):
   """Returns the filesystem block size.
 
-  Args:
-    options: Flags passed to the script
-
   This is used for all partitions in the table that have filesystems.
 
   Args:
+    options: Flags passed to the script
     layout_filename: Path to partition configuration file
+
   Returns:
     Block size of all filesystems in the layout
   """
@@ -571,6 +586,7 @@ def GetType(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     Type of the specified partition.
   """
@@ -586,11 +602,11 @@ def GetPartitions(options, image_type, layout_filename):
     options: Flags passed to the script
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
+
   Returns:
     A space delimited string of partition numbers.
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
-  partition_nums = []
   return ' '.join(str(p['num']) for p in partitions if 'num' in p)
 
 
@@ -602,6 +618,7 @@ def GetUUID(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     UUID of specified partition. Defaults to random if not set.
   """
@@ -618,6 +635,7 @@ def GetPartitionSize(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     Size of selected partition in bytes
   """
@@ -636,6 +654,7 @@ def GetFilesystemFormat(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     Format of the selected partition's filesystem
   """
@@ -656,6 +675,7 @@ def GetFilesystemSize(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     Size of selected partition filesystem in bytes
   """
@@ -677,6 +697,7 @@ def GetLabel(options, image_type, layout_filename, num):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
     num: Number of the partition you want to read from
+
   Returns:
     Label of selected partition, or 'UNTITLED' if none specified
   """

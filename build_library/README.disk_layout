@@ -1,0 +1,202 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+Disk Layout Format:
+
+The board layout scripts/build_library/legacy_disk_layout.json is used unless
+there is a board specific layout.
+
+To create a board specific layout that modifies this:
+  Create:
+    overlay-<board>/scripts/disk_layout.json
+    overlay-<board>/scripts/legacy_disk_layout.json symlink ->
+      scripts/build_library/legacy_disk_layout.json
+    list legacy_disk_layout.json as a parent in disk_layout.json.
+
+To create a board specific layout that is all new:
+  Read the list of partitions with special handling below.
+  Create overlay-<board>/scripts/disk_layout.json
+
+A layout file consists of a "base" layout, plus zero or more other types of
+layout. Common types would be "usb" and "vm". Each of these layouts is made up
+of one or more partitions.
+
+The base layout is special, since it's the layout on which all other layouts get
+overlaid upon. The base layout represents the "installed" layout, the way things
+should be once the image has been installed onto a device. The "usb" layout
+represents how things should look on a USB image (typically, this means that
+ROOT-B is 1 block long).
+
+Here is an example disk layout with comments.
+
+// Comments are NOT legal in json, but are used here.
+{
+  "_comment": "_comment entries will be ignored.",
+
+  // Optional. Defaults to false.
+  "hybrid_mbr": true,
+
+  // Space seperated list of files to inherit from.
+  "parent": "legacy_disk_layout.json",
+
+  // Required. Define drive and filesystem block sizes.
+  // Inherited.
+  "metadata":{
+    "block_size": 512,
+    "fs_block_size": 4096
+  },
+
+  // All disk layouts for this file.
+  "layouts":{
+
+    // All other layouts inherit from 'base', though base can be used directly.
+    "base": [
+      // Every layout is a list of partitions. They will appear on disk in
+      // the order they appear here.
+      {
+        "num": 11,
+        "label":"RWFW",
+        "type":"firmware",
+        "blocks":"16384"
+      },
+      {
+        // Number to use in partition device name. ie: /dev/sda1. Not tied to
+        // order of partitions on disk. This is the id used for inheritance.
+        "num": 1,
+
+        // Partition name. Cannot be overridden.
+        "label":"STATE",
+
+        // GPT partition type uuid. Cannot be overridden. Values map to
+        // cgpt binary command line arguments, which contain ChromiumOS specific
+        // extentions.
+        "type":"data",
+
+        // Size of partition in disk blocks (block_size * blocks == bytes).
+        "blocks":"2097152",
+
+        // What file system will this partition be formatted with.
+        // Cannot be overridden.
+        "fs_format":"ext4",
+
+        // Optional, default is size of partition. Meaningless without
+        // fs_format. Must be less than size of partition.
+        // Size of filesystem in fs blocks (block_size * fs_blocks == bytes).
+        "fs_blocks": "524288",
+
+        // Special handling of this partition. Expand is only supported value.
+        // Cannot be overridden.
+        "features":["expand"],
+
+        // Optional, default 'random'. Explicitly define the partition uuid.
+        // 'random' means generate a new one.
+        "uuid": "random"
+      }
+    ],
+    "usb": [
+      // This extends base. Partitions can not be removed or added.
+      // Normaly only used to modify partition or fs sizes.
+      {
+        // This number correlates to same partition in base.
+        "num": 11,
+
+        // This label is ignored in favor of the label on base.
+        "label":"RWFW",
+
+        // Type is ignored in favor of the value on base.
+        "type":"firmware",
+
+        // This value can override the value on base.
+        "blocks":"8192"
+      }
+    ]
+  }
+}
+
+Legal partition types:
+  data
+  efi
+  blank
+  firmware
+  kernel
+  rootfs
+  nand
+  ubi
+  reserved
+
+Legal fs_format values:
+  ext2
+  ext3
+  ext4
+  vfat
+  fat
+  fat12
+  fat16
+  fat32
+
+Features values:
+  expand
+
+
+
+In the ChromiumOS build system and installers, a number of partitions have
+'special' handling. Partitions with special handling are always identified
+by partition number.
+
+  Partition 1 - Stateful Partition
+    The stateful partition will have it's size expanded for USB and recovery
+    images to be exactly large enough to hold files.
+
+    On installation, its size will be expanded to use all available space
+    on the target drive. If it does not contain a valid file system, it will
+    be formatted to ext4 on system boot.
+
+  Partition 2 - Kernel Slot A
+    Contains the recovery kernel on recovery images. Contains the standard
+    kernel on all other images. Will be used at initial boot.
+
+  Partition 3 - Rootfs Slot A
+    Contains the rootfs to match kernel A. It's offset on the disk must
+    match security values embedded in the standard kernel which are validated
+    by the signers.
+
+  Partition 4 - Kernel Slot B
+    Contains the standard kernel on recovery images. Is empty on standard
+    recovery images.
+
+    1 block in size on USB Images
+
+    Will be overridden with a copy of the standard kernel from Slot A after
+    installation. Will be overridden with new kernel after first update.
+
+  Partition 5 - Rootfs Slot B
+    Empty on most USB and Recovery images.
+
+    Will be resized to match Partition 3 during installation. Will be overridden
+    with a copy of the rootfs from Slot A after installation. Will be overridden
+    with new rootfs after first update.
+
+  Partition 8 - OEM
+    May or may not have content installed during build image depending on the
+    board.
+
+  Partition 12 - EFI Paritition
+    Ignored/empty on installation to ChromeOS hardware, but not during VM Tests.
+
+    Only used with legacy boot bioses (especially during VM Testing). If
+    installation/update don't detect a secure bios (ie: ChromeOS hardware), then
+    GRUB/UBoot, or other bios boot files/kernels will be installed here.
+
+
+
+FAQ
+
+I want to update a package and I used to use the --rootfs_size and
+--rootfs_partition_size options to make my root filesystem larger to aid this,
+how do I do this now?
+
+Most commonly, create an image using one of the development layouts:
+    ./build_image --disk_layout 2gb-rootfs
+    ./build_image --disk_layout 2gb-rootfs-updatable
+    ./build_image --disk_layout 4gb-rootfs

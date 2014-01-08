@@ -1,58 +1,70 @@
 {
-  "_comment": "See http://www.chromium.org/chromium-os/building-chromium-os/disk-layout-format",
+  "_comment": "See README_disk_layout",
+
   "metadata":{
     "block_size": 512,
     "fs_block_size": 4096
   },
   "layouts":{
+    "_comment": "base is the standard layout template. Also used for installs.",
     "base": [
       {
+        "_comment": "Reserve space for RW firmware. Only used on some boards.",
         "num": 11,
         "label":"RWFW",
         "type":"firmware",
         "blocks":"16384"
       },
       {
+        "_comment": "Unused partition, reserved for software slot C.",
         "num": 6,
         "label":"KERN-C",
         "type":"kernel",
         "blocks":"1"
       },
       {
+        "_comment": "Unused partition, reserved for software slot C.",
         "num": 7,
         "label":"ROOT-C",
         "type":"rootfs",
         "blocks":"1"
       },
       {
+        "_comment": "Unused partition, reserved for future changes.",
         "num": 9,
         "type":"reserved",
         "label":"reserved",
         "blocks":"1"
       },
       {
+        "_comment": "Unused partition, reserved for future changes.",
         "num": 10,
         "type":"reserved",
         "label":"reserved",
         "blocks":"1"
       },
       {
+        "_comment": "Pad out so Kernel A starts on a 4096 block boundry for",
+        "_comment": " performance. This is especially important on Daisy.",
         "type":"blank",
         "blocks":"4028"
       },
       {
+        "_comment": "Kernel for Slot A, no file system.",
         "num": 2,
         "label":"KERN-A",
         "type":"kernel",
         "blocks":"32768"
       },
       {
+        "_comment": "Kernel for Slot B, no file system.",
         "num": 4,
         "label":"KERN-B",
         "type":"kernel",
         "blocks":"32768"
       },
       {
+        "_comment": "Board specific files, mostly unused.",
         "num": 8,
         "label":"OEM",
         "type":"data",
@@ -61,10 +73,12 @@
         "uuid": "random"
       },
       {
+        "_comment": "Pad out, but not sure why.",
         "type":"blank",
         "blocks":"131072"
       },
       {
+        "_comment": "Used for Legacy Bios, and EFI Bios, not ChromeOS hardware",
         "num": 12,
         "label":"EFI-SYSTEM",
         "type":"efi",
@@ -73,12 +87,24 @@
         "uuid": "clear"
       },
       {
+        "_comment": "Slot B rootfs. Must match Root A in side for normal",
+        "_comment": "updates. Will contain copy of Root A after install, and",
+        "_comment": "contain new rootfs's after runtime updates.",
         "num": 5,
         "label":"ROOT-B",
         "type":"rootfs",
         "blocks":"4194304"
       },
       {
+        "_comment": "Slot A rootfs. Rootfs + extras must fit.",
+        "_comment": "FS size + Verity (64 * FS blocks) + Boot Cache (200M).",
+        "_comment": "",
+        "_comment": "Note that updates will fail if the rootfs size",
+        "_comment": "shrinks. (crbug.com/192136)",
+        "_comment": "",
+        "_comment": "Changes to the offset of this partition may require",
+        "_comment": "changes in cros-signing/security_test_baselines/",
+        "_comment": "ensure_secure_kernelparams.config to allow secure boot.",
         "num": 3,
         "label":"ROOT-A",
         "type":"rootfs",
@@ -88,6 +114,7 @@
         "uuid": "clear"
       },
       {
+        "_comment": "User data, fills all remaining space on drive.",
         "num": 1,
         "label":"STATE",
         "type":"data",
@@ -97,17 +124,23 @@
         "uuid": "random"
       }
     ],
+    "_comment": "Used for bootable USB installs (not recovery).",
     "usb": [
       {
+        "_comment": "Shrunken rootfs partition to support smaller USB sticks.",
+        "_comment": "installation will expand this to size from base.",
         "num": 3,
         "blocks":"2539520",
         "fs_blocks":"262144"
       },
       {
+        "_comment": "Slot B rootfs, unused on USB, but pad to 2M.",
+        "_comment": "installation will expand this to size from base.",
         "num": 5,
         "blocks":"4096"
       }
     ],
+    "_comment": "Used for factory install images.",
     "factory_install": [
       {
         "num": 1,
@@ -127,49 +160,70 @@
         "blocks":"65536"
       }
     ],
+    "_comment": "Used for recovery images.",
     "recovery": [
       {
+        "_comment": "Stateful on recovery is dynamically resized larger.",
         "num": 1,
         "blocks":"4096"
       },
       {
+        "_comment": "Shrunken rootfs partition to support smaller USB sticks,",
+        "_comment": "and smaller recovery downloads.",
+        "_comment": "Installation will expand this to size from base.",
+        "_comment": "The offset to the beginning of this partition, and the FS",
+        "_comment": "size must match base exactly to allow secure boot.",
         "num": 3,
         "blocks":"2539520",
         "fs_blocks":"262144"
       },
       {
+        "_comment": "Slot B rootfs, unused on USB, but pad to 2M.",
+        "_comment": "installation will expand this to size from base.",
         "num": 5,
         "blocks":"4096"
       }
     ],
+    "_comment": "Larger rootfs, suitable for development with symbols, etc.",
+    "_comment": "Cannot apply updates when running from USB (no slot B).",
     "2gb-rootfs": [
       {
+        "_comment": "Will be shrunk to size from base on install.",
         "num": 3,
         "blocks":"4194304",
         "fs_blocks":"512000"
       },
       {
+        "_comment": "Will be grown to size from base on install.",
         "num": 5,
         "blocks":"4096"
       }
     ],
+    "_comment": "Larger rootfs, suitable for development with symbols, etc.",
+    "_comment": "CAN apply updates when running from USB.",
     "2gb-rootfs-updatable": [
       {
         "num": 1,
         "blocks":"6291456"
       },
       {
+        "_comment": "The partition size matches base, so it's installable.",
         "num": 3,
         "blocks":"4194304",
         "fs_blocks":"512000"
       },
       {
+        "_comment": "The partition size matches base, so it's installable.",
         "num": 5,
         "blocks":"4194304"
       }
     ],
+    "_comment": "Very large rootfs, suitable for development with symbols,",
+    "_comment": "etc. Cannot apply updates when running from USB (no slot B)",
     "4gb-rootfs": [
       {
+        "_comment": "This partition is larger than the base partition, so the",
+        "_comment": "installer will corrupt the disk during installation.",
         "num": 3,
         "blocks":"8388608",
         "fs_blocks":"1024000"
