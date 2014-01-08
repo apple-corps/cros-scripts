@@ -22,8 +22,8 @@ install_dev_packages() {
   # Determine the root dir for developer packages.
   local root_dev_dir="${root_fs_dir}/usr/local"
 
-  # Install dev-specific init scripts into / from chromeos-dev-init.
-  emerge_to_image --root="${root_fs_dir}" chromeos-dev-init
+  # Install dev-specific init scripts into / from chromeos-dev-root.
+  emerge_to_image --root="${root_fs_dir}" chromeos-dev-root
 
   # Install developer packages described in chromeos-dev.
   emerge_to_image --root="${root_dev_dir}" chromeos-dev
