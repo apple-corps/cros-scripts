@@ -442,15 +442,26 @@ setup_env() {
     # semaphores.
     chmod -R 777 "${FLAGS_chroot}/dev/shm"
 
-    # If the private overlays are installed, gsutil can use those credentials.
-    # We're also installing credentials for use by sudoed invocations.
+    # gsutil uses boto config to store settings and credentials. Copy
+    # user's own boto file into the chroot if it exists. Also copy it
+    # to /root for sudoed invocations.
+    chroot_user_boto="${FLAGS_chroot}/home/${SUDO_USER}/.boto"
+    chroot_root_boto="${FLAGS_chroot}/root/.boto"
+    if [ -f ${SUDO_HOME}/.boto ]; then
+      # Pass --remote-destination to overwrite a symlink.
+      user_cp "--remove-destination" "${SUDO_HOME}/.boto" "$chroot_user_boto"
+      user_cp "--remove-destination" "${SUDO_HOME}/.boto" "$chroot_root_boto"
+    fi
+
+    # If user doesn't have a boto file, check if the private overlays
+    # are installed and use those credentials.
     boto='src/private-overlays/chromeos-overlay/googlestorage_account.boto'
     if [ -s "${FLAGS_trunk}/${boto}" ]; then
-      if [ ! -L "${FLAGS_chroot}/home/${SUDO_USER}/.boto" ]; then
-        user_symlink "trunk/${boto}" "${FLAGS_chroot}/home/${SUDO_USER}/.boto"
+      if [ ! -e "$chroot_user_boto" ]; then
+        user_symlink "trunk/${boto}" "$chroot_user_boto"
       fi
-      if [ ! -L "${FLAGS_chroot}/root/.boto" ]; then
-        ln -sf "${CHROOT_TRUNK_DIR}/${boto}" "${FLAGS_chroot}/root/.boto"
+      if [ ! -e "$chroot_root_boto" ]; then
+        ln -sf "${CHROOT_TRUNK_DIR}/${boto}" "$chroot_root_boto"
       fi
     fi
 
