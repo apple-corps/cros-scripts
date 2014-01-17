@@ -34,6 +34,14 @@ del path
 from dev import autoupdate_lib
 
 
+DEPRECATION_WARNING = """
+!!! You are using a deprecated script !!!
+
+Please use 'cros flash' in the future. See 'cros flash -h' for the details.
+More information available in the link below.
+https://sites.google.com/a/chromium.org/dev/chromium-os/build/cros-flash
+"""
+
 # This is the default filename within the image directory to load updates from
 DEFAULT_IMAGE_NAME = 'chromiumos_image.bin'
 DEFAULT_IMAGE_NAME_TEST = 'chromiumos_test_image.bin'
@@ -560,6 +568,8 @@ def MakePortList(user_supplied_port):
   return range(range_start, range_start + range_length, 1)
 
 def main(argv):
+  print DEPRECATION_WARNING
+
   usage = 'usage: %prog [options]'
   parser = optparse.OptionParser(usage=usage)
   parser.add_option('--board', dest='board', default=None,
