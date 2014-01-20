@@ -159,12 +159,15 @@ get_gpt_partitions() {
   fi
 
   # Mount the oem partition using a loopback device.
-  offset=$(partoffset "${FLAGS_from}/${filename}" 8)
-  if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
+  local oem_size=$(partsize "${FLAGS_from}/${filename}" 8)
+  if [[ ${oem_size} -gt 0 ]]; then
+    offset=$(partoffset "${FLAGS_from}/${filename}" 8)
+    if ! sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
       "${FLAGS_from}/${filename}" "${FLAGS_rootfs_mountpt}/usr/share/oem" ; then
-    error "mount failed: options=${safe_flag} offset=$(( offset * 512 ))" \
+      error "mount failed: options=${safe_flag} offset=$(( offset * 512 ))" \
         "target=${FLAGS_rootfs_mountpt}/usr/share/oem"
-    return 1
+      return 1
+    fi
   fi
 
   # Mount the stateful partition using a loopback device.
