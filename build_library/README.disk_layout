@@ -189,6 +189,25 @@ by partition number.
     GRUB/UBoot, or other bios boot files/kernels will be installed here.
 
 
+Inheritance Rules:
+
+  As noted above, a layout in a given file is defined by the base layout with
+overrides specified by the named layout i.e. the usb layout in the example above
+is the full base layout with overrides for partition 11. Let's denote this
+inheritance as:
+
+local usb <- local base (read: local usb overrides local base).
+
+  These rules change a bit when a parent is involved. Specifically, if both a
+usb and base are defined in a local file and a parent has both this would be
+the ordering:
+
+local usb <- local base <- parent usb <- parent base.
+
+Note this means if any of these are empty or not defined, the ordering is still
+the same i.e. a local usb if usb isn't actually defined will be:
+
+local base <- parent usb <- parent base.
 
 FAQ
 

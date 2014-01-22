@@ -30,7 +30,7 @@ class InvalidAdjustment(Exception):
 
 BASE_LAYOUT = 'base'
 _INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features', 'format',
-                              'fs_format',))
+                              'fs_format', 'num'))
 
 
 def ParseHumanNumber(operand):
@@ -95,15 +95,31 @@ def ParseRelativeNumber(max_number, number):
       return number
 
 
+def _ApplyLayoutOverrides(layout_to_override, layout):
+  """Applies |layout| overrides on to |layout_to_override|."""
+  for part_to_override in layout_to_override:
+    num = part_to_override.get('num')
+    if not num:
+      continue
+
+    for part in layout:
+      if part.get('num') == num:
+        for k, v in part.iteritems():
+          if k not in _INHERITED_LAYOUT_KEYS:
+            part_to_override[k] = v
+
+        break
+
+
 def _LoadStackedPartitionConfig(filename):
   """Loads a partition table and its possible parent tables.
 
   This does very little validation.  It's just enough to walk all of the parent
-  files and merge them with the current config.  Overall validation is left to
+  files and merges them with the current config.  Overall validation is left to
   the caller.
 
   Args:
-    filename: Filename to load into object
+    filename: Filename to load into object.
 
   Returns:
     Object containing disk layout configuration
@@ -113,28 +129,56 @@ def _LoadStackedPartitionConfig(filename):
   with open(filename) as f:
     config = json.load(f)
 
+  # Let's first apply our new configs onto base.
+  base_layout = config['layouts'].setdefault(BASE_LAYOUT, [])
+  for layout_name, layout in config['layouts'].iteritems():
+    # Don't apply on yourself.
+    if layout_name == BASE_LAYOUT or layout_name == '_comment':
+      continue
+
+    # Need to copy a list of dicts so make a deep copy.
+    working_layout = copy.deepcopy(base_layout)
+    _ApplyLayoutOverrides(working_layout, layout)
+    config['layouts'][layout_name] = working_layout
+
   dirname = os.path.dirname(filename)
+  # Now let's inherit the values from all our parents.
   for parent in config.get('parent', '').split():
     parent_filename = os.path.join(dirname, parent)
     parent_config = _LoadStackedPartitionConfig(parent_filename)
 
-    # Now hand merge the current config over the parent config.  Each field
-    # has its own stacking rules, so we have to do this.
+    # The overrides work by taking the parent_config, apply the new config
+    # layout info, and return the resulting config which is stored in the parent
+    # config.
     parent_config.setdefault('metadata', {})
     parent_config['metadata'].update(config.get('metadata', {}))
-
     parent_config.setdefault('layouts', config.get('layouts', {}))
-    for layout_name, layout in config['layouts'].iteritems():
-      for part in layout:
-        if 'num' not in part:
-          continue
-        num = part['num']
-        for parent_part in parent_config['layouts'].get(layout_name, []):
-          if parent_part.get('num') == num:
-            for k, v in part.iteritems():
-              if k not in _INHERITED_LAYOUT_KEYS and k in part:
-                parent_part[k] = v
-            break
+
+    # So there's an issue where an inheriting layout file may contain new
+    # layouts not previously defined in the parent layout. Since we are
+    # building these layout files based on the parent configs and overriding
+    # new values, we first add the new layouts not previously defined in the
+    # parent config using a copy of the base layout from that parent config.
+    parent_layouts = set(parent_config['layouts'])
+    config_layouts = set(config['layouts'])
+    new_layouts = config_layouts - parent_layouts
+
+    # Actually add the copy. Use a copy such that each is unique.
+    parent_base_layout = parent_config['layouts'].setdefault(BASE_LAYOUT, [])
+    for layout_name in new_layouts:
+      parent_config['layouts'][layout_name] = copy.deepcopy(parent_base_layout)
+
+    # Iterate through each layout in the parent config and apply the new layout.
+    base_layout = config['layouts'].setdefault(BASE_LAYOUT, [])
+    for layout_name, parent_layout in parent_config['layouts'].iteritems():
+      if layout_name == '_comment':
+        continue
+
+      layout_override = config['layouts'].setdefault(layout_name, [])
+      if layout_name != BASE_LAYOUT:
+        _ApplyLayoutOverrides(parent_layout, base_layout)
+
+      _ApplyLayoutOverrides(parent_layout, layout_override)
 
     config = parent_config
 
@@ -183,16 +227,6 @@ def LoadPartitionConfig(filename):
         if unknown_keys:
           raise InvalidLayout('Unknown items in layout %s: %r' %
                               (layout_name, unknown_keys))
-
-        if layout_name != BASE_LAYOUT:
-          # Inherit from the base config by num.
-          for base_part in config['layouts'][BASE_LAYOUT]:
-            if ('num' in base_part and 'num' in part and
-                base_part['num'] == part['num']):
-              for k, v in base_part.iteritems():
-                if k in _INHERITED_LAYOUT_KEYS and k not in part:
-                  part[k] = v
-              break
 
         if part['type'] != 'blank':
           for s in ('num', 'label'):
@@ -762,7 +796,7 @@ def DoParseOnly(options, image_type, layout_filename):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
   """
-  _ = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  GetPartitionTableFromConfig(options, layout_filename, image_type)
 
 
 def main(argv):
