@@ -208,8 +208,10 @@ print_board_binhost_config() {
   declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map
   local chrome_binhost_base kernel
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
-  e_kernel_map=(['chromeos-exynos5']='daisy')
-  i_kernel_map=(['chromeos-exynos5']='daisy_spring')
+  e_kernel_map=(['chromeos-exynos5']='daisy'
+                ['chromiumos-tegra124']='daisy')
+  i_kernel_map=(['chromeos-exynos5']='daisy_spring'
+                ['chromiumos-tegra124']='daisy_spring')
   e_arch_map=(
     ['amd64']='amd64-generic'
     ['x86']='x86-generic'
