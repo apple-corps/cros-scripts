@@ -65,19 +65,17 @@ Here is an example disk layout with comments.
         // order of partitions on disk. This is the id used for inheritance.
         "num": 1,
 
-        // Partition name. Cannot be overridden.
+        // Partition name.
         "label":"STATE",
 
-        // GPT partition type uuid. Cannot be overridden. Values map to
-        // cgpt binary command line arguments, which contain ChromiumOS specific
-        // extentions.
+        // GPT partition type uuid. Values map to cgpt binary command line
+        // arguments, which contain ChromiumOS specific extentions.
         "type":"data",
 
         // Size of partition in disk blocks (block_size * blocks == bytes).
         "blocks":"2097152",
 
         // What file system will this partition be formatted with.
-        // Cannot be overridden.
         "fs_format":"ext4",
 
         // Optional, default is size of partition. Meaningless without
@@ -86,7 +84,6 @@ Here is an example disk layout with comments.
         "fs_blocks": "524288",
 
         // Special handling of this partition. Expand is only supported value.
-        // Cannot be overridden.
         "features":["expand"],
 
         // Optional, default 'random'. Explicitly define the partition uuid.
@@ -101,13 +98,13 @@ Here is an example disk layout with comments.
         // This number correlates to same partition in base.
         "num": 11,
 
-        // This label is ignored in favor of the label on base.
+        // This label overrides the label on the base partition.
         "label":"RWFW",
 
-        // Type is ignored in favor of the value on base.
+        // Type overrides to firmware.
         "type":"firmware",
 
-        // This value can override the value on base.
+        // This partition is resized to be 8192 blocks large (from 2097152).
         "blocks":"8192"
       }
     ]
@@ -173,8 +170,8 @@ by partition number.
   Partition 5 - Rootfs Slot B
     Empty on most USB and Recovery images.
 
-    Will be resized to match Partition 3 during installation. Will be overridden
-    with a copy of the rootfs from Slot A after installation. Will be overridden
+    Will be resized to match Partition 3 during installation.
+    with a copy of the rootfs from Slot A after installation.
     with new rootfs after first update.
 
   Partition 8 - OEM

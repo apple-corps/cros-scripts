@@ -29,8 +29,6 @@ class InvalidAdjustment(Exception):
 
 
 BASE_LAYOUT = 'base'
-_INHERITED_LAYOUT_KEYS = set(('type', 'label', 'features', 'format',
-                              'fs_format', 'num'))
 
 
 def ParseHumanNumber(operand):
@@ -104,10 +102,7 @@ def _ApplyLayoutOverrides(layout_to_override, layout):
 
     for part in layout:
       if part.get('num') == num:
-        for k, v in part.iteritems():
-          if k not in _INHERITED_LAYOUT_KEYS:
-            part_to_override[k] = v
-
+        part_to_override.update(part)
         break
 
 
@@ -197,9 +192,9 @@ def LoadPartitionConfig(filename):
   """
 
   valid_keys = set(('_comment', 'hybrid_mbr', 'metadata', 'layouts', 'parent'))
-  valid_layout_keys = _INHERITED_LAYOUT_KEYS | set((
+  valid_layout_keys = set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
-      'uuid'))
+      'uuid', 'label', 'fs_format', 'type', 'features', 'num'))
 
   config = _LoadStackedPartitionConfig(filename)
 
