@@ -86,6 +86,13 @@ veritysize() {
   echo $((root_fs_blocks * 32 * 2 / 512))
 }
 
+# Munge the kernel command line.
+# Intended to be overridden by boards that wish to add to the command line.
+# $1 - Configuration file containing boot args.
+modify_kernel_command_line() {
+  :
+}
+
 # Construct a kernel image that is verifiable in some way - vboot, signed, etc.
 # $1 - Destination file.
 # $2 - Kernel binary.
@@ -314,6 +321,7 @@ else
   info "DEBUG: use recovery signing key"
 fi
 
+modify_kernel_command_line "${FLAGS_working_dir}/config.txt"
 
 build_verified_kernel "${FLAGS_to}" "${kernel_image}" "${bootloader_path}" \
   "${FLAGS_keys_dir}" "${USB_KEYBLOCK}" "${FLAGS_hd_vblock}" \
