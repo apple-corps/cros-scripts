@@ -375,6 +375,8 @@ mk_fs() {
   fi
   sudo_multi "${cmds[@]}"
 
+  # In case the umount fails, print processes using the mount point.
+  fuser -vm "${mount_dir}"
   # Deletes associated loopback device as well.
   sudo umount -d "${mount_dir}"
   rm -rf "${mount_dir}"
