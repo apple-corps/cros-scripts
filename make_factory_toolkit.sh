@@ -17,6 +17,8 @@ restart_in_chroot_if_needed "$@"
 DEFINE_string board "${DEFAULT_BOARD}" \
   "The board to build a factory toolkit for."
 DEFINE_string output_dir "" "Path to the folder to store the factory toolkit."
+DEFINE_string version "" \
+  "The version tag to be included in the identification string."
 
 cleanup() {
   sudo rm -rf "${temp_pack_root}"
@@ -48,10 +50,14 @@ main() {
   emerge-${FLAGS_board} --root="${temp_pack_root}" --nodeps --usepkgonly -v \
     chromeos-factory chromeos-factory-board autotest-factory-install
 
+  if [[ -n "${FLAGS_version}" ]]; then
+    local id_str="${FLAGS_board} Factory Toolkit ${FLAGS_version}"
+  else
+    local id_str="${FLAGS_board} Factory Toolkit"
+  fi
+
   local output_toolkit="${output_dir}/install_factory_toolkit.run"
-  makeself --bzip2 --nox11 "${temp_pack_root}" \
-    "${output_toolkit}" \
-    "Factory Toolkit" \
+  makeself --bzip2 --nox11 "${temp_pack_root}" "${output_toolkit}" "${id_str}" \
     usr/local/factory/py/toolkit/installer.py
 
   echo "
