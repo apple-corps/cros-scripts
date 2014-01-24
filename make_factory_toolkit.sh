@@ -48,7 +48,7 @@ main() {
   emerge-${FLAGS_board} --root="${temp_pack_root}" --nodeps --usepkgonly -v \
     chromeos-factory chromeos-factory-board autotest-factory-install
 
-  local output_toolkit="${output_dir}/install_factory_toolkit.sh"
+  local output_toolkit="${output_dir}/install_factory_toolkit.run"
   makeself --bzip2 --nox11 "${temp_pack_root}" \
     "${output_toolkit}" \
     "Factory Toolkit" \
