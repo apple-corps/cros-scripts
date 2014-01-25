@@ -41,7 +41,7 @@ main() {
   fi
   cd "${output_dir}"
 
-  local temp_pack_root="$(mktemp -d toolkit_XXXXXX)"
+  temp_pack_root="$(mktemp -d toolkit_XXXXXX)"
   if [[ ! -d "${temp_pack_root}" ]]; then
     die "Failed to create temporary directory."
   fi
