@@ -271,7 +271,7 @@ stop_kvm() {
         # off the system.
         send_monitor_command "system_powerdown"
       fi
-      blocking_kill ${pid} 0 16 || blocking_kill ${pid} 9 1
+      blocking_kill ${pid} 0 16 || blocking_kill ${pid} 9 3
       sudo rm "${KVM_PID_FILE}"
       sudo rm "${KVM_PIPE_IN}"
       sudo rm "${KVM_PIPE_OUT}"
