@@ -8,6 +8,8 @@
 
 . "$(dirname "$0")/common.sh" || exit 1
 
+EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
+
 export INSTALL_MASK="${DEFAULT_INSTALL_MASK}"
 
 # Script must run inside the chroot
@@ -52,8 +54,8 @@ main() {
 
   trap cleanup EXIT
 
-  emerge-${FLAGS_board} --root="${tmp_folder}" --root-deps=rdeps \
-    --keep-going=y ${package}
+  ${EMERGE_CMD} --board=${FLAGS_board} --root="${tmp_folder}" \
+    --root-deps=rdeps --keep-going=y ${package}
 
   local size_used=$(sudo du -sh "${tmp_folder}" | cut -f1)
 
