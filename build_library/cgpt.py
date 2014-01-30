@@ -194,7 +194,7 @@ def LoadPartitionConfig(filename):
   valid_keys = set(('_comment', 'hybrid_mbr', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
-      'uuid', 'label', 'fs_format', 'type', 'features', 'num'))
+      'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num'))
 
   config = _LoadStackedPartitionConfig(filename)
 
