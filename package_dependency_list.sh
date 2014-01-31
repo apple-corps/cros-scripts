@@ -33,6 +33,7 @@ clean_package_name() {
 get_package_size() {
   local package=${1}
   echo "$(qsize-${FLAGS_board} -b -C "${package}" \
+            | head -n1 \
             | sed -n "\:${package}-[0-9]:p" \
             | sed -r 's/.*, ([0-9]*) bytes/\1/')"
 }
