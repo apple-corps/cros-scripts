@@ -259,7 +259,6 @@ if [[ -n ${FLAGS_enable_serial} ]]; then
     console+=",115200n8"
   fi
   cat <<EOF > "${config}"
-console=${console}
 earlyprintk=${console}
 console=tty1
 keep_bootcon
