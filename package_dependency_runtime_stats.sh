@@ -46,7 +46,8 @@ main() {
   fi
 
   local package="$1"
-  tmp_folder=$(mktemp -d "/tmp/pdeps-${1}-XXXXX") \
+  local tmp_name=${1//\//_}
+  tmp_folder=$(mktemp -d "/tmp/pdeps-${tmp_name}-XXXXX") \
     || die "Couldn't create temp folder."
 
   trap cleanup EXIT
