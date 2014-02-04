@@ -27,34 +27,43 @@ DEFINE_string depth "20" \
 # Returns:
 #   The clean package name.
 clean_package_name() {
-  echo "$1" | sed -r -e 's/([~>=!<]*)(.*)/\2/g' -e 's/[:[].*//g'
+  echo "$1" | sed -r -e 's/([~>=!<]*)(.*)/\2/g' -e 's/[:[].*//g' \
+    -e 's/(.*)-([0-9])+.*/\1/g'
 }
 
 get_package_size() {
-  local package=${1}
-  echo "$(qsize-${FLAGS_board} -b -C "${package}" \
-            | head -n1 \
-            | sed -n "\:${package}-[0-9]:p" \
-            | sed -r 's/.*, ([0-9]*) bytes/\1/')"
+  local package="$1"
+  local size="$(qsize-${FLAGS_board} -b -C "${package}" \
+    | head -n1 \
+    | sed -n "\:${package}-[0-9]:p" \
+    | sed -r 's/.*, ([0-9]*) bytes/\1/')"
+  echo "${size:-0}"
 }
 
 get_dependency_size() {
   declare -A deps
-
-  local dependencies="$1"
+  local package_name="$(qcheck-${FLAGS_board} -q -C "$1" \
+    | head -n 1 \
+    | cut -d ' ' -f 2)"
+  if [[ -z "${package_name}" ]]; then
+    # Full package name lookup failed.
+    package_name="$1"
+  else
+    package_name=$(clean_package_name "${package_name}")
+  fi
+  local dependencies="${package_name}"
 
   local dep_depth=${FLAGS_depth}
 
-  info "Dependency Search Depth: ${dep_depth}"
+  info "Runtime dependencies for '${package_name}'"
+  info "Dependency Search Depth: ${FLAGS_depth}"
+  info ""
 
   local i
   local cleanname
   for i in ${dependencies}; do
     cleanname=$(clean_package_name $i)
     deps[${cleanname}]=$(get_package_size ${cleanname})
-    if [[ -z "${deps[${cleanname}]}" ]]; then
-      deps[${cleanname}]="0"
-    fi
   done
 
   local loop=0
@@ -65,7 +74,7 @@ get_dependency_size() {
 
     local depname
     for depname in "${!deps[@]}"; do
-      dependencies="$(qdepends -r -N -C -q "${depname}" \
+      dependencies="$(qdepends-${FLAGS_board} -r -N -C -q "${depname}" \
         | sed 's/\s\+/\n/g' \
         | sed '1d')"
       for i in ${dependencies}; do
@@ -73,9 +82,6 @@ get_dependency_size() {
         if [[ ${deps[${cleanname}]+set} != "set" ]]; then
           # New key found, add to array and get size if it's available.
           deps[${cleanname}]=$(get_package_size ${cleanname})
-          if [[ -z "${deps[${cleanname}]}" ]]; then
-            deps[${cleanname}]="0"
-          fi
         fi
       done
     done
@@ -87,14 +93,19 @@ get_dependency_size() {
   done
 
   # Print all dependencies.
-  info "Found ${#deps[@]} dependencies!"
   local total_size=0
   for depname in "${!deps[@]}"; do
     info "${depname}: ${deps[${depname}]}"
     : $(( total_size += ${deps[${depname}]} ))
   done
 
-  info "\n\nTotal size for package ${1}: ${total_size}\n\n--\n\n"
+  info ""
+  info "Found ${#deps[@]} dependencies."
+  info ""
+  info "Total size for package '${package_name}': ${total_size}"
+  info ""
+  info " -----"
+  info ""
 }
 
 main() {
