@@ -227,11 +227,11 @@ CROS_WORKON_PKGS=()
 if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
   LIST_MODIFIED_PACKAGES="${CHROMITE_BIN}/cros_list_modified_packages"
   CROS_WORKON_PKGS+=( $("${LIST_MODIFIED_PACKAGES}" --board=${FLAGS_board}) )
-fi
 
-# TODO(anush): Make chrome a fake cros-workon package.
-if [[ -n "${CHROME_ORIGIN}" ]]; then
-  CROS_WORKON_PKGS+=( chromeos-base/chromeos-chrome )
+  # TODO(anush): Make chrome a fake cros-workon package.
+  if [[ -n "${CHROME_ORIGIN}" ]]; then
+    CROS_WORKON_PKGS+=( chromeos-base/chromeos-chrome )
+  fi
 fi
 
 if [[ ${#CROS_WORKON_PKGS[@]} -gt 0 ]]; then
