@@ -116,9 +116,9 @@ find_keyword_workon_ebuilds() {
   # NOTE: overlay may be a symlink, and we have to use ${overlay}/
   for overlay in ${PORTDIR_OVERLAY}; do
     # only look up ebuilds named 9999 to eliminate duplicates
-    find ${overlay}/*-* -maxdepth 2 -type f -name '*9999.ebuild' \
+    find "${overlay}"/*-* -maxdepth 2 -type f -name '*9999.ebuild' \
       -exec grep -l 'inherit.*cros-workon' {} + 2>/dev/null | \
-      xargs grep -l "KEYWORDS=.*${keyword}.*"
+      xargs egrep -l "KEYWORDS=\".*~([*]|${keyword})[ \"]"
   done
 }
 
