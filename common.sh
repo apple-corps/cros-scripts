@@ -50,7 +50,7 @@ V_BOLD_YELLOW=
 V_REVERSE=
 V_VIDOFF=
 
-if tput colors >&/dev/null; then
+if [[ -t 1 ]] && tput colors >&/dev/null; then
   # order matters: we want VIDOFF last so that when we trace with `set -x`,
   # our terminal doesn't bleed colors as bash dumps the values of vars.
   V_BOLD_RED=$(tput bold; tput setaf 1)
