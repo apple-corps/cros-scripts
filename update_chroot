@@ -60,6 +60,8 @@ create_host_setup
 
 info "Updating chroot"
 
+sudo_clear_shadow_locks /
+
 EMERGE_FLAGS="-uNv --with-bdeps=y --select"
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   EMERGE_FLAGS="${EMERGE_FLAGS} --getbinpkg"

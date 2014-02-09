@@ -116,6 +116,8 @@ parse_build_image_args
 
 load_board_specific_script "${FLAGS_board}" "board_specific_setup.sh"
 
+sudo_clear_shadow_locks "/build/${FLAGS_board}"
+
 # TODO: <prebuild hook>
 
 BASE_PACKAGE="chromeos-base/chromeos"

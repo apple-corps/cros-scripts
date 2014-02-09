@@ -141,6 +141,8 @@ fi
 
 "${SCRIPTS_DIR}"/setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
 
+sudo_clear_shadow_locks "/build/${FLAGS_board}"
+
 # Setup all the emerge command/flags.
 EMERGE_FLAGS=( -uDNv --backtrack=30 --select )
 

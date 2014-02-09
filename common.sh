@@ -615,6 +615,12 @@ sudo_multi() {
   fi
 }
 
+# Clears out stale shadow-utils locks in the given target root.
+sudo_clear_shadow_locks() {
+  info "Clearing shadow utils lockfiles under $1"
+  sudo rm -f "$1/etc/"{passwd,group,shadow,gshadow}.lock*
+}
+
 # Writes stdin to the given file name as the sudo user in overwrite mode.
 #
 # $@ - The output file names.
