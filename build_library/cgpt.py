@@ -142,12 +142,22 @@ def _LoadStackedPartitionConfig(filename):
     parent_filename = os.path.join(dirname, parent)
     parent_config = _LoadStackedPartitionConfig(parent_filename)
 
+    # First if the parent is missing any fields the new config has, fill them
+    # in.
+    for key in config.keys():
+      if key == 'parent':
+        continue
+      elif key == 'metadata':
+        # We handle this especially to allow for inner metadata fields to be
+        # added / modified.
+        parent_config.setdefault(key, {})
+        parent_config[key].update(config[key])
+      else:
+        parent_config.setdefault(key, config[key])
+
     # The overrides work by taking the parent_config, apply the new config
     # layout info, and return the resulting config which is stored in the parent
     # config.
-    parent_config.setdefault('metadata', {})
-    parent_config['metadata'].update(config.get('metadata', {}))
-    parent_config.setdefault('layouts', config.get('layouts', {}))
 
     # So there's an issue where an inheriting layout file may contain new
     # layouts not previously defined in the parent layout. Since we are
@@ -197,7 +207,6 @@ def LoadPartitionConfig(filename):
       'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num'))
 
   config = _LoadStackedPartitionConfig(filename)
-
   try:
     metadata = config['metadata']
     for key in ('block_size', 'fs_block_size'):
