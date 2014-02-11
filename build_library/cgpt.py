@@ -760,12 +760,22 @@ def DoDebugOutput(options, image_type, layout_filename):
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
   """
-  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  config = LoadPartitionConfig(layout_filename)
+  partitions = GetPartitionTable(options, config, image_type)
 
   label_len = max([len(x['label']) for x in partitions if 'label' in x])
   type_len = max([len(x['type']) for x in partitions if 'type' in x])
 
   msg = 'num:%4s label:%-*s type:%-*s size:%-10s fs_size:%-10s features:%s'
+
+  # Print out non-layout options first.
+  print 'Config Data'
+  metadata_msg = 'field:%-14s value:%s'
+  for key in config.keys():
+    if key not in ('layouts', '_comment'):
+      print metadata_msg % (key, config[key])
+
+  print '\n%s Layout Data' % image_type.upper()
   for partition in partitions:
     if partition['bytes'] < 1024 * 1024:
       size = '%d B' % partition['bytes']
