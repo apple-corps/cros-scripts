@@ -50,6 +50,12 @@ main() {
   emerge-${FLAGS_board} --root="${temp_pack_root}" --nodeps --usepkgonly -v \
     chromeos-factory chromeos-factory-board autotest-factory-install
 
+  local factory_repo="${CHROOT_TRUNK_DIR}/src/platform/factory"
+  local repo_status_script="${factory_repo}/py/toolkit/print_repo_status.py"
+  if [[ -x "${repo_status_script}" ]]; then
+    "${repo_status_script}" -b "${FLAGS_board}" >"${temp_pack_root}/REPO_STATUS"
+  fi
+
   if [[ -n "${FLAGS_version}" ]]; then
     local id_str="${FLAGS_board} Factory Toolkit ${FLAGS_version}"
   else
