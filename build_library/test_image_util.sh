@@ -28,15 +28,10 @@ mod_image_for_test () {
 
   emerge_chromeos_test
 
-  BACKDOOR=0
-  if [ $FLAGS_standard_backdoor -eq $FLAGS_TRUE ]; then
-    BACKDOOR=1
-  fi
-
   local mod_test_script="${SCRIPTS_DIR}/mod_for_test_scripts/test_setup.sh"
   # Run test setup script to modify the image
   sudo -E GCLIENT_ROOT="${GCLIENT_ROOT}" ROOT_FS_DIR="${root_fs_dir}" \
-    STATEFUL_DIR="${stateful_fs_dir}" ARCH="${ARCH}" BACKDOOR="${BACKDOOR}" \
+    STATEFUL_DIR="${stateful_fs_dir}" ARCH="${ARCH}" \
     BOARD_ROOT="${BOARD_ROOT}" \
     "${mod_test_script}"
 
