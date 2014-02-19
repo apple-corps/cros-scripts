@@ -56,27 +56,24 @@ main() {
     "${repo_status_script}" -b "${FLAGS_board}" >"${temp_pack_root}/REPO_STATUS"
   fi
 
+  # Include 'makeself' in the toolkit
+  local makeself_path="$(readlink -f $(which makeself))"
+  local makeself_header_path="$(dirname "${makeself_path}")/makeself-header.sh"
+  cp -L "${makeself_path}" "${makeself_header_path}" "${temp_pack_root}"
+
+  # Include a VERSION tag in the toolkit
   if [[ -n "${FLAGS_version}" ]]; then
     local id_str="${FLAGS_board} Factory Toolkit ${FLAGS_version}"
   else
-    local id_str="${FLAGS_board} Factory Toolkit"
+    local timestamp="$(date "+%Y-%m-%dT%H:%M:%S")"
+    local builder="$(whoami)@$(hostname)"
+    local id_str="${FLAGS_board} Factory Toolkit ${timestamp} ${builder}"
   fi
+  echo "${id_str}" >"${temp_pack_root}/VERSION"
 
   local output_toolkit="${output_dir}/install_factory_toolkit.run"
-  makeself --bzip2 --nox11 "${temp_pack_root}" "${output_toolkit}" "${id_str}" \
-    usr/local/factory/py/toolkit/installer.py
-
-  echo "
-  Factory toolkit generated at ${output_toolkit}.
-
-  To install factory toolkit on a live device running a test image, copy this
-  to the device and execute it as root.
-
-  Alternatively, the factory toolkit can be used to patch a test image. For
-  more information, run:
-    ${output_toolkit} -- --help
-
-  "
+  "${temp_pack_root}/usr/local/factory/py/toolkit/installer.py" \
+    --pack-into "${output_toolkit}"
 }
 
 main "$@"
