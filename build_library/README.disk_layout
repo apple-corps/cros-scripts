@@ -58,7 +58,7 @@ Here is an example disk layout with comments.
         "num": 11,
         "label":"RWFW",
         "type":"firmware",
-        "blocks":"16384"
+        "size":"8 MiB"
       },
       {
         // Number to use in partition device name. ie: /dev/sda1. Not tied to
@@ -73,15 +73,23 @@ Here is an example disk layout with comments.
         "type":"data",
 
         // Size of partition in disk blocks (block_size * blocks == bytes).
+        // Only blocks or size can be used here, error will occur if both are
+        // used.
         "blocks":"2097152",
+
+        // Size of partition in size (block_size * blocks / 1024 / 1024 == MiB).
+        // Only blocks or size can be used here, error will occur if both are
+        // used.
+        "size":"1024 MiB",
 
         // What file system will this partition be formatted with.
         "fs_format":"ext4",
 
         // Optional, default is size of partition. Meaningless without
         // fs_format. Must be less than size of partition.
-        // Size of filesystem in fs blocks (block_size * fs_blocks == bytes).
-        "fs_blocks": "524288",
+        // Size of filesystem in fs size 
+        // (block_size * fs_blocks / 1024 / 1024 == MiB).
+        "fs_size": "2048 MiB",
 
         // Special handling of this partition. Expand is only supported value.
         "features":["expand"],
@@ -104,8 +112,8 @@ Here is an example disk layout with comments.
         // Type overrides to firmware.
         "type":"firmware",
 
-        // This partition is resized to be 8192 blocks large (from 2097152).
-        "blocks":"8192"
+        // This partition is resized to be 4 MiB large (from 1024 MiB).
+        "size":"4 MiB"
       }
     ]
   }

@@ -27,6 +27,11 @@ class InvalidLayout(Exception):
 class InvalidAdjustment(Exception):
   """Invalid Adjustment"""
 
+class InvalidSize(Exception):
+  """Invalid Size"""
+
+class ConflictingOptions(Exception):
+  """Conflicting Options"""
 
 BASE_LAYOUT = 'base'
 
@@ -204,7 +209,8 @@ def LoadPartitionConfig(filename):
   valid_keys = set(('_comment', 'hybrid_mbr', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
-      'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num'))
+      'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num',
+      'size', 'fs_size'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -237,8 +243,34 @@ def LoadPartitionConfig(filename):
             if not s in part:
               raise InvalidLayout('Layout "%s" missing "%s"' % (layout_name, s))
 
-        part['blocks'] = ParseHumanNumber(part['blocks'])
-        part['bytes'] = part['blocks'] * metadata['block_size']
+        if 'size' in part:
+          if 'blocks' in part:
+            raise ConflictingOptions(
+                'Conflicting settings are used. '
+                'Found section sets both \'blocks\' and \'size\'.')
+          part['bytes'] = ParseHumanNumber(part['size'])
+          part['blocks'] = part['bytes'] / metadata['block_size']
+
+          if part['bytes'] % metadata['block_size'] != 0:
+            raise InvalidSize(
+                'Size: "%s" (%s bytes) is not an even number of block_size: %s'
+                % (part['size'], part['bytes'], metadata['block_size']))
+
+        if 'fs_size' in part:
+          part['fs_bytes'] = ParseHumanNumber(part['fs_size'])
+          if part['fs_bytes'] > part['bytes']:
+            raise InvalidLayout(
+                'Filesystem may not be larger than partition: %s %s: %d > %d' %
+                (layout_name, part['label'], part['fs_bytes'], part['bytes']))
+          if part['fs_bytes'] % metadata['fs_block_size'] != 0:
+            raise InvalidSize(
+                'File system size: "%s" (%s bytes) is not an even number of '
+                'fs blocks: %s' %
+                (part['fs_size'], part['fs_bytes'], metadata['fs_block_size']))
+
+        if 'blocks' in part:
+          part['blocks'] = ParseHumanNumber(part['blocks'])
+          part['bytes'] = part['blocks'] * metadata['block_size']
 
         if 'fs_blocks' in part:
           max_fs_blocks = part['bytes'] / metadata['fs_block_size']
