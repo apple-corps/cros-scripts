@@ -2,6 +2,42 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# Usage: run_lddtree <root> [args to lddtree] <files to process>
+run_lddtree() {
+  # Keep `local` decl split from assignment so return code is checked.
+  local lddtree='/mnt/host/source/chromite/bin/lddtree'
+  local root="$1"
+  shift
+
+  sudo "${lddtree}" -R "${root}" --no-auto-root --skip-non-elfs "$@"
+}
+
+# Usage: test_elf_deps <root> <files to check>
+test_elf_deps() {
+  # Keep `local` decl split from assignment so return code is checked.
+  local f deps
+  local root="$1"
+  shift
+
+  # We first check everything in one go.  We assume that it'll usually be OK,
+  # so we make this the fast path.  If it does fail, we'll fall back to one at
+  # a time so the error output is human readable.
+  deps=$(run_lddtree "${root}" -l "$@") || return 1
+  if echo "${deps}" | grep -q '^[^/]'; then
+    error "test_elf_deps: Failed dependency check"
+    for f in "$@"; do
+      deps=$(run_lddtree "${root}" -l "${f}")
+      if echo "${deps}" | grep -q '^[^/]'; then
+        error "Package: $(ROOT="${root}" qfile -qCRv "${f}")"
+        error "$(run_lddtree "${root}" "${f}")"
+      fi
+    done
+    return 1
+  fi
+
+  return 0
+}
+
 test_image_content() {
   local root="$1"
   local returncode=0
@@ -29,17 +65,12 @@ test_image_content() {
   done
 
   # Keep `local` decl split from assignment so return code is checked.
-  local libs check_deps
-  local lddtree='/mnt/host/source/chromite/bin/lddtree'
+  local libs
 
   # Check that all .so files, plus the binaries, have the appropriate
   # dependencies.  Need to use sudo as some files are set*id.
   libs=( $(sudo find "${root}" -type f -name '*.so*') )
-  check_deps=$(sudo ${lddtree} -l -R "${root}" --no-auto-root --skip-non-elfs \
-    "${binaries[@]}" "${libs[@]}")
-  if echo "${check_deps}" | grep '^[^/]'; then
-    error "test_image_content: Failed dependency check"
-    error "${check_deps}"
+  if ! test_elf_deps "${root}" "${binaries[@]}" "${libs[@]}"; then
     returncode=1
   fi
 
