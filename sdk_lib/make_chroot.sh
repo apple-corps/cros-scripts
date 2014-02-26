@@ -345,6 +345,7 @@ PORTAGE_STABLE_OVERLAY="${OVERLAYS_ROOT}/stable"
 CROSSDEV_OVERLAY="${OVERLAYS_ROOT}/crossdev"
 CHROOT_OVERLAY="${OVERLAYS_ROOT}/chromiumos"
 CHROOT_STATE="${FLAGS_chroot}/etc/debian_chroot"
+CHROOT_VERSION="${FLAGS_chroot}/etc/cros_chroot_version"
 
 # Pass proxy variables into the environment.
 for type in http ftp all; do
@@ -388,6 +389,12 @@ else
   ${DECOMPRESS} -dc "${STAGE3}" | \
     tar -xp -C "${FLAGS_chroot}"
   rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
+fi
+
+# Ensure that we properly detect when we are inside the chroot.
+# We'll force this to the latest version at the end as needed.
+if [[ ! -e ${CHROOT_VERSION} ]]; then
+  echo "0" > "${CHROOT_VERSION}"
 fi
 
 # Set up users, if needed, before mkdir/mounts below.

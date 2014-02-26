@@ -37,7 +37,7 @@ pv_cat_cmd() {
 : ${SCRIPT_NAME:=$(basename "$0")}
 
 # Detect whether we're inside a chroot or not
-if [[ -e /etc/debian_chroot ]]; then
+if [[ -e /etc/cros_chroot_version ]]; then
   INSIDE_CHROOT=1
 else
   INSIDE_CHROOT=0

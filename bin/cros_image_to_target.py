@@ -199,7 +199,7 @@ class CrosEnv(object):
     return os.path.join(self.cros_root, filename)
 
   def ChrootPath(self, filename):
-    if os.path.exists('/etc/debian_chroot'):
+    if os.path.exists('/etc/cros_chroot_version'):
       return filename
     else:
       return self.CrosUtilsPath(os.path.join('..', '..', 'chroot',
