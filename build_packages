@@ -144,7 +144,7 @@ fi
 sudo_clear_shadow_locks "/build/${FLAGS_board}"
 
 # Setup all the emerge command/flags.
-EMERGE_FLAGS=( -uDNv --backtrack=30 --select )
+EMERGE_FLAGS=( -uDNv --backtrack=30 --select --newrepo )
 
 if [[ "${FLAGS_fast}" -eq "${FLAGS_TRUE}" ]]; then
   EMERGE_CMD=(
