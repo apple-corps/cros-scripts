@@ -98,6 +98,8 @@
       {
         "_comment": "Slot A rootfs. Rootfs + extras must fit.",
         "_comment": "FS size + Verity (64 * FS blocks) + Boot Cache (200M).",
+        "_comment": "Make sure that other layouts still has room for the ",
+        "_comment": "extras, should you increase FS size",
         "_comment": "",
         "_comment": "Note that updates will fail if the rootfs size",
         "_comment": "shrinks. (crbug.com/192136)",
@@ -130,7 +132,7 @@
         "_comment": "Shrunken rootfs partition to support smaller USB sticks.",
         "_comment": "installation will expand this to size from base.",
         "num": 3,
-        "blocks":"2539520"
+        "blocks":"2645920"
       },
       {
         "_comment": "Slot B rootfs, unused on USB, but pad to 2M.",
@@ -173,7 +175,7 @@
         "_comment": "The offset to the beginning of this partition, and the FS",
         "_comment": "size must match base exactly to allow secure boot.",
         "num": 3,
-        "blocks":"2539520"
+        "blocks":"2645920"
       },
       {
         "_comment": "Slot B rootfs, unused on USB, but pad to 2M.",
