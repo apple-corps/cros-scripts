@@ -518,19 +518,22 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
 
-def WritePartitionSizesFunction(options, sfile, func_name, image_type, config):
+def WritePartitionSizesFunction(options, sfile, func, image_type, config):
   """Writes out the partition size variable that can be extracted by a caller.
 
   Args:
     options: Flags passed to the script
     sfile: File handle we're writing to
-    func_name: Function name to write out for specified layout
+    func: function of the layout:
+       for removable storage device: 'partition',
+       for the fixed storage device: 'base'
     image_type: Type of image eg base/test/dev/factory_install
     config: Partition configuration file object
   """
+  func_name = 'load_%s_vars' % func
   lines = [
     '%s() {' % func_name,
-    'DEFAULT_ROOTDEV=%s' % config['metadata'].get('rootdev', ''),
+    'DEFAULT_ROOTDEV="%s"' % config['metadata'].get('rootdev_%s' % func, ''),
   ]
 
   partitions = GetPartitionTable(options, config, image_type)
@@ -606,8 +609,7 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
 
     for func, layout in (('base', BASE_LAYOUT), ('partition', image_type)):
       WriteLayoutFunction(options, f, 'write_%s_table' % func, layout, config)
-      WritePartitionSizesFunction(options, f, 'load_%s_vars' % func, layout,
-                                  config)
+      WritePartitionSizesFunction(options, f, func, layout, config)
 
     # TODO: Backwards compat.  Should be killed off once we update
     #       cros_generate_update_payload to use the new code.
