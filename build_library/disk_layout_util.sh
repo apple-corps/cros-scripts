@@ -378,7 +378,15 @@ mk_fs() {
   # In case the umount fails, print processes using the mount point.
   sudo fuser -vm "${mount_dir}"
   # Deletes associated loopback device as well.
-  sudo umount -d "${mount_dir}"
+  # We are getting a pseudo random error with util-linux 2.24,
+  # https://code.google.com/p/chromium/issues/detail?id=337490
+  # The umount system call works, but a clean up after unmount
+  # step fails.
+  # Either it's updating /etc/mtab, or cleaning the losetup (-d in umount).
+  # that is failing. We'll try -n to stop updating /etc/mtab and if that
+  # does not fix the problem, remove the '-d' and destroy the losetup
+  # separately -- merlin
+  sudo umount -nd "${mount_dir}"
   rm -rf "${mount_dir}"
 }
 
