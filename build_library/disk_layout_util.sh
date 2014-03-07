@@ -383,7 +383,14 @@ mk_fs() {
   # The umount system call works, but a clean up after unmount
   # step fails if we use umount -d, so let's try cleaning the loopback device
   # in a separate step -- merlin
-  sudo losetup -d "${part_dev}"
+  for i in {1..5}; do
+    sudo losetup -d "${part_dev}" && break || true
+    warn "losetup -d ${part_dev} failed (try $i)"
+    losetup -a
+    grep -H "${part_dev}" /proc/mounts || true
+    fuser -v "${part_dev}"
+    sleep 1
+  done
   rm -rf "${mount_dir}"
 }
 
