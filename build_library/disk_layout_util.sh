@@ -376,7 +376,7 @@ mk_fs() {
   sudo_multi "${cmds[@]}"
 
   # In case the umount fails, print processes using the mount point.
-  sudo fuser -vm "${mount_dir}"
+  sudo fuser -vm "${mount_dir}" || true
   sudo umount "${mount_dir}"
   # We are getting a pseudo random error with util-linux 2.24,
   # https://code.google.com/p/chromium/issues/detail?id=337490
@@ -386,9 +386,9 @@ mk_fs() {
   for i in {1..5}; do
     sudo losetup -d "${part_dev}" && break || true
     warn "losetup -d ${part_dev} failed (try $i)"
-    losetup -a
+    sudo losetup -a
     grep -H "${part_dev}" /proc/mounts || true
-    fuser -v "${part_dev}"
+    sudo fuser -v "${part_dev}" || true
     sleep 1
   done
   rm -rf "${mount_dir}"
