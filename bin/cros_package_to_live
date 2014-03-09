@@ -112,3 +112,5 @@ for pkg in $@; do
     echo "${pkg} has been installed"
     remote_sh "rm -rf ${temp_dir}"
 done
+
+command_completed

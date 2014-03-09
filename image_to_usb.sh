@@ -376,4 +376,5 @@ else
   info "  sudo dd if=${FLAGS_to} of=/dev/sdX bs=4M oflag=sync"
 fi
 
+command_completed
 echo "Done."
