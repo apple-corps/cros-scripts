@@ -29,10 +29,14 @@ path = os.path.realpath(__file__)
 path = os.path.normpath(os.path.join(os.path.dirname(path), '..', '..',
                                      'platform'))
 sys.path.insert(0, path)
+
+path = os.path.realpath(__file__)
+path = os.path.normpath(os.path.join(os.path.dirname(path), '..', '..', '..'))
+sys.path.insert(0, path)
 del path
 
 from dev import autoupdate_lib
-
+from chromite.lib import stats
 
 DEPRECATION_WARNING = """
 !!! You are using a deprecated script !!!
@@ -709,6 +713,14 @@ def main(argv):
 
   if child:
     os.kill(child, 15)
+
+  # Upload command stats.
+  upload_stats_timeout = 1
+  with stats.UploadContext() as queue:
+    cmd_stats = stats.Stats.SafeInit(cmd_line=sys.argv,
+                                     cmd_base=os.path.basename(__file__))
+    if cmd_stats:
+      queue.put([cmd_stats, stats.StatsUploader.URL, upload_stats_timeout])
 
   cros_env.Info('Server exiting with status %d' % exit_status)
   sys.exit(exit_status)
