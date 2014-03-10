@@ -386,9 +386,15 @@ mk_fs() {
   for i in {1..5}; do
     sudo losetup -d "${part_dev}" && break || true
     warn "losetup -d ${part_dev} failed (try $i)"
+    set -x
     sudo losetup -a
     grep -H "${part_dev}" /proc/mounts || true
-    sudo fuser -v "${part_dev}" || true
+    set +x
+    local proc
+    for proc in $(sudo fuser "${part_dev}" 2>/dev/null); do
+      warn "Tree for ${proc}:"
+      sudo pstree -asulp ${proc} || true
+    done
     sleep 1
   done
   rm -rf "${mount_dir}"
