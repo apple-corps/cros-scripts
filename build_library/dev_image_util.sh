@@ -22,11 +22,12 @@ install_dev_packages() {
   # Determine the root dir for developer packages.
   local root_dev_dir="${root_fs_dir}/usr/local"
 
-  # Symlink to /etc/{passwd,group} from inside the developer package root, so
-  # ebuilds can create users and groups at build time.
+  # Symlink to /etc/{passwd,group,pam.d} from inside the developer package
+  # root, so ebuilds can create users, groups, and set pam rules at build time.
   sudo mkdir -p "${root_dev_dir}/etc"
   sudo ln -s ../../../etc/passwd "${root_dev_dir}/etc/passwd"
   sudo ln -s ../../../etc/group "${root_dev_dir}/etc/group"
+  sudo ln -s ../../../etc/pam.d "${root_dev_dir}/etc/pam.d"
 
   # Install dev-specific init scripts into / from chromeos-dev-root.
   emerge_to_image --root="${root_fs_dir}" chromeos-dev-root
