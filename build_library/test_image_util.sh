@@ -17,22 +17,6 @@ emerge_chromeos_test() {
   emerge_to_image --root="${root_dev_dir}" chromeos-test
 }
 
-prepare_hwid_for_factory() {
-  local hwid_dest="$1/hwid"
-  local hwid_src="${BOARD_ROOT}/usr/share/chromeos-hwid"
-
-  # Force refreshing source folder in build root folder
-  sudo rm -rf "${hwid_src}" "${hwid_dest}"
-  emerge_to_image chromeos-hwid
-  if [ -d "${hwid_src}" ]; then
-    # TODO(hungte) After being archived by chromite, the HWID files will be in
-    # factory_test/hwid; we should move it to top level folder.
-    cp -r "${hwid_src}" "${hwid_dest}"
-  else
-    echo "Skipping HWID: No HWID bundles found."
-  fi
-}
-
 # Converts a dev image into a test or factory test image
 # Takes as an arg the name of the image to be created.
 mod_image_for_test () {
@@ -67,8 +51,6 @@ mod_image_for_test () {
     emerge_to_image --root="${root_fs_dir}/usr/local" \
       chromeos-base/autotest-factory-install \
       chromeos-base/chromeos-factory
-
-    prepare_hwid_for_factory "${BUILD_DIR}"
 
     echo "Modifying Release Description for Factory."
     sudo sed -i 's/Test/Factory/' "${root_fs_dir}/etc/lsb-release"
