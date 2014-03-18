@@ -1,0 +1,31 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# When upgrading kernels, old modules might get left behind.
+# Clean them out now that our builds pay attention to them.
+
+update() {
+  local root=$1 board=$2
+  local dir="${root}/lib/modules"
+
+  # Maybe the board hasn't had any kernel packages installed yet.
+  if [[ ! -d ${dir} ]]; then
+    return 0
+  fi
+
+  # Use qfile's orphans option to locate unowned files.
+  ROOT=${root} \
+  find "${dir}" -xdev -type f -exec \
+    qfile -R -o {} + | xargs sudo rm -fv
+
+  # Now trim any possibly empty dirs.
+  find "${dir}" -xdev -depth -mindepth 1 -type d -exec rmdir {} + 2>/dev/null
+}
+
+for board_root in /build/*; do
+  board=${board_root##*/}
+  update ${board_root} ${board} &
+done
+
+wait
