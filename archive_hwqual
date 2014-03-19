@@ -67,10 +67,9 @@ main() {
 
   cd "${TMP}"
 
-  echo "Formatting rootfs as a USB image..."
-  "${script_dir}/image_to_usb.sh" --from="${FLAGS_image_dir}" \
-    --image="${FLAGS_image}" \
-    --to="tarball/${FLAGS_output_tag}/chromeos-hwqual-usb.img"
+  echo "Copying image..."
+  cp "${FLAGS_image_dir}/${FLAGS_image}" \
+      "tarball/${FLAGS_output_tag}/chromeos-hwqual-usb.img"
 
   echo "Inserting documentation and autotest to tarball..."
   ln -s \
