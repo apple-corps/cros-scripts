@@ -217,7 +217,7 @@ convert_iic_to_bin() {
   local FW_UPDATE_TOOL="$FW_UPDATE_TOOL_CYPRESS"
   # If the firmware upate tool does not exist in the host yet, we need to
   # unmerge the package, and then run update_chroot to get the firmware
-  # update tool installed through the hard-host-depends package.
+  # update tool installed through the virtual/target-sdk package.
   if [ ! -f $FW_UPDATE_TOOL ]; then
     echo $CYPRESS_TOOLS does not exist.
     echo We will unmerge $CYPRESS_TOOLS and then run update_chroot.
