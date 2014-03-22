@@ -46,9 +46,17 @@ install_dev_packages() {
   sudo ln -s /usr/local/usr/lib/debug "${root_fs_dir}/usr/lib/debug"
 
   # Install the bare necessary files so that the "emerge" command works
-  sudo cp -a ${root_dev_dir}/share/portage ${root_fs_dir}/usr/share
+  local portage_make_globals_path="/usr/share/portage/config/make.globals"
+  if [[ ! -f "${root_fs_dir}/${portage_make_globals_path}" ]]; then
+    # We only need to do this if portage was installed as part of the dev
+    # install.
+    # Note: The check needs to be for a file path installed by sys-apps/portage,
+    # just checking for existence of /usr/share/portage isn't sufficient as
+    # other packages may install files in there.
+    sudo cp -a ${root_dev_dir}/share/portage ${root_fs_dir}/usr/share
+  fi
   sudo sed -i s,/usr/bin/wget,wget, \
-    ${root_fs_dir}/usr/share/portage/config/make.globals
+    ${root_fs_dir}/${portage_make_globals_path}
 
   sudo mkdir -p ${root_fs_dir}/etc/make.profile
 
