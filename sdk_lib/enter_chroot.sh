@@ -115,7 +115,11 @@ setup_mount() {
     # Already mounted!
     ;;
   *)
-    mkdir -p "${mounted_path}"
+    # If it doesn't exist, assume they want a dir.  But don't blindly run
+    # it all the time in case they're trying to bind mount a file.
+    if [[ ! -e ${mounted_path} ]]; then
+      mkdir -p "${mounted_path}"
+    fi
     # The args are left unquoted on purpose.
     if [[ -n ${source} ]]; then
       mount ${mount_args} "${source}" "${mounted_path}"
@@ -331,13 +335,20 @@ setup_env() {
       rmdir "${FLAGS_chroot}"/tmp/ssh-* 2>/dev/null
 
       if [ -n "${SSH_AUTH_SOCK}" -a -d "${SUDO_HOME}/.ssh" ]; then
-        TARGET_DIR="${FLAGS_chroot}/home/${SUDO_USER}/.ssh"
+        local target_ssh="/home/${SUDO_USER}/.ssh"
+        TARGET_DIR="${FLAGS_chroot}${target_ssh}"
         user_mkdir "${TARGET_DIR}"
+
+        local known_hosts="${SUDO_HOME}/.ssh/known_hosts"
+        if [[ -e ${known_hosts} ]]; then
+          truncate -s 0 "${TARGET_DIR}/known_hosts"
+          setup_mount "${known_hosts}" --bind "${target_ssh}/known_hosts"
+        fi
         (
-          # Only copy ~/.ssh/{known_hosts,*.pub} if they exist. Since we set
+          # Only copy ~/.ssh/*.pub if they exist. Since we set
           # nullglob, this needs to happen within a subshell.
           shopt -s nullglob
-          files=("${SUDO_HOME}"/.ssh/{known_hosts,*.pub})
+          files=("${SUDO_HOME}"/.ssh/*.pub)
           if [[ ${#files[@]} -gt 0 ]]; then
             user_cp "${files[@]}" "${TARGET_DIR}/"
           fi
