@@ -461,7 +461,7 @@ setup_env() {
     if [ -f ${SUDO_HOME}/.boto ]; then
       # Pass --remote-destination to overwrite a symlink.
       user_cp "--remove-destination" "${SUDO_HOME}/.boto" "$chroot_user_boto"
-      user_cp "--remove-destination" "${SUDO_HOME}/.boto" "$chroot_root_boto"
+      cp "--remove-destination" "$chroot_user_boto" "$chroot_root_boto"
     fi
 
     # If user doesn't have a boto file, check if the private overlays
