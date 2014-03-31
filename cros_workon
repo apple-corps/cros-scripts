@@ -312,25 +312,6 @@ regen_manifest_and_sync() {
   fi
 }
 
-chrome_to_live() {
-  # Switch to using repo manifest checkout of chromium src.
-  # Run chrome_set_ver to set DEPS
-
-  # No chromium/src.git project checked out, meaning user not using
-  # gerrit_source.xml
-  if [ ! -d "${CHROOT_TRUNK_DIR}/chromium/src/.git" ]; then
-    return
-  fi
-
-  info "Setting Chrome dependencies to the correct revision."
-  chrome_set_ver
-  if [ -n "${CHROME_ORIGIN}" ] && [ "${CHROME_ORIGIN}" != GERRIT_SOURCE ]; then
-    warn "CHROME_ORIGIN is already set to ${CHROME_ORIGIN}"
-    warn "To use the new GERRIT_SOURCE workflow, please unset it."
-    warn "Run 'unset CHROME_ORIGIN' to reset to the default source location."
-  fi
-}
-
 # Move a stable ebuild to the live development catgeory.  The ebuild
 # src_unpack step fetches the package source for local development.
 ebuild_to_live() {
@@ -345,9 +326,6 @@ ebuild_to_live() {
       echo "<${atom}-9999" >> "${MASK_WORKON_FILE}" || \
         die "Could not update ${MASK_WORKON_FILE} with ${atom}"
       atoms_success+=( ${atom} )
-      if [ "${atom}" = "${CHROME_ATOM}" ]; then
-        chrome_to_live
-      fi
     else
       warn "Already working on ${atom}"
     fi
