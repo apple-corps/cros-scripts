@@ -120,7 +120,7 @@ sudo_clear_shadow_locks "/build/${FLAGS_board}"
 
 # TODO: <prebuild hook>
 
-BASE_PACKAGE="chromeos-base/chromeos"
+BASE_PACKAGE="virtual/target-os"
 # Tweak flags, configure extra USE flags, and set base packages for the factory
 # install shim.
 if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then

@@ -197,7 +197,7 @@ fi
 # Figure out which packages we should be building.
 PACKAGES=( "$@" )
 if [[ $# -eq 0 ]]; then
-  PACKAGES=( chromeos-base/chromeos )
+  PACKAGES=( virtual/target-os )
   if [[ "${FLAGS_withdev}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( chromeos-base/chromeos-dev )
   fi
