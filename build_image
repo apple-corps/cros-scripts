@@ -244,7 +244,7 @@ command_completed
 
 cat << EOF
 To copy the image to a USB key, use:
-  ./image_to_usb.sh --from=${OUTSIDE_OUTPUT_DIR}
+  cros flash usb:// ${OUTSIDE_OUTPUT_DIR}
 To convert it to a VMWare image, use:
   ./image_to_vm.sh --from=${OUTSIDE_OUTPUT_DIR} --board=${BOARD}
 EOF
