@@ -158,10 +158,6 @@ exec modprobe cirrus
 END
 fi
 
-# Make GPU sandbox failures nonfatal on VMs.
-sudo sed -i -r -e 's/^(GPU_FLAGS)="(.*)=yes"/\1="\2=no"/g' \
-  "${TEMP_MNT}/sbin/session_manager_setup.sh"
-
 # TODO as these image-modifying hacks accumulate, we should consider
 # creating a better solution
 
