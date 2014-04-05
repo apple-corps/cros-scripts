@@ -355,38 +355,22 @@ for type in http ftp all; do
    fi
 done
 
-# Create the base Gentoo stage3 based on last version put in chroot.
-STAGE3="${OVERLAY}/chromeos/stage3/stage3-amd64-${FLAGS_stage3_date}.tar.bz2"
-if [ -f $CHROOT_STATE ] && \
-  ! egrep -q "^STAGE3=$STAGE3" $CHROOT_STATE >/dev/null 2>&1
-then
-  info "STAGE3 version has changed."
-  delete_existing
-fi
-
-if [ -n "${FLAGS_stage3_path}" ]; then
-  if [ ! -f "${FLAGS_stage3_path}" ]; then
-    error "Invalid stage3!"
-    exit 1;
-  fi
-  STAGE3="${FLAGS_stage3_path}"
-fi
-
 # Create the destination directory.
 mkdir -p "$FLAGS_chroot"
 
 echo
-if [ -f $CHROOT_STATE ]
-then
-  info "STAGE3 already set up.  Skipping..."
+if [[ -f ${CHROOT_STATE} ]]; then
+  info "stage3 already set up.  Skipping..."
+elif [[ -z ${FLAGS_stage3_path} ]]; then
+  die_notrace "Please use --stage3_path when bootstrapping"
 else
-  info "Unpacking STAGE3..."
-  case ${STAGE3} in
+  info "Unpacking stage3..."
+  case ${FLAGS_stage3_path} in
     *.tbz2|*.tar.bz2) DECOMPRESS=$(type -p pbzip2 || echo bzip2) ;;
     *.tar.xz) DECOMPRESS="xz" ;;
-    *) die "Unknown tarball compression: ${STAGE3}";;
+    *) die "Unknown tarball compression: ${FLAGS_stage3_path}" ;;
   esac
-  ${DECOMPRESS} -dc "${STAGE3}" | \
+  ${DECOMPRESS} -dc "${FLAGS_stage3_path}" | \
     tar -xp -C "${FLAGS_chroot}"
   rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
 fi
@@ -435,8 +419,8 @@ else
 fi
 
 # Add file to indicate that it is a chroot.
-# Add version of $STAGE3 for update checks.
-echo STAGE3=$STAGE3 > $CHROOT_STATE
+# Add version of stage3 for update checks.
+echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet portage
