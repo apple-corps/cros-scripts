@@ -125,14 +125,8 @@ install_toolchain_in_board() {
     )
     sudo_multi "${cmds[@]}"
   else
-    cmds=(
-      "mkdir -p '${BOARD_ROOT}'{/usr,}/lib64 '${BOARD_ROOT}/usr/lib/debug'"
-      "ln -sfT '${BOARD_ROOT}/usr/lib64' '${BOARD_ROOT}/usr/lib'"
-      "ln -sfT '${BOARD_ROOT}/lib64' '${BOARD_ROOT}/lib'"
-      "emerge --oneshot --nodeps -k --root='${BOARD_ROOT}' \
-          =sys-libs/glibc-${libc_ver}"
-    )
-    sudo_multi "${cmds[@]}"
+    sudo emerge --oneshot --nodeps -k --root='${BOARD_ROOT}' \
+      =sys-libs/glibc-${libc_ver}
   fi
 
   if [[ ${FLAGS_configure} -eq ${FLAGS_TRUE} ]]; then
