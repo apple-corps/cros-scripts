@@ -203,7 +203,7 @@ EOF
    # and a pointer to pre-built packages.
    # TODO: This should really be part of a profile in the portage.
    info "Setting up /etc/make.*..."
-   rm -f "${FLAGS_chroot}"/etc/{,portage/}make.{conf,profile}
+   rm -f "${FLAGS_chroot}"/etc/{,portage/}make.{conf,profile}{,.catalyst}
    mkdir -p "${FLAGS_chroot}/etc/portage"
    ln -sf "${CHROOT_CONFIG}/make.conf.amd64-host" \
      "${FLAGS_chroot}/etc/make.conf"
