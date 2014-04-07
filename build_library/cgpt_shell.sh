@@ -7,7 +7,12 @@
 # Do not edit!
 
 if ! type numsectors >/dev/null 2>&1; then
-  . "/usr/share/misc/chromeos-common.sh" || exit 1
+  if [ -f "/usr/sbin/chromeos-common.sh" ]; then
+    . "/usr/sbin/chromeos-common.sh"
+  else
+    echo "Can't load chromeos-common.sh, dying!" 1>&2
+    exit 1
+  fi
 fi
 locate_gpt
 

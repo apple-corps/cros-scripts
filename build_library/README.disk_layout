@@ -45,11 +45,6 @@ Here is an example disk layout with comments.
   "metadata":{
     "block_size": 512,
     "fs_block_size": 4096
-    // The rootdev sysfs path to install the base image. Wildcards are allowed.
-    // The scripts will translate that path into a block device name.
-    // If not specified in your overlay file, a recovery image can not be used
-    // for that platform.
-    "rootdev_base": "/sys/devices/pci0000:00/0000:00:1f.2/ata1/host*/target*/*/block/sd*"
   },
 
   // All disk layouts for this file.
