@@ -16,9 +16,6 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 
 . "${INSTALLER_ROOT}/chromeos-common.sh" || exit 1
 
-# In case chromeos-common.sh doesn't support MMC yet
-declare -F list_mmc_disks >/dev/null || list_mmc_disks() { true; }
-
 # Flags
 DEFINE_string board "${DEFAULT_BOARD}" \
   "board for which the image was built"
@@ -63,6 +60,21 @@ eval set -- "${FLAGS_ARGV}"
 if [ $# -gt 0 ]; then
   die_notrace "Arguments aren't currently supported in image_to_usb."
 fi
+
+get_disk_info() {
+  # look for a "given" file somewhere in the path upwards from the device
+  local dev=$1
+  local info=$2
+  local dev_path="/sys/block/${dev}/device"
+  while [ -d "${dev_path}" ] && [ "${dev_path}" != "/sys" ]; do
+    if [ -f "${dev_path}/${info}" ]; then
+      cat "${dev_path}/${info}"
+      return
+    fi
+    dev_path=$(readlink -f "${dev_path}/..")
+  done
+  echo '[Unknown]'
+}
 
 # Generates a descriptive string of a removable device. Includes the
 # manufacturer (if non-empty), product and a human-readable size.
