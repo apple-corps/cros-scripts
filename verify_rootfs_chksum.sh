@@ -9,13 +9,18 @@
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
-# Script must be run inside the chroot.
-restart_in_chroot_if_needed "$@"
+# Load functions and constants for chromeos-install
+[ -f /usr/lib/installer/chromeos-common.sh ] && \
+  INSTALLER_ROOT=/usr/lib/installer || \
+  INSTALLER_ROOT=$(dirname "$(readlink -f "$0")")
 
-. /usr/share/misc/chromeos-common.sh || exit 1
+. "${INSTALLER_ROOT}/chromeos-common.sh" || exit 1
 
 # Needed for partoffset and partsize calls
 locate_gpt
+
+# Script must be run inside the chroot.
+restart_in_chroot_if_needed "$@"
 
 DEFINE_string image "" "Device or an image path. Default: (empty)."
 

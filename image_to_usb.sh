@@ -10,8 +10,8 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
 # Load functions and constants for chromeos-install
-[ -f /usr/share/misc/chromeos-common.sh ] && \
-  INSTALLER_ROOT=/usr/share/misc || \
+[ -f /usr/lib/installer/chromeos-common.sh ] && \
+  INSTALLER_ROOT=/usr/lib/installer || \
   INSTALLER_ROOT=$(dirname "$(readlink -f "$0")")
 
 . "${INSTALLER_ROOT}/chromeos-common.sh" || exit 1

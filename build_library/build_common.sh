@@ -14,7 +14,8 @@
 # All scripts using this file must be run inside the chroot.
 restart_in_chroot_if_needed "$@"
 
-. /usr/share/misc/chromeos-common.sh || exit 1
+INSTALLER_ROOT=/usr/lib/installer
+. "${INSTALLER_ROOT}/chromeos-common.sh" || exit 1
 
 locate_gpt
 

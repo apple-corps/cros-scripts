@@ -12,9 +12,9 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
 if [ $INSIDE_CHROOT -ne 1 ]; then
-  INSTALL_ROOT="$SRC_ROOT/platform/installer/share"
+  INSTALL_ROOT="$SRC_ROOT/platform/installer/"
 else
-  INSTALL_ROOT=/usr/share/misc
+  INSTALL_ROOT=/usr/lib/installer/
 fi
 # Load functions and constants for chromeos-install
 . "${INSTALL_ROOT}/chromeos-common.sh" || exit 1

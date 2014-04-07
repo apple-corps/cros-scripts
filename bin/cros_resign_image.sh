@@ -32,7 +32,7 @@ find_common_sh
 assert_inside_chroot
 
 # Load functions and constants for chromeos-install
-. /usr/share/misc/chromeos-common.sh || exit 1
+. /usr/lib/installer/chromeos-common.sh || exit 1
 
 locate_gpt
 

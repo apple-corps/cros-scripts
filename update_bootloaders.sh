@@ -14,7 +14,7 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 assert_inside_chroot
 
 # Load functions and constants for chromeos-install
-. /usr/share/misc/chromeos-common.sh || exit 1
+. /usr/lib/installer/chromeos-common.sh || exit 1
 
 # Flags.
 DEFINE_string arch "x86" \

@@ -1,1 +1,1 @@
-../platform/installer/share/chromeos-common.sh
+../platform/installer/chromeos-common.sh
