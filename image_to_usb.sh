@@ -51,6 +51,11 @@ DEFINE_boolean install ${FLAGS_FALSE} \
 DEFINE_string arch "" \
   "architecture for which the image was built (derived from board if empty)"
 
+warn "You are using a deprecated script!"
+warn "Please use 'cros flash' in the future. See 'cros flash -h' for the usage."
+warn "More information is available at:"
+warn "http://www.chromium.org/chromium-os/build/cros-flash"
+
 # Parse command line
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
