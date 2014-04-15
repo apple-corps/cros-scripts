@@ -1,11 +1,10 @@
 #!/bin/bash
-
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 # Lists all package dependencies of a particular package.  Useful to find out
-# all packages depended on by chromeos and chromeos-dev.
+# all packages needed for a specific OS base or dev target.
 
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
