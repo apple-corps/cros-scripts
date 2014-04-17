@@ -179,6 +179,8 @@ create_base_image() {
   sudo find "${root_fs_dir}/usr/include" -depth -type d -exec rmdir {} + \
     2>/dev/null || :
 
+  setup_etc_shadow "${root_fs_dir}"
+
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller
   zero_free_space "${root_fs_dir}"

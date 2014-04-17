@@ -173,3 +173,50 @@ emerge_to_image() {
   sudo -E ${EMERGE_BOARD_CMD} --root-deps=rdeps --usepkgonly -v \
     "$@" ${EMERGE_JOBS}
 }
+
+# Create the /etc/shadow file with all the right entries.
+SHARED_USER_NAME="chronos"
+setup_etc_shadow() {
+  local root=$1
+  local shadow="${root}/etc/shadow"
+  local passwd="${root}/etc/passwd"
+  local line
+  local cmds
+
+  # Remove the file completely so we know it is fully initialized
+  # with the correct permissions.  Note: we're just making it writable
+  # here to simplify scripting; permission fixing happens at the end.
+  cmds=(
+    "rm -f '${shadow}'"
+    "install -m 666 /dev/null '${shadow}'"
+  )
+  sudo_multi "${cmds[@]}"
+
+  # Create shadow entries for all accounts in /etc/passwd that says
+  # they expect it.  Otherwise, pam will not let people even log in
+  # via ssh keyauth.  http://crbug.com/361864
+  while read -r line; do
+    local acct=$(cut -d: -f1 <<<"${line}")
+    local pass=$(cut -d: -f2 <<<"${line}")
+
+    case ${pass} in
+    # Login is disabled -> do nothing.
+    '!') ;;
+    # Password will be set later by tools.
+    '*') ;;
+    # Password is shadowed.
+    'x')
+      echo "${acct}:*:::::::" >> "${shadow}"
+      ;;
+    # Password is set directly.
+    *) ;;
+    esac
+  done <"${passwd}"
+
+  # Now make the settings sane.
+  cmds=(
+    "chown 0:0 '${shadow}'"
+    "chmod 600 '${shadow}'"
+  )
+  sudo_multi "${cmds[@]}"
+}

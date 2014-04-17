@@ -133,6 +133,8 @@ EOF
     sudo ln -sf /usr/local/bin/bash "${root_fs_dir}"/bin/bash
   fi
 
+  setup_etc_shadow "${root_fs_dir}"
+
   info "Developer image built and stored at ${image_name}"
 
   cleanup_mounts
