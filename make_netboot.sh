@@ -69,15 +69,17 @@ export EMERGE_BOARD_CMD="emerge-${FLAGS_board}"
 emerge_custom_kernel ${temp_build_path}
 
 # Place kernel image under 'netboot'
-echo "Generating netboot kernel vmlinux.uimg"
+echo "Generating netboot kernel vmlinux.uimg/vmlinux.bin"
 if [ "${ARCH}" = "arm" ]; then
   cp "${temp_build_path}"/boot/vmlinux.uimg netboot/
+  cp netboot/vmlinux.uimg netboot/vmlinux.bin
 else
   # U-boot put kernel image at 0x100000. We load it at 0x3000000 because
   # 0x3000000 is safe enough not to overlap with image at 0x100000.
   mkimage -A x86 -O linux -T kernel -n "Linux kernel" -C none \
       -d "${temp_build_path}"/boot/vmlinuz \
       -a 0x03000000 -e 0x03000000 netboot/vmlinux.uimg
+  cp "${temp_build_path}"/boot/vmlinuz netboot/vmlinux.bin
 fi
 
 sudo rm -rf "${temp_build_path}"
