@@ -69,7 +69,10 @@ main() {
     local builder="$(whoami)@$(hostname)"
     local id_str="${FLAGS_board} Factory Toolkit ${timestamp} ${builder}"
   fi
-  echo "${id_str}" >"${temp_pack_root}/VERSION"
+
+  local version_tag="usr/local/factory/TOOLKIT_VERSION"
+  echo "${id_str}" | sudo_clobber "${temp_pack_root}/${version_tag}"
+  ln -s "${version_tag}" "${temp_pack_root}/VERSION"
 
   local output_toolkit="${output_dir}/install_factory_toolkit.run"
   "${temp_pack_root}/usr/local/factory/py/toolkit/installer.py" \
