@@ -441,13 +441,15 @@ def GetScriptShell():
   return script_shell
 
 
-def WriteLayoutFunction(options, sfile, func_name, image_type, config):
+def WriteLayoutFunction(options, sfile, func, image_type, config):
   """Writes a shell script function to write out a given partition table.
 
   Args:
     options: Flags passed to the script
     sfile: File handle we're writing to
-    func_name: Function name to write out for specified layout
+    func: function of the layout:
+       for removable storage device: 'partition',
+       for the fixed storage device: 'base'
     image_type: Type of image eg base/test/dev/factory_install
     config: Partition configuration file object
   """
@@ -456,7 +458,7 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
   partition_totals = GetTableTotals(config, partitions)
 
   lines = [
-    '%s() {' % func_name,
+    'write_%s_table() {' % func,
     'create_image $1 %d %s' % (
         partition_totals['min_disk_size'],
         config['metadata']['block_size']),
@@ -500,15 +502,27 @@ def WriteLayoutFunction(options, sfile, func_name, image_type, config):
         ': $(( curr += %s ))' % partition['var'],
       ]
 
-  # Set default priorities on kernel partitions.
+  # Set default priorities and retry counter on kernel partitions.
+  tries = 15
   prio = 15
+  # The order of partition numbers in this loop matters.
+  # Make sure partition #2 is the first one, since it will be marked as
+  # default bootable partition.
   for n in (2, 4, 6):
     partition = GetPartitionByNumber(partitions, n)
     if partition['type'] != 'blank':
       lines += [
-        '${GPT} add -i %s -S 0 -T 15 -P %i $1' % (n, prio)
+        '${GPT} add -i %s -S 0 -T %i -P %i $1' % (n, tries, prio)
       ]
       prio = 0
+      # When not writing 'base' function, make sure the other partitions are
+      # marked as non-bootable (retry count == 0), since the USB layout
+      # doesn't have any valid data in slots B & C. But with base function,
+      # called by chromeos-install script, the KERNEL A partition is replicated
+      # into both slots A & B, so we should leave both bootable for error
+      # recovery in this case.
+      if func != 'base':
+        tries = 0
 
   lines += ['${GPT} boot -p -b $2 -i 12 $1']
   if config.get('hybrid_mbr'):
@@ -608,7 +622,7 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
     f.write(script_shell)
 
     for func, layout in (('base', BASE_LAYOUT), ('partition', image_type)):
-      WriteLayoutFunction(options, f, 'write_%s_table' % func, layout, config)
+      WriteLayoutFunction(options, f, func, layout, config)
       WritePartitionSizesFunction(options, f, func, layout, config)
 
     # TODO: Backwards compat.  Should be killed off once we update
