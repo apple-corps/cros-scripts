@@ -9,7 +9,22 @@ run_lddtree() {
   local root="$1"
   shift
 
-  sudo "${lddtree}" -R "${root}" --no-auto-root --skip-non-elfs "$@"
+  # Since we'll feed files via xargs, we need to extract the options
+  # so we can pass it to the lddtree tool.
+  local flags=()
+  while [[ $# -gt 0 ]]; do
+    case $1 in
+    --) break ;;
+    -*) flags+=( "$1" ) ;;
+    *) break ;;
+    esac
+    shift
+  done
+
+  # In case the file list is too big, send it through xargs.
+  # http://crbug.com/369314
+  printf '%s\0' "$@" | xargs -0 \
+    sudo "${lddtree}" -R "${root}" --no-auto-root --skip-non-elfs "${flags[@]}"
 }
 
 # Usage: test_elf_deps <root> <files to check>
