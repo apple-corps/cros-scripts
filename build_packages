@@ -208,7 +208,7 @@ if [[ $# -eq 0 ]]; then
     PACKAGES+=( chromeos-base/autotest-factory-install )
   fi
   if [[ "${FLAGS_withtest}" -eq "${FLAGS_TRUE}" ]]; then
-    PACKAGES+=( chromeos-base/chromeos-test )
+    PACKAGES+=( virtual/target-os-test )
   fi
   if [[ "${FLAGS_withautotest}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( chromeos-base/autotest-all )

@@ -14,7 +14,7 @@ emerge_chromeos_test() {
   local root_dev_dir="${root_fs_dir}/usr/local"
 
   emerge_to_image --root="${root_fs_dir}" chromeos-test-root
-  emerge_to_image --root="${root_dev_dir}" chromeos-test
+  emerge_to_image --root="${root_dev_dir}" virtual/target-os-test
 }
 
 # Converts a dev image into a test or factory test image
