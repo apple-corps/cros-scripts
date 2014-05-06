@@ -122,7 +122,7 @@ check_kernelbuildtime() {
 
 mark_boot_once() {
   local idx=${FLAGS_partition##*[^0-9]}
-  remote_sh cgpt add -i ${idx} -S 0 -T 1 -P 15 ${FLAGS_device}
+  remote_sh cgpt add -i ${idx} -S 0 -T 1 -P 15 ${FLAGS_device%p}
 }
 
 update_syslinux_kernel() {
