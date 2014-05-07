@@ -6,8 +6,8 @@
     "fs_block_size": 4096
   },
   "layouts":{
-    "_comment": "base is the standard layout template. Also used for installs.",
-    "base": [
+    "_comment": "common is the standard layout template.",
+    "common": [
       {
         "_comment": "Reserve space for RW firmware. Only used on some boards.",
         "num": 11,
@@ -125,6 +125,10 @@
         "features":["expand"],
         "uuid": "random"
       }
+    ],
+    "_comment": "Used for installs on main device",
+    "_comment": "by default, same as 'common'.",
+    "base": [
     ],
     "_comment": "Used for bootable USB installs (not recovery).",
     "usb": [
