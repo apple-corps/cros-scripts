@@ -58,10 +58,9 @@ test_image_content() {
   local returncode=0
 
   local binaries=(
-    "$root/usr/bin/Xorg"
-    "$root/boot/vmlinuz"
-    "$root/sbin/session_manager"
-    "$root/bin/sed"
+    "${root}/boot/vmlinuz"
+    "${root}/sbin/session_manager"
+    "${root}/bin/sed"
   )
   # When chrome is built with USE="pgo_generate", rootfs chrome is actually a
   # symlink to a real binary which is in the stateful partition. So we do not
@@ -70,6 +69,11 @@ test_image_content() {
   if ! portageq-"${BOARD}" has_version "${root}" \
     'chromeos-base/chromeos-chrome[pgo_generate]'; then
     binaries+=( "${chrome_binary}" )
+  fi
+
+  local xorg_binary="${root}/usr/bin/Xorg"
+  if portageq-"${BOARD}" has_version "${root}" 'x11-base/xorg-server'; then
+    binaries+=( "${xorg_binary}" )
   fi
 
   for test_file in "${binaries[@]}"; do
