@@ -53,15 +53,11 @@ run_partition_script() {
 
   local pmbr_img
   case ${ARCH} in
-  arm)
-    pmbr_img=/dev/zero
-    ;;
   amd64|x86)
     pmbr_img=$(readlink -f /usr/share/syslinux/gptmbr.bin)
     ;;
   *)
-    error "Unknown architecture: $ARCH"
-    return 1
+    pmbr_img=/dev/zero
     ;;
   esac
 

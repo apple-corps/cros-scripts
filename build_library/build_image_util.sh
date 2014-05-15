@@ -239,6 +239,8 @@ run_ldconfig() {
   case ${ARCH} in
   arm)
     sudo qemu-arm "${root_fs_dir}"/sbin/ldconfig -r "${root_fs_dir}";;
+  mips)
+    sudo qemu-mipsel "${root_fs_dir}"/sbin/ldconfig -r "${root_fs_dir}";;
   x86|amd64)
     sudo ldconfig -r "${root_fs_dir}";;
   *)

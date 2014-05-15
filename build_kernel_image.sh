@@ -295,7 +295,7 @@ EOF
 
   bootloader_path="/lib64/bootstub/bootstub.efi"
   kernel_image="${FLAGS_vmlinuz}"
-elif [[ "${FLAGS_arch}" = "arm" ]]; then
+elif [[ "${FLAGS_arch}" = "arm" || "${FLAGS_arch}" = "mips" ]]; then
   WORK="${WORK} ${FLAGS_working_dir}/config.txt"
 
   # arm does not need/have a bootloader in kernel partition

@@ -26,6 +26,9 @@ case "$(echo "${CHOST}" | awk -F'-' '{ print $1 }')" in
   *x86_64)
     ARCH="amd64"
     ;;
+  mips*)
+    ARCH="mips"
+    ;;
   *)
     error "Unable to determine ARCH from toolchain: ${CHOST}"
     exit 1
