@@ -99,16 +99,23 @@ def ParseRelativeNumber(max_number, number):
 
 
 def _ApplyLayoutOverrides(layout_to_override, layout):
-  """Applies |layout| overrides on to |layout_to_override|."""
-  for part_to_override in layout_to_override:
-    num = part_to_override.get('num')
+  """Applies |layout| overrides on to |layout_to_override|.
+
+  First add missing partition from layout to layout_to_override.
+  Then, update partitions in layout_to_override with layout information.
+  """
+  for part_to_apply in layout:
+    num = part_to_apply.get('num')
     if not num:
       continue
 
-    for part in layout:
+    for part in layout_to_override:
       if part.get('num') == num:
-        part_to_override.update(part)
+        part.update(part_to_apply)
         break
+    # need of deepcopy, in case we change layout later.
+    else:
+      layout_to_override.append(copy.deepcopy(part_to_apply))
 
 
 def _LoadStackedPartitionConfig(filename):
