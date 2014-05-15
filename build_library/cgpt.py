@@ -342,16 +342,8 @@ def GetPartitionTable(options, config, image_type):
 
   # We make a deep copy so that changes to the dictionaries in this list do not
   # persist across calls.
-  partitions = copy.deepcopy(config['layouts'][BASE_LAYOUT])
+  partitions = copy.deepcopy(config['layouts'][image_type])
   metadata = config['metadata']
-
-  if image_type != BASE_LAYOUT:
-    for partition_t in config['layouts'][image_type]:
-      for partition in partitions:
-        if 'num' in partition_t and 'num' in partition:
-          if partition_t['num'] == partition['num']:
-            for k, v in partition_t.items():
-              partition[k] = v
 
   for adjustment_str in options.adjust_part.split():
     adjustment = adjustment_str.split(':')
