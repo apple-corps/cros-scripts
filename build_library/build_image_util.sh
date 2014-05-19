@@ -176,6 +176,7 @@ emerge_to_image() {
 
 # Create the /etc/shadow file with all the right entries.
 SHARED_USER_NAME="chronos"
+SHARED_USER_PASSWD_FILE="/etc/shared_user_passwd.txt"
 setup_etc_shadow() {
   local root=$1
   local shadow="${root}/etc/shadow"
@@ -199,6 +200,13 @@ setup_etc_shadow() {
     local acct=$(cut -d: -f1 <<<"${line}")
     local pass=$(cut -d: -f2 <<<"${line}")
 
+    # For the special shared user account, load the shared user password
+    # if one has been set.
+    if [[ ${acct} == "${SHARED_USER_NAME}" &&
+          -e "${SHARED_USER_PASSWD_FILE}" ]]; then
+      pass=$(<"${SHARED_USER_PASSWD_FILE}")
+    fi
+
     case ${pass} in
     # Login is disabled -> do nothing.
     '!') ;;
@@ -209,7 +217,9 @@ setup_etc_shadow() {
       echo "${acct}:*:::::::" >> "${shadow}"
       ;;
     # Password is set directly.
-    *) ;;
+    *)
+      echo "${acct}:${pass}:::::::" >> "${shadow}"
+      ;;
     esac
   done <"${passwd}"
 
