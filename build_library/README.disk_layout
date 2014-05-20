@@ -18,16 +18,15 @@ To create a board specific layout that is all new:
   Read the list of partitions with special handling below.
   Create overlay-<board>/scripts/disk_layout.json
 
-A layout file consists of layouts. Common types of layouts would be "base",
-"usb", "vm" and "common". Each of these layouts is made up of one or more
-partitions.
+A layout file consists of a "base" layout, plus zero or more other types of
+layout. Common types would be "usb" and "vm". Each of these layouts is made up
+of one or more partitions.
 
-The "common" layout is special, since it's the layout on which all other layouts
-get overlaid upon. The base layout represents the "installed" layout, the way
-things should be once the image has been installed onto a device. The "usb"
-layout represents how things should look on a USB image (typically, this means
-that ROOT-B is 1 block long).
-
+The base layout is special, since it's the layout on which all other layouts get
+overlaid upon. The base layout represents the "installed" layout, the way things
+should be once the image has been installed onto a device. The "usb" layout
+represents how things should look on a USB image (typically, this means that
+ROOT-B is 1 block long).
 
 Here is an example disk layout with comments.
 
@@ -56,8 +55,8 @@ Here is an example disk layout with comments.
   // All disk layouts for this file.
   "layouts":{
 
-    // All other layouts inherit from 'common'.
-    "common": [
+    // All other layouts inherit from 'base', though base can be used directly.
+    "base": [
       // Every layout is a list of partitions. They will appear on disk in
       // the order they appear here.
       {
@@ -104,10 +103,6 @@ Here is an example disk layout with comments.
         // 'random' means generate a new one.
         "uuid": "random"
       }
-    ],
-    // common is usually good enough for "base", the partition installed on the
-    // fixed device.
-    "base": [
     ],
     "usb": [
       // This extends base. Partitions can not be removed or added.
@@ -157,8 +152,7 @@ Features values:
 
 In the ChromiumOS build system and installers, a number of partitions have
 'special' handling. Partitions with special handling are always identified
-by partition number. Disk partitioning design is described here:
-http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format
+by partition number.
 
   Partition 1 - Stateful Partition
     The stateful partition will have it's size expanded for USB and recovery
@@ -207,49 +201,23 @@ http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format
 
 Inheritance Rules:
 
-  As noted above, a layout in a given file is defined by the common layout with
-overrides specified by the named layout. The usb layout in the example above
-is the full common layout with overrides for partition 11. Let's denote this
+  As noted above, a layout in a given file is defined by the base layout with
+overrides specified by the named layout i.e. the usb layout in the example above
+is the full base layout with overrides for partition 11. Let's denote this
 inheritance as:
 
-local usb <-----
-                \
-                 -- local common
-                /
-local base <----
+local usb <- local base (read: local usb overrides local base).
 
-  These rules change a bit when a parent is involved. Specifically, if a
-common, usb and base are defined in a local file and a parent has them as well
-this would be the ordering:
+  These rules change a bit when a parent is involved. Specifically, if both a
+usb and base are defined in a local file and a parent has both this would be
+the ordering:
 
-   overlay                        |     parent
-                                  |
-local usb <-----                  | ---- parent usb ---
-                \                 |/                   \
-                 -- local common --                     -- parent common
-                /                 |\                   /
-local base <----                  | ---- parent base --
+local usb <- local base <- parent usb <- parent base.
 
 Note this means if any of these are empty or not defined, the ordering is still
-the same. For instance, if local common is not defined:
+the same i.e. a local usb if usb isn't actually defined will be:
 
-   overlay                        |     parent
-                                  |
-local usb <-----------------------|----- parent usb ---
-                                  |                    \
-                                  |                     -- parent common
-                                  |                    /
-local base <----------------------|----- parent base --
-
-
-If a local usb if usb isn't actually defined will be:
-
-   overlay                        |     parent
-                                  |
-                                  | ---- parent usb ---
-                                  |/                   \
-                    local common --                     -- parent common
-
+local base <- parent usb <- parent base.
 
 FAQ
 

@@ -33,7 +33,6 @@ class InvalidSize(Exception):
 class ConflictingOptions(Exception):
   """Conflicting Options"""
 
-COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
 
 
@@ -138,14 +137,14 @@ def _LoadStackedPartitionConfig(filename):
     config = json.load(f)
 
   # Let's first apply our new configs onto base.
-  common_layout = config['layouts'].setdefault(COMMON_LAYOUT, [])
+  base_layout = config['layouts'].setdefault(BASE_LAYOUT, [])
   for layout_name, layout in config['layouts'].iteritems():
     # Don't apply on yourself.
-    if layout_name == COMMON_LAYOUT or layout_name == '_comment':
+    if layout_name == BASE_LAYOUT or layout_name == '_comment':
       continue
 
     # Need to copy a list of dicts so make a deep copy.
-    working_layout = copy.deepcopy(common_layout)
+    working_layout = copy.deepcopy(base_layout)
     _ApplyLayoutOverrides(working_layout, layout)
     config['layouts'][layout_name] = working_layout
 
@@ -182,19 +181,19 @@ def _LoadStackedPartitionConfig(filename):
     new_layouts = config_layouts - parent_layouts
 
     # Actually add the copy. Use a copy such that each is unique.
-    parent_cmn_layout = parent_config['layouts'].setdefault(COMMON_LAYOUT, [])
+    parent_base_layout = parent_config['layouts'].setdefault(BASE_LAYOUT, [])
     for layout_name in new_layouts:
-      parent_config['layouts'][layout_name] = copy.deepcopy(parent_cmn_layout)
+      parent_config['layouts'][layout_name] = copy.deepcopy(parent_base_layout)
 
     # Iterate through each layout in the parent config and apply the new layout.
-    common_layout = config['layouts'].setdefault(COMMON_LAYOUT, [])
+    base_layout = config['layouts'].setdefault(BASE_LAYOUT, [])
     for layout_name, parent_layout in parent_config['layouts'].iteritems():
       if layout_name == '_comment':
         continue
 
       layout_override = config['layouts'].setdefault(layout_name, [])
-      if layout_name != COMMON_LAYOUT:
-        _ApplyLayoutOverrides(parent_layout, common_layout)
+      if layout_name != BASE_LAYOUT:
+        _ApplyLayoutOverrides(parent_layout, base_layout)
 
       _ApplyLayoutOverrides(parent_layout, layout_override)
 
