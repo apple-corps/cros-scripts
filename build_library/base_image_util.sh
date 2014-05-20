@@ -135,6 +135,7 @@ create_base_image() {
   # the hash on the root FS.
   write_partition_script "${image_type}" \
     "${root_fs_dir}/${PARTITION_SCRIPT_PATH}"
+  sudo chown root:root "${root_fs_dir}/${PARTITION_SCRIPT_PATH}"
 
   # Populates the root filesystem with legacy bootloader templates
   # appropriate for the platform.  The autoupdater and installer will
