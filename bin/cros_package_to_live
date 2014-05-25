@@ -36,6 +36,11 @@ DEFINE_boolean build ${FLAGS_FALSE} "Build package before installing"
 DEFINE_string board "$DEFAULT_BOARD" \
     "Board for which the package should be built/found"
 
+warn "You are using a deprecated script!"
+warn "Please use 'cros deploy' in the future. See 'cros deploy -h' for the usage."
+warn "More information is available at:"
+warn "http://www.chromium.org/chromium-os/build/cros-deploy"
+
 FLAGS "$@" || exit 1
 
 TMP=$(mktemp -d /tmp/cros_package_to_live.XXXX)
