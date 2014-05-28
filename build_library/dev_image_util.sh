@@ -61,7 +61,7 @@ install_dev_packages() {
   sudo mkdir -p ${root_fs_dir}/etc/make.profile
 
   # Re-run ldconfig to fix /etc/ld.so.cache.
-  sudo ldconfig -r "${root_fs_dir}"
+  run_ldconfig "${root_fs_dir}"
 
   # Additional changes to developer image.
   sudo mkdir -p "${root_fs_dir}/root"

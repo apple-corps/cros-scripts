@@ -57,7 +57,7 @@ mod_image_for_test () {
   fi
 
   # Re-run ldconfig to fix /etc/ld.so.cache.
-  sudo ldconfig -r "${root_fs_dir}"
+  run_ldconfig "${root_fs_dir}"
 
   cleanup_mounts
   trap - EXIT

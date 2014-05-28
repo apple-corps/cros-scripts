@@ -230,3 +230,18 @@ setup_etc_shadow() {
   )
   sudo_multi "${cmds[@]}"
 }
+
+# ldconfig cannot generate caches for non-native arches.
+# Use qemu & the native ldconfig to work around that.
+# http://crbug.com/378377
+run_ldconfig() {
+  local root_fs_dir=$1
+  case ${ARCH} in
+  arm)
+    sudo qemu-arm "${root_fs_dir}"/sbin/ldconfig -r "${root_fs_dir}";;
+  x86|amd64)
+    sudo ldconfig -r "${root_fs_dir}";;
+  *)
+    die "Unable to run ldconfig for ARCH ${ARCH}"
+  esac
+}
