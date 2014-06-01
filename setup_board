@@ -430,7 +430,6 @@ cmds=(
 # Setup the make.confs. We use the following:
 #    make.conf             <- Overall target make.conf [arm, x86, etc. version]
 #    make.conf.board_setup <- Declares CHOST, ROOT, etc.
-#    make.conf.common      <- Common settings across all targets
 #    make.conf.board       <- Optional board-supplied make.conf
 if ${HOST_BOARD}; then
   cmds+=(
@@ -451,10 +450,6 @@ if ${HOST_BOARD}; then
     "cp /etc/init.d/functions.sh '${BOARD_ETC}'/init.d/"
   )
 fi
-cmds+=(
-  "ln -sf '${CHROMIUMOS_CONFIG}/make.conf.common-target' \
-    '${BOARD_ETC}/make.conf.common'"
-)
 sudo_multi "${cmds[@]}"
 
 SAVED_VERSION=
