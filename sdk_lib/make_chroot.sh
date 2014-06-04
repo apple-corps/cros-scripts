@@ -213,7 +213,7 @@ EOF
    mkdir -p "${FLAGS_chroot}/etc/portage"
    ln -sf "${CHROOT_CONFIG}/make.conf.amd64-host" \
      "${FLAGS_chroot}/etc/make.conf"
-   ln -sf "${CHROOT_OVERLAY}/profiles/default/linux/amd64/10.0" \
+   ln -sf "${CHROOT_OVERLAY}/profiles/default/linux/amd64/10.0/sdk" \
      "${FLAGS_chroot}/etc/make.profile"
 
    # Create make.conf.user .
