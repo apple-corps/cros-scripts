@@ -33,11 +33,23 @@ main() {
 
   trap cleanup EXIT
 
+  # Must specify a board
+  if [[ -z "${FLAGS_board}" ]]; then
+    die "No board specified. Use the --board option."
+  fi
+
   local default_dir="${CHROOT_TRUNK_DIR}/src/build/images/${FLAGS_board}/latest"
   if [[ -n "${FLAGS_output_dir}" ]]; then
     local output_dir="${FLAGS_output_dir}"
   else
     local output_dir="${default_dir}"
+  fi
+
+  echo "Building into directory ${output_dir}"
+  if [[ ! -d "${output_dir}" ]]; then
+    die \
+      "Output directory '${output_dir}' does not exist." \
+      "Check the --board or --output_dir options and that the image is built."
   fi
   cd "${output_dir}"
 
