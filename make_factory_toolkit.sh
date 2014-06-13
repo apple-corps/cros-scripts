@@ -19,6 +19,8 @@ DEFINE_string board "${DEFAULT_BOARD}" \
 DEFINE_string output_dir "" "Path to the folder to store the factory toolkit."
 DEFINE_string version "" \
   "The version tag to be included in the identification string."
+DEFINE_string host_based "0" \
+  "Whether to build a host-based toolkit."
 
 cleanup() {
   sudo rm -rf "${temp_pack_root}"
@@ -85,6 +87,19 @@ main() {
   local version_tag="usr/local/factory/TOOLKIT_VERSION"
   echo "${id_str}" | sudo_clobber "${temp_pack_root}/${version_tag}"
   ln -s "${version_tag}" "${temp_pack_root}/VERSION"
+
+  # Determine whether to use host-based or monolithic goofy
+  if [[ "${FLAGS_host_based}" -ne "0" ]]; then
+    local goofy_link_dst=goofy_split
+  else
+    local goofy_link_dst=goofy_monolithic
+  fi
+  echo "Pointing goofy symlink to ${goofy_link_dst}"
+  local symlink_file="${temp_pack_root}/usr/local/factory/py/goofy"
+  local symlink_dst="${temp_pack_root}/usr/local/factory/py/${goofy_link_dst}"
+  sudo ln --force --no-dereference --symbolic --relative \
+    "${symlink_dst}" "${symlink_file}" || \
+    die "Unable to symlink ${symlink_dst} to ${symlink_file}"
 
   local output_toolkit="${output_dir}/install_factory_toolkit.run"
   "${temp_pack_root}/usr/local/factory/py/toolkit/installer.py" \
