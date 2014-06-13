@@ -495,6 +495,20 @@ CHROOT_PASSTHRU=(
   "EXTERNAL_TRUNK_PATH=${FLAGS_trunk}"
 )
 
+# Translate C.UTF-8 into something we support. Remove this when our glibc
+# starts supporting C.UTF-8. https://bugzilla.redhat.com/show_bug.cgi?id=902094
+for var in LANG \
+  LC_{ADDRESS,ALL,COLLATE,CTYPE,IDENTIFICATION,MEASUREMENT,MESSAGES} \
+  LC_{MONETARY,NAME,NUMERIC,PAPER,TELEPHONE,TIME}; do
+  if [[ ${!var} =~ C\.[Uu][Tt][Ff]-?8 ]]; then
+    if [[ ${var} == LC_COLLATE ]]; then
+      export LC_COLLATE=C
+    else
+      export ${var}=en_US.UTF-8
+    fi
+  fi
+done
+
 # Add the whitelisted environment variables to CHROOT_PASSTHRU.
 load_environment_whitelist
 for var in "${ENVIRONMENT_WHITELIST[@]}" ; do
