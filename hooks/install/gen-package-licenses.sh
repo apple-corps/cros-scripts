@@ -8,7 +8,6 @@ generate_licensing()
   local PKG="${CATEGORY}/${PF}"
 
   if [[ -z "${ENABLE_LICENSING}" ]]; then
-    ewarn "$0 disabled. export ENABLE_LICENSING=y to run"
     return
   fi
 
