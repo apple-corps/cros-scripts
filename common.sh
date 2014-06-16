@@ -396,6 +396,7 @@ COMMON_INSTALL_MASK="
   *.la
   *.h
   *.hpp
+  */.keep*
   /etc/init.d
   /etc/runlevels
   /firmware
