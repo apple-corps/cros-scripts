@@ -408,6 +408,7 @@ COMMON_INSTALL_MASK="
   /usr/include/X11/*
   /usr/lib/debug
   /usr/lib*/pkgconfig
+  /usr/lib/systemd
   /usr/local/autotest-chrome
   /usr/man
   /usr/share/aclocal
