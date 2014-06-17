@@ -100,6 +100,14 @@ create_base_image() {
     'usr/include' 'sys-include'
     # Link-time objects.
     '*.[ao]'
+    # Debug commands not used by normal runtime code.
+    'usr/bin/'{getent,ldd}
+    # LD_PRELOAD objects for debugging.
+    'lib*/lib'{memusage,pcprofile,SegFault}.so 'usr/lib*/audit'
+    # We only use files & dns with nsswitch, so throw away the others.
+    'lib*/libnss_'{compat,db,hesiod,nis,nisplus}'*.so*'
+    # This is only for very old packages which we don't have.
+    'lib*/libBrokenLocale*.so*'
   )
   pbzip2 -dc --ignore-trailing-garbage=1 "${LIBC_PATH}" | \
     sudo tar xpf - -C "${root_fs_dir}" ./usr/${CHOST} \
