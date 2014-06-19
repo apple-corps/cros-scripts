@@ -7,7 +7,7 @@ generate_licensing()
 {
   local PKG="${CATEGORY}/${PF}"
 
-  if [[ -z "${ENABLE_LICENSING}" ]]; then
+  if [[ "${ENABLE_LICENSING}" != "Y" ]]; then
     return
   fi
 

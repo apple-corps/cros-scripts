@@ -104,6 +104,8 @@ fi
 
 CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 
+export ENABLE_LICENSING="${ENABLE_LICENSING:-Y}"
+
 # Before we can run any tools, we need to update chroot or setup_board.
 UPDATE_ARGS=()
 if [[ -n ${FLAGS_accept_licenses} ]]; then
