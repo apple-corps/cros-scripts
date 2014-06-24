@@ -1,0 +1,22 @@
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# We did some change to platform2's build process. The blocker logic is not
+# working when we are cros_working on a package so we need to do more.
+#
+# This forces platform2 to be uninstalled and clears the cache.
+# A more permanent fix is on the way.
+
+package="chromeos-base/platform2-9999"
+
+for sysroot in /build/* /; do
+  (
+  if ROOT="${sysroot}" qlist -IC ${package} >&/dev/null; then
+    info "Cleaning ${package} from ${sysroot}"
+    sudo ROOT="${sysroot}" qmerge -yqU ${package}
+  fi
+  sudo rm -rf "${sysroot}"/var/cache/portage/chromeos-base/platform2
+  ) &
+done
+wait
