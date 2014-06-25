@@ -121,7 +121,4 @@ if [ "$PERL_VERSIONS" -gt 1 ] ; then
   sudo perl-cleaner --all -- --quiet
 fi
 
-# If the user has old python stuff, update them.
-"${SCRIPTS_DIR}/python_cleaner" --jobs ${FLAGS_jobs}
-
 command_completed
