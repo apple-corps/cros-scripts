@@ -1019,6 +1019,15 @@ emerge_custom_kernel() {
   # Clean up any leftover state in custom directories.
   sudo rm -rf "${tmp_pkgdir}"
 
+  # Update chromeos-initramfs to contain the latest binaries from the build
+  # tree. This is basically just packaging up already-built binaries from
+  # ${root}. We are careful not to muck with the existing prebuilts so that
+  # prebuilts can be uploaded in parallel.
+  # TODO(davidjames): Implement ABI deps so that chromeos-initramfs will be
+  # rebuilt automatically when its dependencies change.
+  sudo -E PKGDIR="${tmp_pkgdir}" ${EMERGE_BOARD_CMD} -1 \
+    chromeos-base/chromeos-initramfs || die "Cannot emerge chromeos-initramfs"
+
   # Verify all dependencies of the kernel are installed. This should be a
   # no-op, but it's good to check in case a developer didn't run
   # build_packages.  We need the expand_virtual call to workaround a bug
