@@ -125,6 +125,15 @@ create_base_image() {
   # trim the image size as much as possible.
   emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE}
 
+  # Remove unreferenced gconv charsets.
+  # gconv charsets are .so modules loaded dynamically by iconv_open(3),
+  # installed by glibc. Applications using them don't explicitly depend on them
+  # and we don't known which ones will be used until all the applications are
+  # installed. This script looks for the charset names on all the binaries
+  # installed on the the ${root_fs_dir} and removes the unreferenced ones.
+  sudo python "${SRC_ROOT}/scripts/build_library/gconv_strip.py" \
+    "${root_fs_dir}"
+
   # Run ldconfig to create /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 
