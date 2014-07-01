@@ -10,6 +10,8 @@ DEFINE_boolean copy ${FLAGS_FALSE} "Copy the image file before starting the VM."
 DEFINE_string mem_path "" "VM memory image to save or restore."
 DEFINE_boolean no_graphics ${FLAGS_FALSE} "Runs the KVM instance silently."
 DEFINE_boolean persist "${FLAGS_FALSE}" "Persist vm."
+DEFINE_boolean scsi ${FLAGS_FALSE} "Loads disk as a virtio-scsi-disk. "\
+"This option is used for testing Google Compute Engine-compatible images."
 DEFINE_boolean snapshot ${FLAGS_FALSE} "Don't commit changes to image."
 DEFINE_integer ssh_port 9222 "Port to tunnel ssh traffic over."
 DEFINE_string vnc "" "VNC Server to display to instead of SDL "\
@@ -182,6 +184,14 @@ start_kvm() {
       sudo chmod 600 "${pipe}"
     done
 
+    local drive
+    drive="-drive file=${vm_image},index=0,media=disk,cache=${cache_type}"
+    if [ ${FLAGS_scsi} -eq ${FLAGS_TRUE} ]; then
+      drive=$(echo "-drive if=none,id=hd,file=${vm_image},cache=${cache_type}"\
+          "-device virtio-scsi-pci,id=scsi "\
+          "-device scsi-hd,drive=hd")
+    fi
+
     # Note: the goofiness around the expansion of |incoming_option| is
     # to ensure that it is quoted if set, but _not_ quoted if
     # unset. (QEMU chokes on empty arguments).
@@ -197,7 +207,7 @@ start_kvm() {
       ${snapshot} \
       -net user,hostfwd=tcp::${FLAGS_ssh_port}-:22 \
       ${incoming} ${incoming_option:+"$incoming_option"} \
-      -drive "file=${vm_image},index=0,media=disk,cache=${cache_type}"
+      ${drive}
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
     LIVE_VM_IMAGE="${vm_image}"
