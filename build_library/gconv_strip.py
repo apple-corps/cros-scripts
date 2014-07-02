@@ -21,6 +21,19 @@ GCONV_MODULES_PATHS = (
     'usr/lib/gconv/gconv-modules',
     )
 
+# List of function names (symbols) known to use a charset as a parameter.
+GCONV_SYMBOLS = (
+    # glibc
+    'iconv_open',
+    'iconv',
+    # glib
+    'g_convert',
+    'g_convert_with_fallback',
+    'g_iconv',
+    'g_locale_to_utf8',
+    'g_get_charset',
+    )
+
 class GconvModules(object):
   """Class to manipulate the gconv/gconv-modules file and referenced modules.
 
@@ -206,11 +219,15 @@ def GconvStrip(args):
   # Use scanelf to search for all the binary files on the rootfs that require
   # or define the symbol iconv_open. We also include the binaries that define
   # it since there could be internal calls to it from other functions.
-  output = subprocess.check_output([
-      'scanelf', '--mount', '--quiet', '--recursive', '--symbol', 'iconv_open',
-      args.root])
-  files = [l.split()[1] for l in output.splitlines()
-           if l.startswith('iconv_open')]
+  files = set()
+  for symbol in GCONV_SYMBOLS:
+    output = subprocess.check_output([
+        'scanelf', '--mount', '--quiet', '--recursive', '--symbol', symbol,
+        args.root])
+    symbol_files = [l.split()[1] for l in output.splitlines()
+                    if l.startswith(symbol)]
+    logging.debug('Symbol %s found on %d files.', symbol, len(symbol_files))
+    files.update(symbol_files)
 
   # The charsets are represented as null-terminated strings on the binary files,
   # so we append the '\0' to each string. This prevents some false positives
