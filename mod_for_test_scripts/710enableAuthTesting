@@ -11,6 +11,10 @@ case "${ARCH}" in
     QEMU="/tmp/qemu-arm"
     cp "/usr/bin/qemu-arm" "${ROOT_FS_DIR}/${QEMU}"
     ;;
+  mips)
+    QEMU="/tmp/qemu-mipsel"
+    cp "/usr/bin/qemu-mipsel" "${ROOT_FS_DIR}/${QEMU}"
+    ;;
  *86|amd64)
     QEMU=""
     ;;
