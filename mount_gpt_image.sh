@@ -12,7 +12,7 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
 if [ $INSIDE_CHROOT -ne 1 ]; then
-  INSTALL_ROOT="$SRC_ROOT/platform/installer/share"
+  INSTALL_ROOT="$SRC_ROOT/platform2/installer/share"
 else
   INSTALL_ROOT=/usr/share/misc
 fi
