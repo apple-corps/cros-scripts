@@ -16,6 +16,7 @@ restart_in_chroot_if_needed "$@"
 DEFINE_string board "" "Override board reported by target"
 DEFINE_string device "" "Override boot device reported by target"
 DEFINE_string partition "" "Override kernel partition reported by target"
+DEFINE_string rootoff "" "Override root offset"
 DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
@@ -78,7 +79,12 @@ get_bootargs() {
     info "Using remote bootargs"
     remote_sh cat /proc/cmdline && echo "${REMOTE_OUT}"
   else
-    cat "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+    if [ -n "${FLAGS_rootoff}" ]; then
+      sed "s/PARTNROFF=1/PARTNROFF=${FLAGS_rootoff}/" \
+          "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+    else
+      cat "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+    fi
   fi
 }
 
