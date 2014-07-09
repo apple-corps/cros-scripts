@@ -261,7 +261,7 @@ if [[ -n ${FLAGS_enable_serial} ]]; then
   cat <<EOF > "${config}"
 earlyprintk=${console}
 console=tty1
-keep_bootcon
+console=${console}
 EOF
 else
   cat <<EOF > "${config}"
