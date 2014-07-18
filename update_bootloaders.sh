@@ -18,7 +18,7 @@ assert_inside_chroot
 
 # Flags.
 DEFINE_string arch "x86" \
-  "The boot architecture: arm or x86. (Default: x86)"
+  "The boot architecture: arm, mips, x86, or amd64 (Default: x86)"
 # TODO(wad) once extlinux is dead, we can remove this.
 DEFINE_boolean install_syslinux ${FLAGS_FALSE} \
   "Controls whether syslinux is run on 'to'. (Default: false)"
@@ -196,7 +196,7 @@ if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
     # mount again for cleanup to free resource gracefully
     sudo mount -o ro "${ESP_DEV}" "${ESP_FS_DIR}"
   fi
-elif [[ "${FLAGS_arch}" = "arm" ]]; then
+elif [[ "${FLAGS_arch}" = "arm" || "${FLAGS_arch}" = "mips" ]]; then
   # Copy u-boot script to ESP partition
   if [ -r "${FLAGS_from}/boot-A.scr.uimg" ]; then
     sudo mkdir -p "${ESP_FS_DIR}/u-boot"

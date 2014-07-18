@@ -146,8 +146,12 @@ sudo mount -o loop "${TEMP_ROOTFS}" "${TEMP_MNT}"
 mkdir -p "${TEMP_ESP_MNT}"
 sudo mount -o loop "${TEMP_ESP}" "${TEMP_ESP_MNT}"
 
-# Modify the unverified usb template which uses a default usb_disk of sdb3
-sudo sed -i -e 's/sdb3/sda3/g' "${TEMP_MNT}/boot/syslinux/usb.A.cfg"
+# Modify the unverified usb template, which uses a default usb_disk of sdb3,
+# for targets (e.g. x86 and amd64) that have syslinux installed.
+SYSLINUX_USB_A_CONFIG="${TEMP_MNT}/boot/syslinux/usb.A.cfg"
+if [ -e "${SYSLINUX_USB_A_CONFIG}" ]; then
+  sudo sed -i -e 's/sdb3/sda3/g' "${SYSLINUX_USB_A_CONFIG}"
+fi
 
 # Add loading of cirrus fb module
 if [ "${FLAGS_format}" = "qemu" ]; then

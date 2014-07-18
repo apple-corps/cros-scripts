@@ -82,7 +82,7 @@ DEFINE_string output_dir "/tmp" \
 DEFINE_string image "chromiumos_base.img" \
   "Full path to the chromiumos image to make bootable."
 DEFINE_string arch "x86" \
-  "Architecture to make bootable for: arm, x86, or amd64"
+  "Architecture to make bootable for: arm, mips, x86, or amd64"
 DEFINE_string usb_disk "/dev/sdb3" \
   "Path syslinux should use to do a usb boot."
 DEFINE_boolean cleanup_dirs ${FLAGS_TRUE} \
@@ -348,8 +348,8 @@ make_image_bootable() {
     kernel_part="--kernel_partition='${FLAGS_output_dir}/vmlinuz.image'"
     # Install syslinux on the EFI System Partition.
     kernel_part="${kernel_part} --install_syslinux"
-  elif [[ "${FLAGS_arch}" = "arm" ]]; then
-    # These flags are not used for ARM update_bootloaders.sh
+  elif [[ "${FLAGS_arch}" = "arm" || "${FLAGS_arch}" = "mips" ]]; then
+    # These flags are not used for ARM / MIPS update_bootloaders.sh
     kernel_part=""
   fi
 
