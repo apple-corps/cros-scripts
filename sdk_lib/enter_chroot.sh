@@ -330,6 +330,11 @@ setup_env() {
       chmod 0644 "${p}"
     fi
 
+    if [ -d "${SUDO_HOME}/.cidb_creds" ]; then
+      setup_mount "${SUDO_HOME}/.cidb_creds" --bind \
+        "/home/${SUDO_USER}/.cidb_creds"
+    fi
+
     if [ $FLAGS_ssh_agent -eq $FLAGS_TRUE ]; then
       # Clean up previous ssh agents.
       rmdir "${FLAGS_chroot}"/tmp/ssh-* 2>/dev/null
