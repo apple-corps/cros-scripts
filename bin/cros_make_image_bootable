@@ -181,6 +181,21 @@ append_boot_flag() {
   sudo sed -i "s/\b${base_pattern}\b/& ${pattern}/g" "${file}"
 }
 
+check_kernel_size() {
+  local kernel_image_size="$1"
+  local kernel_part="$2"
+  local kernel_slot="$3"
+  local kernel_partition_size=$(get_partition_size ${FLAGS_image_type} \
+                                                   ${kernel_part})
+  local kernel_partition_size_90=$(( kernel_partition_size * 90 / 100 ))
+  info "Kernel partition ${kernel_slot} size is ${kernel_partition_size} bytes."
+  if [[ ${kernel_image_size} -gt ${kernel_partition_size} ]]; then
+    die "Kernel image won't fit in partition ${kernel_slot}!"
+  elif [[ ${kernel_image_size} -gt ${kernel_partition_size_90} ]]; then
+    warn "Kernel partition ${kernel_slot} is more than 90% full!"
+  fi
+}
+
 make_image_bootable() {
   local image="$1"
   local use_dev_keys=
@@ -276,16 +291,10 @@ make_image_bootable() {
 
   # Check the size of kernel image and issue warning when image size is
   # near the limit.
-  local kernel_partition_size=$(get_partition_size ${FLAGS_image_type} 2)
-  local kernel_partition_size_90=$(( kernel_partition_size * 90 / 100 ))
   local kernel_image_size=$(stat -c '%s' ${FLAGS_output_dir}/vmlinuz.image)
   info "Kernel image     size is ${kernel_image_size} bytes."
-  info "Kernel partition size is ${kernel_partition_size} bytes."
-  if [[ ${kernel_image_size} -gt ${kernel_partition_size} ]]; then
-    die "Kernel image won't fit in partition!"
-  elif [[ ${kernel_image_size} -gt ${kernel_partition_size_90} ]]; then
-    warn "Kernel partition is more than 90% full!"
-  fi
+  check_kernel_size ${kernel_image_size} 2 A
+  check_kernel_size ${kernel_image_size} 4 B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
   local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} 3)
@@ -327,7 +336,12 @@ make_image_bootable() {
             "${FLAGS_statefulfs_mountpoint}"
   fi
 
+  # Install the kernel to both slots A and B so there will always be a regular
+  # kernel in slot B on recovery and non-recovery images.
   local koffset="$(partoffset ${image} 2)"
+  sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
+    conv=notrunc bs=512 seek=${koffset} status=none
+  koffset="$(partoffset ${image} 4)"
   sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
 
