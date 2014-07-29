@@ -196,9 +196,13 @@ check_kernel_size() {
   fi
 }
 
-make_image_bootable() {
-  local image="$1"
-  local use_dev_keys=
+build_img() {
+  local image_name="$1"
+  local root_dev="$2"
+  local keyblock="$3"
+  local private="$4"
+  local public="$5"
+  local vblock=${6:-""}
 
   # Default to non-verified
   local enable_rootfs_verification_flag=--noenable_rootfs_verification
@@ -209,6 +213,37 @@ make_image_bootable() {
   if [[ ${FLAGS_enable_bootcache} -eq ${FLAGS_TRUE} ]]; then
     enable_bootcache_flag=--enable_bootcache
   fi
+
+  if [[ -n "${vblock}" ]]; then
+    vblock=--hd_vblock="${FLAGS_output_dir}/${vblock}"
+  fi
+
+  ${SCRIPTS_DIR}/build_kernel_image.sh \
+    --board="${FLAGS_board}" \
+    --arch="${FLAGS_arch}" \
+    --to="${FLAGS_output_dir}/${image_name}" \
+    --vmlinuz="${FLAGS_rootfs_mountpoint}/boot/vmlinuz" \
+    --working_dir="${FLAGS_output_dir}" \
+    --boot_args="${FLAGS_boot_args}" \
+    --keep_work \
+    --rootfs_image=${root_dev} \
+    --rootfs_hash=${FLAGS_rootfs_hash} \
+    --verity_hash_alg=${FLAGS_verity_algorithm} \
+    --verity_max_ios=${FLAGS_verity_max_ios} \
+    --verity_error_behavior=${FLAGS_verity_error_behavior} \
+    --verity_salt=${FLAGS_verity_salt} \
+    --keys_dir="${FLAGS_keys_dir}" \
+    --keyblock="${keyblock}" \
+    --private="${private}" \
+    --public="${public}" \
+    --enable_serial="${FLAGS_enable_serial}" \
+    ${vblock} \
+    ${enable_rootfs_verification_flag} \
+    ${enable_bootcache_flag}
+}
+
+make_image_bootable() {
+  local image="$1"
 
   trap "mount_gpt_cleanup" EXIT
   "${SCRIPTS_DIR}/mount_gpt_image.sh" --from "$(dirname "${image}")" \
@@ -247,8 +282,17 @@ make_image_bootable() {
     disable_rw_mount "$root_dev"
   fi
 
+  # We sign the image with the recovery_key, because this is what goes onto the
+  # USB key. We can only boot from the USB drive in recovery mode.
+  # For dev install shim, we need to use the installer keyblock instead of
+  # the recovery keyblock because of the difference in flags.
+  local keyblock
   if [ ${FLAGS_use_dev_keys} -eq ${FLAGS_TRUE} ]; then
-    use_dev_keys="--use_dev_keys"
+    keyblock=installer_kernel.keyblock
+    info "DEBUG: use dev install keyblock"
+  else
+    keyblock=recovery_kernel.keyblock
+    info "DEBUG: use recovery keyblock"
   fi
 
   if [ ${FLAGS_force_developer_mode} -eq ${FLAGS_TRUE} ]; then
@@ -266,35 +310,21 @@ make_image_bootable() {
       -noI -noF -ef ${SCRIPTS_DIR}/exclude-list -wildcards ${squash_sort_flag}
     root_dev=$squashfs_img
   fi
-  # Builds the kernel partition image.  The temporary files are kept around
-  # so that we can perform a load_kernel_test later on the final image.
-  ${SCRIPTS_DIR}/build_kernel_image.sh \
-    --board="${FLAGS_board}" \
-    --arch="${FLAGS_arch}" \
-    --to="${FLAGS_output_dir}/vmlinuz.image" \
-    --hd_vblock="${FLAGS_output_dir}/vmlinuz_hd.vblock" \
-    --vmlinuz="${FLAGS_rootfs_mountpoint}/boot/vmlinuz" \
-    --working_dir="${FLAGS_output_dir}" \
-    --boot_args="${FLAGS_boot_args}" \
-    --keep_work \
-    --rootfs_image=${root_dev} \
-    --rootfs_hash=${FLAGS_rootfs_hash} \
-    --verity_hash_alg=${FLAGS_verity_algorithm} \
-    --verity_max_ios=${FLAGS_verity_max_ios} \
-    --verity_error_behavior=${FLAGS_verity_error_behavior} \
-    --verity_salt=${FLAGS_verity_salt} \
-    --keys_dir="${FLAGS_keys_dir}" \
-    --enable_serial="${FLAGS_enable_serial}" \
-    ${enable_rootfs_verification_flag} \
-    ${enable_bootcache_flag} \
-    ${use_dev_keys}
+  # Builds the kernel partition image.
+  build_img "vmlinuz.image" "${root_dev}" "${keyblock}" \
+            "recovery_kernel_data_key.vbprivk" "recovery_key.vbpubk"
+  build_img "hd_vmlinuz.image" "${root_dev}" "kernel.keyblock" \
+            "kernel_data_key.vbprivk" "kernel_subkey.vbpubk" \
+            "vmlinuz_hd.vblock"
 
   # Check the size of kernel image and issue warning when image size is
   # near the limit.
-  local kernel_image_size=$(stat -c '%s' ${FLAGS_output_dir}/vmlinuz.image)
-  info "Kernel image     size is ${kernel_image_size} bytes."
-  check_kernel_size ${kernel_image_size} 2 A
-  check_kernel_size ${kernel_image_size} 4 B
+  local kernel_image_size_A=$(stat -c '%s' ${FLAGS_output_dir}/vmlinuz.image)
+  info "Kernel image A   size is ${kernel_image_size_A} bytes."
+  local kernel_image_size_B=$(stat -c '%s' ${FLAGS_output_dir}/hd_vmlinuz.image)
+  info "Kernel image B   size is ${kernel_image_size_B} bytes."
+  check_kernel_size ${kernel_image_size_A} 2 A
+  check_kernel_size ${kernel_image_size_B} 4 B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
   local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} 3)
@@ -342,7 +372,7 @@ make_image_bootable() {
   sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
   koffset="$(partoffset ${image} 4)"
-  sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
+  sudo dd if="${FLAGS_output_dir}/hd_vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
 
   # Update the bootloaders.  The EFI system partition will be updated.
@@ -381,6 +411,7 @@ make_image_bootable() {
 
   # We don't need to keep these files around anymore.
   sudo rm -f "${FLAGS_rootfs_hash}" "${FLAGS_output_dir}/vmlinuz.image" \
+             "${FLAGS_output_dir}/hd_vmlinuz.image" \
              "${FLAGS_output_dir}/vmlinuz_hd.vblock"
 
   trap - EXIT

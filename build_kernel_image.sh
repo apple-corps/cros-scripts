@@ -16,8 +16,8 @@ DEFINE_string board "${DEFAULT_BOARD}" \
   "Board we're building for."
 DEFINE_string to "/tmp/vmlinuz.image" \
   "The path to the kernel image to be created. (Default: /tmp/vmlinuz.image)"
-DEFINE_string hd_vblock "/tmp/vmlinuz_hd.vblock" \
-  "The path to the installed kernel's vblock (Default: /tmp/vmlinuz_hd.vblock)"
+DEFINE_string hd_vblock "" \
+  "The path to the installed kernel's vblock"
 DEFINE_string vmlinuz "vmlinuz" \
   "The path to the kernel (Default: vmlinuz)"
 DEFINE_string working_dir "/tmp/vmlinuz.working" \
@@ -26,8 +26,12 @@ DEFINE_boolean keep_work ${FLAGS_FALSE} \
   "Keep temporary files (*.keyblock, *.vbpubk). (Default: false)"
 DEFINE_string keys_dir "${SRC_ROOT}/platform/vboot_reference/tests/testkeys" \
   "Directory with the RSA signing keys. (Defaults to test keys)"
-DEFINE_boolean use_dev_keys ${FLAGS_FALSE} \
-  "Use developer keys for signing. (Default: false)"
+DEFINE_string keyblock "kernel.keyblock" \
+  "The keyblock to use. (Defaults to kernel.keyblock)"
+DEFINE_string private "kernel_data_key.vbprivk" \
+  "The private key to sign the kernel (Defaults to kernel_data_key.vbprivk)"
+DEFINE_string public "kernel_subkey.vbpubk" \
+  "The public key to verify the kernel (Defaults to kernel_subkey.vbpubk)"
 # Note, to enable verified boot, the caller would manually pass:
 # --boot_args='dm="... %U+1 %U+1 ..." \
 # --root=/dev/dm-0
@@ -91,59 +95,6 @@ veritysize() {
 # $1 - Configuration file containing boot args.
 modify_kernel_command_line() {
   :
-}
-
-# Construct a kernel image that is verifiable in some way - vboot, signed, etc.
-# $1 - Destination file.
-# $2 - Kernel binary.
-# $3 - Bootloader binary.
-# $4 - Directory where the signing keys are stored.
-# $5 - Keyblock file for vboot, installer of recovery.
-# $6 - Output vblock file for the kernel.
-# $7 - Configuration file containing boot args.
-# $8 - Architecture we are building on (x86, arm, etc).
-build_verified_kernel() {
-  local dst=$1 kernel=$2 bootloader_path=$3 keydir=$4 keyblock=$5 vblock=$6
-  local configfile=$7 arch=$8
-  # Create and sign the kernel blob
-  vbutil_kernel \
-    --pack "${dst}" \
-    --keyblock "${keydir}/${keyblock}" \
-    --signprivate "${keydir}/recovery_kernel_data_key.vbprivk" \
-    --version 1 \
-    --config "${configfile}" \
-    --bootloader "${bootloader_path}" \
-    --vmlinuz "${kernel}" \
-    --arch "${arch}"
-
-  # And verify it.
-  vbutil_kernel \
-    --verify "${dst}" \
-    --signpubkey "${keydir}/recovery_key.vbpubk"
-
-  # Now we re-sign the same image using the normal keys. This is the kernel
-  # image that is put on the hard disk by the installer. Note: To save space on
-  # the USB image, we're only emitting the new verfication block, and the
-  # installer just replaces that part of the hard disk's kernel partition.
-  vbutil_kernel \
-    --repack "${vblock}" \
-    --vblockonly \
-    --keyblock "${keydir}/kernel.keyblock" \
-    --signprivate "${keydir}/kernel_data_key.vbprivk" \
-    --oldblob "${dst}"
-
-  # To verify it, we have to replace the vblock from the original image.
-  local tempfile=$(mktemp)
-  trap "rm -f '${tempfile}'" EXIT
-  cp "${vblock}" "${tempfile}"
-  dd if="${dst}" bs=65536 skip=1 >> "${tempfile}"
-
-  vbutil_kernel \
-    --verify $tempfile \
-    --signpubkey "${keydir}/kernel_subkey.vbpubk"
-
-  rm -f "${tempfile}"
-  trap - EXIT
 }
 
 load_board_specific_script "${BOARD}" "build_kernel_image.sh"
@@ -308,23 +259,27 @@ else
   error "Unknown arch: ${FLAGS_arch}"
 fi
 
-# We sign the image with the recovery_key, because this is what goes onto the
-# USB key. We can only boot from the USB drive in recovery mode.
-# For dev install shim, we need to use the installer keyblock instead of
-# the recovery keyblock because of the difference in flags.
-if [ ${FLAGS_use_dev_keys} -eq ${FLAGS_TRUE} ]; then
-  USB_KEYBLOCK=installer_kernel.keyblock
-  info "DEBUG: use dev install signing key"
-else
-  USB_KEYBLOCK=recovery_kernel.keyblock
-  info "DEBUG: use recovery signing key"
+config_file="${FLAGS_working_dir}/config.txt"
+modify_kernel_command_line "${config_file}"
+# Create and sign the kernel blob
+vbutil_kernel \
+  --pack "${FLAGS_to}" \
+  --keyblock "${FLAGS_keys_dir}/${FLAGS_keyblock}" \
+  --signprivate "${FLAGS_keys_dir}/${FLAGS_private}" \
+  --version 1 \
+  --config "${config_file}" \
+  --bootloader "${bootloader_path}" \
+  --vmlinuz "${kernel_image}" \
+  --arch "${FLAGS_arch}"
+
+# And verify it.
+vbutil_kernel \
+  --verify "${FLAGS_to}" \
+  --signpubkey "${FLAGS_keys_dir}/${FLAGS_public}"
+
+if [[ -n "${FLAGS_hd_vblock}" ]]; then
+  dd if="${FLAGS_to}" bs=65536 count=1 of="${FLAGS_hd_vblock}"
 fi
-
-modify_kernel_command_line "${FLAGS_working_dir}/config.txt"
-
-build_verified_kernel "${FLAGS_to}" "${kernel_image}" "${bootloader_path}" \
-  "${FLAGS_keys_dir}" "${USB_KEYBLOCK}" "${FLAGS_hd_vblock}" \
-  "${FLAGS_working_dir}/config.txt" "${FLAGS_arch}"
 
 set +e  # cleanup failure is a-ok
 

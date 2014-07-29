@@ -142,7 +142,9 @@ create_recovery_kernel_image() {
     --keep_work \
     --keys_dir="${FLAGS_keys_dir}" \
     ${enable_rootfs_verification_flag} \
-    --nouse_dev_keys 1>&2 || failboat "build_kernel_image"
+    --public="recovery_key.vbpubk" \
+    --private="recovery_kernel_data_key.vbprivk" \
+    --keyblock="recovery_kernel.keyblock" 1>&2 || failboat "build_kernel_image"
   #sudo mount | sed 's/^/16651 /'
   #sudo losetup -a | sed 's/^/16651 /'
   trap - RETURN
