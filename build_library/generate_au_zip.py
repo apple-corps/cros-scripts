@@ -16,7 +16,7 @@ import tempfile
 # GLOBALS
 image_sign_dir = '~/trunk/src/platform/vboot_reference/scripts/image_signing'
 BINARY_EXECUTABLES = [
-    '/usr/bin/old_bins/cgpt',
+    '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
     '/usr/bin/bsdiff',
     '/usr/bin/bspatch',
