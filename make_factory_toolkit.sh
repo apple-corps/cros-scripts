@@ -19,7 +19,7 @@ DEFINE_string board "${DEFAULT_BOARD}" \
 DEFINE_string output_dir "" "Path to the folder to store the factory toolkit."
 DEFINE_string version "" \
   "The version tag to be included in the identification string."
-DEFINE_string host_based "0" \
+DEFINE_boolean host_based "${FLAGS_FALSE}" \
   "Whether to build a host-based toolkit."
 
 cleanup() {
@@ -89,7 +89,7 @@ main() {
   ln -s "${version_tag}" "${temp_pack_root}/VERSION"
 
   # Determine whether to use host-based or monolithic goofy
-  if [[ "${FLAGS_host_based}" -ne "0" ]]; then
+  if [[ "${FLAGS_host_based}" -eq "${FLAGS_TRUE}" ]]; then
     local goofy_link_dst=goofy_split
   else
     local goofy_link_dst=goofy_monolithic
