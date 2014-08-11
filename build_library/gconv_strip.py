@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 # Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -8,18 +7,18 @@
 
 import logging.handlers
 
+import ahocorasick
 import argparse
+import glob
 import operator
 import os
 import stat
 import subprocess
 import sys
 
-# Possible paths to the gconv-modules file. The path depends on the platform.
-GCONV_MODULES_PATHS = (
-    'usr/lib64/gconv/gconv-modules',
-    'usr/lib/gconv/gconv-modules',
-    )
+
+# Path pattern to search for the gconv-modules file.
+GCONV_MODULES_PATH = 'usr/*/gconv/gconv-modules'
 
 # List of function names (symbols) known to use a charset as a parameter.
 GCONV_SYMBOLS = (
@@ -134,8 +133,9 @@ class GconvModules(object):
       logging.debug('rm %s', module_path)
       if not dry_run:
         os.unlink(module_path)
-    logging.info('Using %d gconv modules. Removed %d unused modules (%.1f KiB)',
-        len(used_modules), len(unused_modules), unused_size / 1024.)
+    logging.info('Done. Using %d gconv modules. Removed %d unused modules'
+                 ' (%.1f KiB)',
+                 len(used_modules), len(unused_modules), unused_size / 1024.)
 
     # Recompute the gconv-modules file with only the included gconv modules.
     result = []
@@ -175,9 +175,17 @@ def MultipleStringMatch(patterns, corpus):
     A list of Booleans stating whether each pattern string was found on the
     corpus or not.
   """
+  tree = ahocorasick.KeywordTree()
+  for word in patterns:
+    tree.add(word)
+  tree.make()
 
-  # TODO(deymo): Use an implementation of Aho-Corasick to speedup this search.
-  return [s in corpus for s in patterns]
+  result = [False] * len(patterns)
+  for i, j in tree.findall(corpus):
+    match = corpus[i:j]
+    result[patterns.index(match)] = True
+
+  return result
 
 
 def GconvStrip(args):
@@ -194,11 +202,7 @@ def GconvStrip(args):
     raise Exception("root (%s) must be a directory.")
 
   # Detect the possible locations of the gconv-modules file.
-  gconv_modules_files = []
-  for rootfs_gconv_modules in GCONV_MODULES_PATHS:
-    gconv_modules = os.path.join(args.root, rootfs_gconv_modules)
-    if os.path.exists(gconv_modules):
-      gconv_modules_files.append(gconv_modules)
+  gconv_modules_files = glob.glob(os.path.join(args.root, GCONV_MODULES_PATH))
 
   if not gconv_modules_files:
     logging.error('gconv-modules file not found.')
@@ -211,7 +215,8 @@ def GconvStrip(args):
     return 1
 
   gconv_modules_fn = gconv_modules_files[0]
-  logging.info('Removing unused gconv files defined in %s', gconv_modules_fn)
+  logging.info('Searching for unused gconv files defined in %s',
+               gconv_modules_fn)
 
   gmods = GconvModules(gconv_modules_fn)
   charsets = gmods.Load()
@@ -222,10 +227,9 @@ def GconvStrip(args):
   files = set()
   for symbol in GCONV_SYMBOLS:
     output = subprocess.check_output([
-        'scanelf', '--mount', '--quiet', '--recursive', '--symbol', symbol,
-        args.root])
-    symbol_files = [l.split()[1] for l in output.splitlines()
-                    if l.startswith(symbol)]
+        'scanelf', '--mount', '--quiet', '--recursive', '--format', '#s%F',
+        '--symbol', symbol, args.root])
+    symbol_files = output.splitlines()
     logging.debug('Symbol %s found on %d files.', symbol, len(symbol_files))
     files.update(symbol_files)
 
@@ -237,7 +241,7 @@ def GconvStrip(args):
   # 'IT' charset. Empirical test on ChromeOS images suggests that only 4
   # charsets could fall in category.
   strings = [s + '\0' for s in charsets]
-  logging.debug('Will search for %d strings in %d files',
+  logging.info('Will search for %d strings in %d files',
                 len(strings), len(files))
   global_used = [False] * len(strings)
   for fn in files:
