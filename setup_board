@@ -83,7 +83,15 @@ _generate_wrapper() {
 
   local target="/usr/local/bin/${command}-${BOARD_VARIANT}"
   sudo_clobber "${target}" <<EOF
-#!/bin/bash
+#!/bin/sh
+
+# If we try to use sudo when the sandbox is active, we get ugly warnings that
+# just confuse developers.  Disable the sandbox in this case by rexecing.
+if [ "${SANDBOX_ON}" = "1" ]; then
+  SANDBOX_ON=0 exec "$0" "$@"
+else
+  unset LD_PRELOAD
+fi
 
 export CHROMEOS_ROOT="$GCLIENT_ROOT"
 export CHOST="$FLAGS_toolchain"
