@@ -20,6 +20,11 @@ import sys
 # Path pattern to search for the gconv-modules file.
 GCONV_MODULES_PATH = 'usr/*/gconv/gconv-modules'
 
+# Sticky modules. These charsets modules are always included even if they
+# aren't used. You can specify any charset name as supported by 'iconv_open',
+# for example, 'LATIN1' or 'ISO-8859-1'.
+STICKY_MODULES = ('UTF-16', 'UTF-32', 'UNICODE')
+
 # List of function names (symbols) known to use a charset as a parameter.
 GCONV_SYMBOLS = (
     # glibc
@@ -243,7 +248,16 @@ def GconvStrip(args):
   strings = [s + '\0' for s in charsets]
   logging.info('Will search for %d strings in %d files',
                 len(strings), len(files))
-  global_used = [False] * len(strings)
+
+  # Charsets listed in STICKY_MOUDLES are initialized as used. Note that those
+  # strings should be listed in the gconv-modules file.
+  unknown_sticky_modules = set(STICKY_MODULES) - set(charsets)
+  if unknown_sticky_modules:
+    logging.warning('The following charsets were explicitly requested in '
+                    'STICKY_MODULES even though they don\'t exist: %s',
+                    ', '.join(unknown_sticky_modules))
+  global_used = [charset in STICKY_MODULES for charset in charsets]
+
   for fn in files:
     with open(fn, 'rb') as f:
       used_fn = MultipleStringMatch(strings, f.read())
