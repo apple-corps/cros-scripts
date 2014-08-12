@@ -16,8 +16,8 @@ generate_licensing()
   # Run FEATURES='noclean' emerge-x86-alex libc-bench to prevent having the
   # directory cleaned up if you are debugging.
   einfo "Generating license for ${PKG} in ${PORTAGE_BUILDDIR}"
-  /mnt/host/source/chromite/licensing/licenses \
-      --hook "${PORTAGE_BUILDDIR}" || die "
+  /mnt/host/source/chromite/licensing/ebuild_license_hook \
+      --builddir "${PORTAGE_BUILDDIR}" || die "
 Failed Generating Licensing for ${PKG}
 Note that many/most open source licenses require that you distribute the license
 with the code, therefore you should fix this instead of overridding this check.
