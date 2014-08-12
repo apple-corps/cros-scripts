@@ -223,10 +223,12 @@ print_board_binhost_config() {
   e_arch_map=(
     ['amd64']='amd64-generic'
     ['x86']='x86-generic'
+    ['arm']='daisy'
   )
   i_arch_map=(
     ['amd64']='lumpy'
     ['x86']='x86-alex'
+    ['arm']='daisy_spring'
   )
   if has chrome_internal $(portageq-${BOARD_VARIANT} envvar USE); then
     chrome_binhost_base=${internal_binhost_dir}
