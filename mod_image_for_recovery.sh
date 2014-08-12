@@ -135,7 +135,6 @@ create_recovery_kernel_image() {
     --board="${FLAGS_board}" \
     --arch="${ARCH}" \
     --to="$RECOVERY_KERNEL_IMAGE" \
-    --hd_vblock="$RECOVERY_KERNEL_VBLOCK" \
     --vmlinuz="$vmlinuz" \
     --working_dir="${IMAGE_DIR}" \
     --boot_args="noinitrd panic=60 cros_recovery kern_b_hash=$kern_hash" \
@@ -353,7 +352,6 @@ IMAGE_NAME="$(basename "$FLAGS_image")"
 RECOVERY_IMAGE="${FLAGS_to:-$IMAGE_DIR/$CHROMEOS_RECOVERY_IMAGE_NAME}"
 RECOVERY_KERNEL_IMAGE=\
 "${FLAGS_kernel_outfile:-$IMAGE_DIR/$RECOVERY_KERNEL_NAME}"
-RECOVERY_KERNEL_VBLOCK="${RECOVERY_KERNEL_IMAGE}.vblock"
 STATEFUL_DIR="$IMAGE_DIR/stateful_partition"
 SCRIPTS_DIR=${SCRIPT_ROOT}
 
