@@ -131,8 +131,7 @@ create_base_image() {
   # and we don't known which ones will be used until all the applications are
   # installed. This script looks for the charset names on all the binaries
   # installed on the the ${root_fs_dir} and removes the unreferenced ones.
-  sudo python "${SRC_ROOT}/scripts/build_library/gconv_strip.py" \
-    "${root_fs_dir}"
+  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}"
 
   # Run ldconfig to create /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
