@@ -87,8 +87,8 @@ _generate_wrapper() {
 
 # If we try to use sudo when the sandbox is active, we get ugly warnings that
 # just confuse developers.  Disable the sandbox in this case by rexecing.
-if [ "${SANDBOX_ON}" = "1" ]; then
-  SANDBOX_ON=0 exec "$0" "$@"
+if [ "\${SANDBOX_ON}" = "1" ]; then
+  SANDBOX_ON=0 exec "\$0" "\$@"
 else
   unset LD_PRELOAD
 fi
@@ -98,7 +98,7 @@ export CHOST="$FLAGS_toolchain"
 export PORTAGE_CONFIGROOT="$BOARD_ROOT"
 export SYSROOT="$BOARD_ROOT"
 if [ -z "\$PORTAGE_USERNAME" ]; then
-  export PORTAGE_USERNAME=\$(basename \$HOME)
+  export PORTAGE_USERNAME=\$(basename "\${HOME}")
 fi
 export ROOT="$BOARD_ROOT"
 exec sudo -E ${command} ${extra_args} "\$@"
