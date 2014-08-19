@@ -30,8 +30,7 @@ DEFINE_boolean factory $FLAGS_FALSE \
 DEFINE_boolean factory_install $FLAGS_FALSE \
     "Modify the image for factory install shim"
 
-# We default to TRUE so the buildbot gets its image. Note this is different
-# behavior from image_to_usb.sh
+# We default to TRUE so the buildbot gets its image.
 DEFINE_boolean force_copy ${FLAGS_FALSE} "Always rebuild test image"
 DEFINE_string format "qemu" \
   "Output format, either qemu, vmware or virtualbox"
