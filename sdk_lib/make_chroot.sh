@@ -245,13 +245,6 @@ CROS_WORKON_SRCROOT="${CHROOT_TRUNK_DIR}"
 PORTAGE_USERNAME=${SUDO_USER}
 EOF
 
-   # Add chromite into python path.
-   for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
-     python_path+="/site-packages"
-     sudo mkdir -p "${python_path}"
-     sudo ln -s "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"
-   done
-
    # TODO(zbehan): Configure stuff that is usually configured in postinst's,
    # but wasn't. Fix the postinst's.
    info "Running post-inst configuration hacks"
@@ -443,6 +436,15 @@ early_enter_chroot emerge -uNvq =dev-lang/python-2*
 # as our scripts are only compatible with Python 2.
 early_enter_chroot eselect python set 1
 early_enter_chroot env CLEAN_DELAY=0 emerge -qC =dev-lang/python-3* || true
+
+# Add chromite into python path.
+# This needs to happen after the python update or the correct /usr/lib/python2.*
+# may not exist.
+for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
+  python_path+="/site-packages"
+  sudo mkdir -p "${python_path}"
+  sudo ln -s -fT "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"/chromite
+done
 
 # Packages that inherit cros-workon commonly get a circular dependency
 # curl->openssl->git->curl that is broken by emerging an early version of git
