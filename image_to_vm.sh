@@ -36,7 +36,7 @@ DEFINE_string format "qemu" \
   "Output format, either qemu, vmware or virtualbox"
 DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
-DEFINE_string disk_layout "usb" \
+DEFINE_string disk_layout "2gb-rootfs-updatable" \
   "The disk layout type to use for this image."
 DEFINE_boolean make_vmx ${FLAGS_TRUE} \
   "Create a vmx file for use with vmplayer (vmware only)."
