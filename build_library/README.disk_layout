@@ -45,7 +45,10 @@ Here is an example disk layout with comments.
   // Inherited.
   "metadata":{
     "block_size": 512,
-    "fs_block_size": 4096
+    "fs_block_size": 4096,
+    // Where (in LBA) to place the primary partition entry array.
+    // If not specified, the value is 2.
+    "primary_entry_array_lba": 2,
     // The rootdev sysfs path to install the base image. Wildcards are allowed.
     // The scripts will translate that path into a block device name.
     // If not specified in your overlay file, a recovery image can not be used

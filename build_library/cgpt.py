@@ -12,8 +12,6 @@ import os
 import re
 import sys
 
-# First sector we can use.
-START_SECTOR = 64
 
 class ConfigNotFound(Exception):
   """Config Not Found"""
@@ -35,6 +33,10 @@ class ConflictingOptions(Exception):
 
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
+# The size in blocks of the partition entry array.
+SIZE_OF_PARTITION_ENTRY_ARRAY = 32
+SIZE_OF_PMBR = 1
+SIZE_OF_GPT_HEADER = 1
 
 
 def ParseHumanNumber(operand):
@@ -296,6 +298,49 @@ def LoadPartitionConfig(filename):
   return config
 
 
+def _GetPrimaryEntryArray(config):
+  """Return the start LBA of the primary partition entry array.
+
+  Normally this comes after the primary GPT header but can be adjusted by setting
+  the "primary_entry_array_lba" key under "metadata" in the config.
+
+  Args:
+    config: The config dictionary.
+
+  Returns:
+    The position of the primary partition entry array.
+  """
+
+  pmbr_and_header_size = SIZE_OF_PMBR + SIZE_OF_GPT_HEADER
+  entry_array = config['metadata'].get('primary_entry_array_lba',
+                                       pmbr_and_header_size)
+  if entry_array < pmbr_and_header_size:
+    raise InvalidLayout('Primary entry array (%d) must be at least %d.' %
+                        entry_array, pmbr_and_header_size)
+  return entry_array
+
+
+def _GetStartSector(config):
+  """Return the first usable location (LBA) for partitions.
+
+  This value is the first LBA after the PMBR, the primary GPT header, and
+  partition entry array.
+
+  We round it up to 64 to maintain the same layout as before in the normal (no
+  padding between the primary GPT header and its partition entry array) case.
+
+  Args:
+    config: The config dictionary.
+
+  Returns:
+    A suitable LBA for partitions, at least 64.
+  """
+
+  entry_array = _GetPrimaryEntryArray(config)
+  start_sector = max(entry_array + SIZE_OF_PARTITION_ENTRY_ARRAY, 64)
+  return start_sector
+
+
 def GetTableTotals(config, partitions):
   """Calculates total sizes/counts for a partition table.
 
@@ -307,10 +352,11 @@ def GetTableTotals(config, partitions):
     Dict containing totals data
   """
 
+  start_sector = _GetStartSector(config)
   ret = {
     'expand_count': 0,
     'expand_min': 0,
-    'block_count': START_SECTOR * config['metadata']['block_size']
+    'block_count': start_sector * config['metadata']['block_size']
   }
 
   # Total up the size of all non-expanding partitions to get the minimum
@@ -462,8 +508,10 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     'create_image $1 %d %s' % (
         partition_totals['min_disk_size'],
         config['metadata']['block_size']),
-    'local curr=%d' % START_SECTOR,
-    '${GPT} create $1',
+    'local curr=%d' % _GetStartSector(config),
+    '# Create the GPT headers and tables. Pad the primary ones.',
+    '${GPT} create -p %d $1' % (_GetPrimaryEntryArray(config) -
+                                (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
   # Pass 1: Set up the expanding partition size.
