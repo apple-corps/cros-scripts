@@ -195,7 +195,6 @@ dd if="${TEMP_OEM}"    of="${TEMP_IMG}" conv=notrunc bs=512 \
 #       to operate automatically below.
 ${SCRIPTS_DIR}/bin/cros_make_image_bootable $(dirname "${TEMP_IMG}") \
                                             $(basename "${TEMP_IMG}") \
-                                            --usb_disk /dev/sda3 \
                                             --force_developer_mode
 
 echo Creating final image

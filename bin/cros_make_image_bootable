@@ -83,8 +83,6 @@ DEFINE_string image "chromiumos_base.img" \
   "Full path to the chromiumos image to make bootable."
 DEFINE_string arch "x86" \
   "Architecture to make bootable for: arm, mips, x86, or amd64"
-DEFINE_string usb_disk "/dev/sdb3" \
-  "Path syslinux should use to do a usb boot."
 DEFINE_boolean cleanup_dirs ${FLAGS_TRUE} \
   "Whether the mount dirs should be removed on completion."
 
@@ -377,7 +375,6 @@ make_image_bootable() {
 
   # Update the bootloaders.  The EFI system partition will be updated.
   local kernel_part=
-  local usb_disk="${FLAGS_usb_disk}"
 
   # We should update the esp in place in the image.
   local bootloader_to="${image}"
@@ -404,7 +401,6 @@ make_image_bootable() {
       --to="${bootloader_to}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \
       --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
-      --usb_disk="${usb_disk}" \
       ${bootloader_to_flags} \
       $kernel_part
   fi

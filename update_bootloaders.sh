@@ -42,8 +42,6 @@ DEFINE_string kernel_partition_offset "0" \
   "Offset to the kernel partition [KERN-A] (Default: 0)"
 DEFINE_string kernel_partition_sectors "0" \
   "Kernel partition sectors (Default: 0)"
-DEFINE_string usb_disk /dev/sdb3 \
-  "Path syslinux should use to do a usb boot. Default: /dev/sdb3"
 
 # Parse flags
 FLAGS "$@" || exit 1
