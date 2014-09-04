@@ -180,22 +180,28 @@ dd if="${TEMP_ROOTFS}" of="${TEMP_IMG}" conv=notrunc bs=512 \
   seek=$(partoffset ${TEMP_IMG} 3)
 dd if="${TEMP_STATE}"  of="${TEMP_IMG}" conv=notrunc bs=512 \
   seek=$(partoffset ${TEMP_IMG} 1)
-dd if="${TEMP_KERN}"   of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 2)
-dd if="${TEMP_KERN}"   of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 4)
 dd if="${TEMP_ESP}"    of="${TEMP_IMG}" conv=notrunc bs=512 \
   seek=$(partoffset ${TEMP_IMG} 12)
 dd if="${TEMP_OEM}"    of="${TEMP_IMG}" conv=notrunc bs=512 \
   seek=$(partoffset ${TEMP_IMG} 8)
 
-# Make the built-image bootable and ensure that the legacy default usb boot
-# uses /dev/sda instead of /dev/sdb3.
+# Make the built-image bootable.
 # NOTE: The TEMP_IMG must live in the same image dir as the original image
 #       to operate automatically below.
 ${SCRIPTS_DIR}/bin/cros_make_image_bootable $(dirname "${TEMP_IMG}") \
                                             $(basename "${TEMP_IMG}") \
                                             --force_developer_mode
+
+# cros_make_image_bootable made the kernel in slot A recovery signed. We want
+# it to be normally signed like the one in slot B, so copy B into A.
+IMAGE_DEV=$(sudo losetup --show -P -f ${TEMP_IMG})
+if [ -z "${IMAGE_DEV}" ]; then
+  die "Failed to loopback mount ${TEMP_IMG}."
+fi
+
+sudo cp ${IMAGE_DEV}p4 ${IMAGE_DEV}p2
+
+sudo losetup --detach ${IMAGE_DEV}
 
 echo Creating final image
 # Convert image to output format
