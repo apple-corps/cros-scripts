@@ -137,7 +137,11 @@ start_kvm() {
     local nographics=""
     local usesnapshot=""
     if [ ${FLAGS_no_graphics} -eq ${FLAGS_TRUE} ]; then
-      nographics="-nographic -serial none"
+      if kvm_version_greater_equal "1.4.0"; then
+        nographics="-display none"
+      else
+        nographics="-nographic -serial none"
+      fi
     fi
     if [ -n "${FLAGS_vnc}" ]; then
       nographics="-vnc ${FLAGS_vnc}"
