@@ -33,7 +33,7 @@ class ConflictingOptions(Exception):
 
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
-# The size in blocks of the partition entry array.
+# Blocks of the partition entry array.
 SIZE_OF_PARTITION_ENTRY_ARRAY = 32
 SIZE_OF_PMBR = 1
 SIZE_OF_GPT_HEADER = 1
@@ -298,7 +298,7 @@ def LoadPartitionConfig(filename):
   return config
 
 
-def _GetPrimaryEntryArray(config):
+def _GetPrimaryEntryArrayLBA(config):
   """Return the start LBA of the primary partition entry array.
 
   Normally this comes after the primary GPT header but can be adjusted by setting
@@ -336,7 +336,7 @@ def _GetStartSector(config):
     A suitable LBA for partitions, at least 64.
   """
 
-  entry_array = _GetPrimaryEntryArray(config)
+  entry_array = _GetPrimaryEntryArrayLBA(config)
   start_sector = max(entry_array + SIZE_OF_PARTITION_ENTRY_ARRAY, 64)
   return start_sector
 
@@ -510,7 +510,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
         config['metadata']['block_size']),
     'local curr=%d' % _GetStartSector(config),
     '# Create the GPT headers and tables. Pad the primary ones.',
-    '${GPT} create -p %d $1' % (_GetPrimaryEntryArray(config) -
+    '${GPT} create -p %d $1' % (_GetPrimaryEntryArrayLBA(config) -
                                 (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
