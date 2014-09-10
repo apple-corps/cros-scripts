@@ -16,8 +16,15 @@ import tempfile
 # GLOBALS
 image_sign_dir = '~/trunk/src/platform/vboot_reference/scripts/image_signing'
 BINARY_EXECUTABLES = [
+    # These are present to add support for auto-allocating loopback devices,
+    # and scanning for loopback device partitions.
+    '/bin/mount',
+    '/bin/umount',
+    '/sbin/losetup',
+    # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
+    # These versions include custom patches with bug fixes.
     '/usr/bin/bsdiff',
     '/usr/bin/bspatch',
     ]
