@@ -192,6 +192,14 @@ ${SCRIPTS_DIR}/bin/cros_make_image_bootable $(dirname "${TEMP_IMG}") \
                                             $(basename "${TEMP_IMG}") \
                                             --force_developer_mode
 
+IMAGE_DEV=""
+detatch_loopback() {
+  if [ -n "${IMAGE_DEV}" ]; then
+    sudo losetup --detach ${IMAGE_DEV}
+  fi
+}
+trap detach_loopback INT TERM EXIT
+
 # cros_make_image_bootable made the kernel in slot A recovery signed. We want
 # it to be normally signed like the one in slot B, so copy B into A.
 IMAGE_DEV=$(sudo losetup --show -P -f ${TEMP_IMG})
@@ -199,9 +207,22 @@ if [ -z "${IMAGE_DEV}" ]; then
   die "Failed to loopback mount ${TEMP_IMG}."
 fi
 
+if [ ! -e ${IMAGE_DEV}p4 ]; then
+  warn "Didn't find partition device files. Probably crbug.com/411693"
+  # Print the kernel version,
+  cat /proc/version
+  # and the last 100 lines of its logs,
+  dmesg | tail -n 100
+  # and what the GPT of the image file looks like,
+  cgpt show ${TEMP_IMG}
+  # and what files *do* exist.
+  ls -la ${IMAGE_DEV}*
+fi
+
 sudo cp ${IMAGE_DEV}p4 ${IMAGE_DEV}p2
 
-sudo losetup --detach ${IMAGE_DEV}
+trap - INT TERM EXIT
+detatch_loopback
 
 echo Creating final image
 # Convert image to output format
