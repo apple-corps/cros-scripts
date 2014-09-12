@@ -33,7 +33,7 @@ DEFINE_boolean factory_install $FLAGS_FALSE \
 # We default to TRUE so the buildbot gets its image.
 DEFINE_boolean force_copy ${FLAGS_FALSE} "Always rebuild test image"
 DEFINE_string format "qemu" \
-  "Output format, either qemu, vmware or virtualbox"
+  "Output format, either qemu or vmware"
 DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
 DEFINE_string disk_layout "2gb-rootfs-updatable" \
@@ -48,8 +48,6 @@ DEFINE_boolean test_image "${FLAGS_FALSE}" \
   "Copies normal image to ${CHROMEOS_TEST_IMAGE_NAME}, modifies it for test."
 DEFINE_string to "" \
   "Destination folder for VM output file(s)"
-DEFINE_string vbox_disk "${DEFAULT_VBOX_DISK}" \
-  "Filename for the output disk (virtualbox only)."
 DEFINE_string vmdk "${DEFAULT_VMDK}" \
   "Filename for the vmware disk image (vmware only)."
 DEFINE_string vmx "${DEFAULT_VMX}" \
@@ -230,12 +228,8 @@ loopback_detach "${IMAGE_DEV}"
 
 echo Creating final image
 # Convert image to output format
-if [ "${FLAGS_format}" = "virtualbox" -o "${FLAGS_format}" = "qemu" ]; then
-  if [ "${FLAGS_format}" = "virtualbox" ]; then
-    sudo VBoxManage convertdd "${TEMP_IMG}" "${FLAGS_to}/${FLAGS_vbox_disk}"
-  else
-    mv ${TEMP_IMG} ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}
-  fi
+if [ "${FLAGS_format}" = "qemu" ]; then
+  mv "${TEMP_IMG}" "${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
 elif [ "${FLAGS_format}" = "vmware" ]; then
   qemu-img convert -f raw "${TEMP_IMG}" \
     -O vmdk "${FLAGS_to}/${FLAGS_vmdk}"
