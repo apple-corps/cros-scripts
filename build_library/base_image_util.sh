@@ -125,16 +125,33 @@ create_base_image() {
   # trim the image size as much as possible.
   emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE}
 
+  #
+  # Take a somewhat arbitrary number of post-emerge tasks and run them
+  # in parallel to speed things up.
+  #
+
+  # Generate the license credits page for the packages installed on this
+  # image in a location that will be used by Chrome.
+  sudo mkdir -p "${root_fs_dir}/opt/google/chrome/resources"
+  sudo "${GCLIENT_ROOT}/chromite/licensing/licenses" \
+    --board="${BOARD}" \
+    --log-level error \
+    --output \
+    "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html" &
+
   # Remove unreferenced gconv charsets.
   # gconv charsets are .so modules loaded dynamically by iconv_open(3),
   # installed by glibc. Applications using them don't explicitly depend on them
   # and we don't known which ones will be used until all the applications are
   # installed. This script looks for the charset names on all the binaries
   # installed on the the ${root_fs_dir} and removes the unreferenced ones.
-  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}"
+  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}" &
 
   # Run ldconfig to create /etc/ld.so.cache.
-  run_ldconfig "${root_fs_dir}"
+  run_ldconfig "${root_fs_dir}" &
+
+  # Wait for all pending background tasks to complete.
+  wait
 
   # Set /etc/lsb-release on the image.
   "${OVERLAY_CHROMEOS_DIR}/scripts/cros_set_lsb_release" \
