@@ -66,6 +66,31 @@ if [ -z "${FLAGS_board}" ] ; then
   die_notrace "--board is required."
 fi
 
+TEMP_DIR=$(mktemp -d)
+TEMP_MNT=""
+TEMP_ESP_MNT=""
+SRC_DEV=""
+DST_DEV=""
+cleanup() {
+  if [[ -n "${TEMP_MNT}" ]]; then
+    safe_umount "${TEMP_MNT}" || true
+    rmdir "${TEMP_MNT}" || true
+  fi
+  if [[ -n "${TEMP_ESP_MNT}" ]]; then
+    safe_umount "${TEMP_ESP_MNT}" || true
+    rmdir "${TEMP_ESP_MNT}" || true
+  fi
+
+  if [[ -n "${SRC_DEV}" ]]; then
+    loopback_detach "${SRC_DEV}" || true
+  fi
+  if [[ -n "${DST_DEV}" ]]; then
+    loopback_detach "${DST_DEV}" || true
+  fi
+  rm -rf "${TEMP_DIR}"
+}
+trap cleanup INT TERM EXIT
+
 BOARD="$FLAGS_board"
 
 IMAGES_DIR="${DEFAULT_BUILD_ROOT}/images/${FLAGS_board}"
@@ -102,48 +127,63 @@ FLAGS_from=`eval readlink -f $FLAGS_from`
 FLAGS_to=`eval readlink -f $FLAGS_to`
 
 # Split apart the partitions and make some new ones
-TEMP_DIR=$(mktemp -d)
-pushd "${TEMP_DIR}" >/dev/null
-"${FLAGS_from}/unpack_partitions.sh" "${SRC_IMAGE}"
-popd >/dev/null
+SRC_DEV=$(loopback_partscan "${SRC_IMAGE}")
 
 # Fix the kernel command line
-TEMP_ESP="${TEMP_DIR}"/part_12
-TEMP_OEM="${TEMP_DIR}"/part_8
-TEMP_ROOTFS="${TEMP_DIR}"/part_3
-TEMP_STATE="${TEMP_DIR}"/part_1
-TEMP_KERN="${TEMP_DIR}"/part_4
+SRC_STATE="${SRC_DEV}"p1
+SRC_ROOTFS="${SRC_DEV}"p3
+SRC_KERN="${SRC_DEV}"p4
+SRC_OEM="${SRC_DEV}"p8
+SRC_ESP="${SRC_DEV}"p12
 if [ -n "${FLAGS_state_image}" ]; then
   TEMP_STATE="${FLAGS_state_image}"
 else
   STATEFUL_SIZE_BYTES=$(get_filesystem_size "${FLAGS_disk_layout}" 1)
   STATEFUL_SIZE_MEGABYTES=$(( STATEFUL_SIZE_BYTES / 1024 / 1024 ))
-  original_image_size=$(stat -c%s "${TEMP_STATE}")
+  original_image_size=$(bd_safe_size "${SRC_STATE}")
   if [ "${original_image_size}" -gt "${STATEFUL_SIZE_BYTES}" ]; then
     die "Cannot resize stateful image to smaller than original. Exiting."
   fi
 
   echo "Resizing stateful partition to ${STATEFUL_SIZE_MEGABYTES}MB"
   # Extend the original file size to the new size.
+  TEMP_STATE="${TEMP_DIR}"/stateful
+  # Create TEMP_STATE as a regular user so a regular user can delete it.
+  sudo chmod a+r "${SRC_STATE}"
+  dd if="${SRC_STATE}" of="${TEMP_STATE}"
   sudo e2fsck -pf "${TEMP_STATE}"
   sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
 fi
 TEMP_PMBR="${TEMP_DIR}"/pmbr
 dd if="${SRC_IMAGE}" of="${TEMP_PMBR}" bs=512 count=1
 
+# Set up a new partition table.
+PARTITION_SCRIPT_PATH=$(mktemp)
+write_partition_script "${FLAGS_disk_layout}" "${PARTITION_SCRIPT_PATH}"
+. "${PARTITION_SCRIPT_PATH}"
+write_partition_table "${TEMP_IMG}" "${TEMP_PMBR}"
+rm "${PARTITION_SCRIPT_PATH}"
+
+DST_DEV=$(loopback_partscan "${TEMP_IMG}")
+DST_STATE="${DST_DEV}"p1
+DST_ROOTFS="${DST_DEV}"p3
+DST_KERN="${DST_DEV}"p4
+DST_OEM="${DST_DEV}"p8
+DST_ESP="${DST_DEV}"p12
+
+# Copy into the partition parts of the file.
+sudo dd if="${SRC_ROOTFS}" of="${DST_ROOTFS}"
+sudo dd if="${TEMP_STATE}" of="${DST_STATE}"
+sudo dd if="${SRC_ESP}"    of="${DST_ESP}"
+sudo dd if="${SRC_OEM}"    of="${DST_OEM}"
+
 TEMP_MNT=$(mktemp -d)
 TEMP_ESP_MNT=$(mktemp -d)
-cleanup() {
-  safe_umount "${TEMP_MNT}"
-  safe_umount "${TEMP_ESP_MNT}"
-  rmdir "${TEMP_MNT}" "${TEMP_ESP_MNT}"
-}
-trap cleanup INT TERM EXIT
 mkdir -p "${TEMP_MNT}"
-enable_rw_mount "${TEMP_ROOTFS}"
-sudo mount -o loop "${TEMP_ROOTFS}" "${TEMP_MNT}"
+enable_rw_mount "${DST_ROOTFS}"
+sudo mount "${DST_ROOTFS}" "${TEMP_MNT}"
 mkdir -p "${TEMP_ESP_MNT}"
-sudo mount -o loop "${TEMP_ESP}" "${TEMP_ESP_MNT}"
+sudo mount "${DST_ESP}" "${TEMP_ESP_MNT}"
 
 # Modify the unverified usb template, which uses a default usb_disk of sdb3,
 # for targets (e.g. x86 and amd64) that have syslinux installed.
@@ -161,29 +201,9 @@ exec modprobe cirrus
 END
 fi
 
-# TODO as these image-modifying hacks accumulate, we should consider
-# creating a better solution
-
 # Unmount everything prior to building a final image
 trap - INT TERM EXIT
 cleanup
-
-# Set up a new partition table
-PARTITION_SCRIPT_PATH=$( tempfile )
-write_partition_script "${FLAGS_disk_layout}" "${PARTITION_SCRIPT_PATH}"
-. "${PARTITION_SCRIPT_PATH}"
-write_partition_table "${TEMP_IMG}" "${TEMP_PMBR}"
-rm "${PARTITION_SCRIPT_PATH}"
-
-# Copy into the partition parts of the file
-dd if="${TEMP_ROOTFS}" of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 3)
-dd if="${TEMP_STATE}"  of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 1)
-dd if="${TEMP_ESP}"    of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 12)
-dd if="${TEMP_OEM}"    of="${TEMP_IMG}" conv=notrunc bs=512 \
-  seek=$(partoffset ${TEMP_IMG} 8)
 
 # Make the built-image bootable.
 # NOTE: The TEMP_IMG must live in the same image dir as the original image
@@ -223,10 +243,7 @@ else
   die_notrace "Invalid format: ${FLAGS_format}"
 fi
 
-rm -rf "${TEMP_DIR}" "${TEMP_IMG}"
-if [ -z "${FLAGS_state_image}" ]; then
-  rm -f "${STATE_IMAGE}"
-fi
+rm -rf "${TEMP_IMG}"
 
 echo "Created image at ${FLAGS_to}"
 

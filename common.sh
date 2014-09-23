@@ -760,6 +760,18 @@ loopback_detach() {
   sudo losetup --detach "$@"
 }
 
+# Get the size of a regular file or a block device.
+#
+# $1 - The regular file or block device to get the size of.
+bd_safe_size() {
+  local file="$1"
+  if [[ -b "${file}" ]]; then
+    sudo blockdev --getsize64 "${file}"
+  else
+    stat -c%s "${file}"
+  fi
+}
+
 get_git_id() {
   git var GIT_COMMITTER_IDENT | sed -e 's/^.*<\(\S\+\)>.*$/\1/'
 }
