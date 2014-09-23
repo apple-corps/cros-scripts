@@ -21,6 +21,7 @@ BINARY_EXECUTABLES = [
     '/bin/mount',
     '/bin/umount',
     '/sbin/losetup',
+    '/sbin/blockdev',
     # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
