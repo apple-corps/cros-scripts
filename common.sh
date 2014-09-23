@@ -719,6 +719,47 @@ safe_umount() {
   $([[ ${UID:-$(id -u)} != 0 ]] && echo sudo) umount "$@"
 }
 
+# Setup a loopback device for a file and scan for partitions, with retries.
+#
+# $1 - The file to back the new loopback device.
+# $2-$N - Additional arguments to pass to losetup.
+loopback_partscan() {
+  local lb_dev image="$1"
+  shift
+  lb_dev=$(sudo losetup --show --partscan -f "$@" "${image}")
+
+  # TODO Once we figure out why losetup -P doesn't always work
+  # (crbug.com/411693) we can get rid of this retry loop.
+  local max_checks=4
+  local i
+  for (( i = 1; i <= ${max_checks}; i++ )); do
+    # Did it work this time?
+    if [[ -n "$(shopt -s nullglob; echo "${lb_dev}"p*)" ]]; then
+      echo "${lb_dev}"
+      return 0
+    fi
+
+    if [[ ${i} -eq ${max_checks} ]]; then
+      # Scanning for partitions didn't work.
+      return 1
+    else
+      # warn should output to stderr, so it shouldn't pollute the output of
+      # this function.
+      warn "Didn't find partition device files for ${image} on try ${i}. " \
+           "Rescanning ${lb_dev}."
+      sudo blockdev --rereadpt "${lb_dev}"
+      sleep 5
+    fi
+  done
+}
+
+# Detach a loopback device set up earlier.
+#
+# $@ - loop device to detach, and additional arguments for losetup.
+loopback_detach() {
+  sudo losetup --detach "$@"
+}
+
 get_git_id() {
   git var GIT_COMMITTER_IDENT | sed -e 's/^.*<\(\S\+\)>.*$/\1/'
 }

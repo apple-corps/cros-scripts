@@ -193,36 +193,20 @@ ${SCRIPTS_DIR}/bin/cros_make_image_bootable $(dirname "${TEMP_IMG}") \
                                             --force_developer_mode
 
 IMAGE_DEV=""
-detatch_loopback() {
+detach_loopback() {
   if [ -n "${IMAGE_DEV}" ]; then
-    sudo losetup --detach ${IMAGE_DEV}
+    loopback_detach "${IMAGE_DEV}"
   fi
 }
 trap detach_loopback INT TERM EXIT
 
 # cros_make_image_bootable made the kernel in slot A recovery signed. We want
 # it to be normally signed like the one in slot B, so copy B into A.
-IMAGE_DEV=$(sudo losetup --show --partscan -f ${TEMP_IMG})
-if [ -z "${IMAGE_DEV}" ]; then
-  die "Failed to loopback mount ${TEMP_IMG}."
-fi
-
-# TODO Once we figure out why losetup -P doesn't always work
-# (crbug.com/411693) we can get rid of this retry loop.
-for (( i = 1; i <= 3; i++ )); do
-  if [[ -e ${IMAGE_DEV}p4 ]]; then
-    break
-  fi
-  warn "Didn't find partition device files on try ${i}. " \
-       "Rescanning ${IMAGE_DEV}."
-  sudo blockdev --rereadpt "${IMAGE_DEV}"
-  sleep 5
-done
-
+IMAGE_DEV=$(loopback_partscan "${TEMP_IMG}")
 sudo cp ${IMAGE_DEV}p4 ${IMAGE_DEV}p2
 
 trap - INT TERM EXIT
-detatch_loopback
+loopback_detach "${IMAGE_DEV}"
 
 echo Creating final image
 # Convert image to output format
