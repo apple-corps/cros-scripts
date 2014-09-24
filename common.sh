@@ -393,6 +393,8 @@ CHROMEOS_FACTORY_INSTALL_SHIM_NAME="factory_install_shim.bin"
 # TODO: Is /usr/local/autotest-chrome still used by anyone?
 COMMON_INSTALL_MASK="
   *.a
+  *.c
+  *.cc
   *.la
   *.h
   *.hpp
