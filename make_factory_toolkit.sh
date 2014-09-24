@@ -19,7 +19,7 @@ DEFINE_string board "${DEFAULT_BOARD}" \
 DEFINE_string output_dir "" "Path to the folder to store the factory toolkit."
 DEFINE_string version "" \
   "The version tag to be included in the identification string."
-DEFINE_boolean host_based "${FLAGS_FALSE}" \
+DEFINE_boolean host_based "${FLAGS_TRUE}" \
   "Whether to build a host-based toolkit."
 
 cleanup() {
