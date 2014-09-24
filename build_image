@@ -29,6 +29,8 @@ DEFINE_string disk_layout "default" \
   "The disk layout type to use for this image."
 DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
+DEFINE_integer loglevel 7 \
+  "The loglevel to add to the kernel command line."
 
 FLAGS_HELP="USAGE: build_image [flags] [list of images to build].
 This script is used to build a Chromium OS image. Chromium OS comes in many

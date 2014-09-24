@@ -191,6 +191,8 @@ create_base_image() {
     --arch=${ARCH} \
     --to="${root_fs_dir}"/boot \
     --boot_args="${FLAGS_boot_args}" \
+    --enable_serial="${FLAGS_enable_serial}" \
+    --loglevel="${FLAGS_loglevel}" \
       ${enable_rootfs_verification} \
       ${enable_bootcache}
 

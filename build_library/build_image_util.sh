@@ -139,6 +139,7 @@ create_boot_desc() {
   --nocleanup_dirs
   --verity_algorithm=sha1
   --enable_serial="${FLAGS_enable_serial}"
+  --loglevel="${FLAGS_loglevel}"
   ${enable_rootfs_verification_flag}
   ${enable_bootcache_flag}
 EOF

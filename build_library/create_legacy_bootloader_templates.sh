@@ -26,6 +26,10 @@ DEFINE_boolean enable_bootcache ${FLAGS_FALSE} \
   "Default all bootloaders to NOT use boot cache."
 DEFINE_boolean enable_rootfs_verification ${FLAGS_FALSE} \
   "Controls if verity is used for root filesystem checking (Default: false)"
+DEFINE_string enable_serial "" \
+  "Enable serial port for printks. Example values: ttyS0"
+DEFINE_integer loglevel 7 \
+  "The loglevel to add to the kernel command line."
 DEFINE_integer verity_error_behavior 3 \
   "Verified boot error behavior [0: I/O errors, 1: reboot, 2: nothing] \
 (Default: 3)"
@@ -49,8 +53,14 @@ if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
 fi
 
 # Common kernel command-line args
-common_args="quiet console=tty2 init=/sbin/init boot=local rootwait ro noresume"
-common_args="${common_args} noswap loglevel=1 ${FLAGS_boot_args}"
+common_args="init=/sbin/init boot=local rootwait ro noresume noswap"
+common_args="${common_args} loglevel=${FLAGS_loglevel} ${FLAGS_boot_args}"
+
+if [[ -n "${FLAGS_enable_serial}" ]]; then
+  common_args="${common_args} console=${FLAGS_enable_serial} debug"
+else
+  common_args="${common_args} console=tty2 quiet"
+fi
 
 # Common verified boot command-line args
 verity_common="dm_verity.error_behavior=${FLAGS_verity_error_behavior}"

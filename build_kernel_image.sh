@@ -57,6 +57,8 @@ DEFINE_boolean enable_bootcache ${FLAGS_FALSE} \
   "Enable boot cache to accelerate booting. (Default: false)"
 DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
+DEFINE_integer loglevel 7 \
+  "The loglevel to add to the kernel command line."
 
 # Parse flags
 FLAGS "$@" || exit 1
@@ -221,7 +223,7 @@ EOF
 fi
 
 cat <<EOF - "${FLAGS_working_dir}/boot.config" >> "${config}"
-loglevel=7
+loglevel=${FLAGS_loglevel}
 init=/sbin/init
 cros_secure
 oops=panic

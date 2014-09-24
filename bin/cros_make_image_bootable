@@ -145,6 +145,8 @@ DEFINE_string squash_sort_file "" \
 
 DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
+DEFINE_integer loglevel 7 \
+  "The loglevel to add to the kernel command line."
 
 # Parse the boot.desc and any overrides
 eval set -- "${BOOT_DESC} ${FLAG_OVERRIDES}"
