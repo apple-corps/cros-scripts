@@ -4,8 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# Script to convert the output of build_image.sh to a VMware image and write a
-# corresponding VMware config file.
+# Script to convert the output of build_image.sh to a QEMU image.
 
 # Helper scripts should be run from the same location as this script.
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
@@ -32,26 +31,16 @@ DEFINE_boolean factory_install $FLAGS_FALSE \
 
 # We default to TRUE so the buildbot gets its image.
 DEFINE_boolean force_copy ${FLAGS_FALSE} "Always rebuild test image"
-DEFINE_string format "qemu" \
-  "Output format, either qemu or vmware"
 DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
 DEFINE_string disk_layout "2gb-rootfs-updatable" \
   "The disk layout type to use for this image."
-DEFINE_boolean make_vmx ${FLAGS_TRUE} \
-  "Create a vmx file for use with vmplayer (vmware only)."
-DEFINE_integer mem "${DEFAULT_MEM}" \
-  "Memory size for the vm config in MBs (vmware only)."
 DEFINE_string state_image "" \
   "Stateful partition image (defaults to creating new statful partition)"
 DEFINE_boolean test_image "${FLAGS_FALSE}" \
   "Copies normal image to ${CHROMEOS_TEST_IMAGE_NAME}, modifies it for test."
 DEFINE_string to "" \
   "Destination folder for VM output file(s)"
-DEFINE_string vmdk "${DEFAULT_VMDK}" \
-  "Filename for the vmware disk image (vmware only)."
-DEFINE_string vmx "${DEFAULT_VMX}" \
-  "Filename for the vmware config (vmware only)."
 
 # Parse command line
 FLAGS "$@" || exit 1
@@ -131,11 +120,6 @@ fi
 
 # Memory units are in MBs
 TEMP_IMG="$(dirname "${SRC_IMAGE}")/vm_temp_image.bin"
-
-# If we're not building for VMWare, don't build the vmx
-if [ "${FLAGS_format}" != "vmware" ]; then
-  FLAGS_make_vmx="${FLAGS_FALSE}"
-fi
 
 # Split apart the partitions and make some new ones
 SRC_DEV=$(loopback_partscan "${SRC_IMAGE}")
@@ -224,48 +208,14 @@ trap - INT TERM EXIT
 loopback_detach "${IMAGE_DEV}"
 
 echo Creating final image
-# Convert image to output format
-if [ "${FLAGS_format}" = "qemu" ]; then
-  mv "${TEMP_IMG}" "${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
-elif [ "${FLAGS_format}" = "vmware" ]; then
-  qemu-img convert -f raw "${TEMP_IMG}" \
-    -O vmdk "${FLAGS_to}/${FLAGS_vmdk}"
-else
-  die_notrace "Invalid format: ${FLAGS_format}"
-fi
+mv "${TEMP_IMG}" "${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
 
 rm -rf "${TEMP_IMG}"
 
 echo "Created image at ${FLAGS_to}"
 
-# Generate the vmware config file
-# A good reference doc: http://www.sanbarrow.com/vmx.html
-VMX_CONFIG="#!/usr/bin/vmware
-.encoding = \"UTF-8\"
-config.version = \"8\"
-virtualHW.version = \"4\"
-memsize = \"${FLAGS_mem}\"
-ide0:0.present = \"TRUE\"
-ide0:0.fileName = \"${FLAGS_vmdk}\"
-ethernet0.present = \"TRUE\"
-usb.present = \"TRUE\"
-sound.present = \"TRUE\"
-sound.virtualDev = \"es1371\"
-displayName = \"Chromium OS\"
-guestOS = \"otherlinux\"
-ethernet0.addressType = \"generated\"
-floppy0.present = \"FALSE\""
+echo "If you have qemu-kvm installed, you can start the image by:"
+echo "sudo kvm -m ${FLAGS_mem} -vga cirrus -pidfile /tmp/kvm.pid" \
+  "-net nic,model=virtio -net user,hostfwd=tcp::9222-:22 \\"
+echo "-hda ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
 
-if [[ "${FLAGS_make_vmx}" = "${FLAGS_TRUE}" ]]; then
-  echo "${VMX_CONFIG}" > "${FLAGS_to}/${FLAGS_vmx}"
-  echo "Wrote the following config to: ${FLAGS_to}/${FLAGS_vmx}"
-  echo "${VMX_CONFIG}"
-fi
-
-
-if [ "${FLAGS_format}" == "qemu" ]; then
-  echo "If you have qemu-kvm installed, you can start the image by:"
-  echo "sudo kvm -m ${FLAGS_mem} -vga cirrus -pidfile /tmp/kvm.pid" \
-       "-net nic,model=virtio -net user,hostfwd=tcp::9222-:22 \\"
-  echo "-hda ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
-fi
