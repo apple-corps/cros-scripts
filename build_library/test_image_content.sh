@@ -57,32 +57,6 @@ test_image_content() {
   local root="$1"
   local returncode=0
 
-  local binaries=(
-    "${root}/boot/vmlinuz"
-    "${root}/sbin/session_manager"
-    "${root}/bin/sed"
-  )
-  # When chrome is built with USE="pgo_generate", rootfs chrome is actually a
-  # symlink to a real binary which is in the stateful partition. So we do not
-  # check for a valid chrome binary in that case.
-  local chrome_binary="${root}/opt/google/chrome/chrome"
-  if ! portageq-"${BOARD}" has_version "${root}" \
-    'chromeos-base/chromeos-chrome[pgo_generate]'; then
-    binaries+=( "${chrome_binary}" )
-  fi
-
-  local xorg_binary="${root}/usr/bin/Xorg"
-  if portageq-"${BOARD}" has_version "${root}" 'x11-base/xorg-server'; then
-    binaries+=( "${xorg_binary}" )
-  fi
-
-  for test_file in "${binaries[@]}"; do
-    if [ ! -f "$test_file" ]; then
-      error "test_image_content: Cannot find '$test_file'"
-      returncode=1
-    fi
-  done
-
   # Keep `local` decl split from assignment so return code is checked.
   local libs
 
