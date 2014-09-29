@@ -242,8 +242,24 @@ print_board_binhost_config() {
   # Chrome binhost.
   local e_generic="${e_kernel_map[${kernel:-none}]:-${e_arch_map[${ARCH}]:-}}"
   local i_generic="${i_kernel_map[${kernel:-none}]:-${i_arch_map[${ARCH}]:-}}"
+  local e_freon="" i_freon=""
+  if has ozone $(portageq-${BOARD_VARIANT} envvar USE); then
+    # If ozone use flag is present, the grab Chrome prebuilts from a builder
+    # that uses the ozone use flags. (This use flag only affects Chrome.)
+    e_freon_arch_map=(
+      ['amd64']='amd64-generic_freon'
+      ['arm']='arm-generic_freon'
+    )
+    i_freon_arch_map=(
+      ['amd64']='link_freon'
+      ['arm']='rush'
+    )
+    e_freon="${e_freon_arch_map[${ARCH}]:-}"
+    i_freon="${i_freon_arch_map[${ARCH}]:-}"
+  fi
   local board chrome_binhost internal_binhost preflight_binhost
-  for board in ${BOARD_VARIANT} ${BOARD} ${i_generic} ${e_generic}; do
+  for board in ${BOARD_VARIANT} ${i_freon} ${e_freon} \
+               ${BOARD} ${i_generic} ${e_generic}; do
     if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ]]; then
       chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
     fi
