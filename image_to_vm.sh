@@ -148,7 +148,24 @@ else
   TEMP_STATE="${TEMP_DIR}"/stateful
   # Create TEMP_STATE as a regular user so a regular user can delete it.
   sudo chmod a+r "${SRC_STATE}"
-  dd if="${SRC_STATE}" of="${TEMP_STATE}"
+  max_tries=10
+  for (( i = 1; i <= max_tries; i++ )); do
+    if dd if="${SRC_STATE}" of="${TEMP_STATE}"; then
+      break
+    fi
+    if [[ ${i} -eq ${max_tries} ]]; then
+      die "Failed to dd ${SRC_STATE} to ${TEMP_STATE} ${i} times, giving up."
+    fi
+    start_offset=$(cat /sys/block/${SRC_DEV##/dev/}/${SRC_STATE##/dev/}/start)
+    warn "${SRC_STATE} start is: ${start_offset}"
+    sudo cgpt show "${SRC_DEV}"
+    warn "Failed to dd ${SRC_STATE} to ${TEMP_STATE} on try ${i}, retrying"
+    if [[ ${i} -gt $(${max_tries} / 2) ]]; then
+      warn "Trying to fix ${SRC_DEV} by rereading PT"
+      sudo blockdev --rereadpt "${SRC_DEV}"
+    fi
+    sleep 5
+  done
   sudo e2fsck -pf "${TEMP_STATE}"
   sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
 fi
