@@ -730,7 +730,7 @@ loopback_partscan() {
 
   # TODO Once we figure out why losetup -P doesn't always work
   # (crbug.com/411693) we can get rid of this retry loop.
-  local max_checks=4
+  local max_checks=11
   local i
   for (( i = 1; i <= ${max_checks}; i++ )); do
     # Did it work this time?
