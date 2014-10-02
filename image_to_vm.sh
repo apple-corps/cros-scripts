@@ -147,9 +147,9 @@ else
   # Extend the original file size to the new size.
   TEMP_STATE="${TEMP_DIR}"/stateful
   # Create TEMP_STATE as a regular user so a regular user can delete it.
-  sudo chmod a+r "${SRC_STATE}"
   max_tries=10
   for (( i = 1; i <= max_tries; i++ )); do
+    sudo chmod a+r "${SRC_STATE}"
     if dd if="${SRC_STATE}" of="${TEMP_STATE}"; then
       break
     fi
@@ -160,7 +160,7 @@ else
     warn "${SRC_STATE} start is: ${start_offset}"
     sudo cgpt show "${SRC_DEV}"
     warn "Failed to dd ${SRC_STATE} to ${TEMP_STATE} on try ${i}, retrying"
-    if [[ ${i} -gt $(${max_tries} / 2) ]]; then
+    if [[ ${i} -gt $(( max_tries / 2 )) ]]; then
       warn "Trying to fix ${SRC_DEV} by rereading PT"
       sudo blockdev --rereadpt "${SRC_DEV}"
     fi
