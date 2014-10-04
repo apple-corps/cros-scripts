@@ -148,7 +148,7 @@ else
   TEMP_STATE="${TEMP_DIR}"/stateful
   # Create TEMP_STATE as a regular user so a regular user can delete it.
   sudo chmod a+r "${SRC_STATE}"
-  dd if="${SRC_STATE}" of="${TEMP_STATE}"
+  cp "${SRC_STATE}" "${TEMP_STATE}"
   sudo e2fsck -pf "${TEMP_STATE}"
   sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
 fi
@@ -170,10 +170,10 @@ DST_OEM="${DST_DEV}"p8
 DST_ESP="${DST_DEV}"p12
 
 # Copy into the partition parts of the file.
-sudo dd if="${SRC_ROOTFS}" of="${DST_ROOTFS}"
-sudo dd if="${TEMP_STATE}" of="${DST_STATE}"
-sudo dd if="${SRC_ESP}"    of="${DST_ESP}"
-sudo dd if="${SRC_OEM}"    of="${DST_OEM}"
+sudo cp "${SRC_ROOTFS}" "${DST_ROOTFS}"
+sudo cp "${TEMP_STATE}" "${DST_STATE}"
+sudo cp "${SRC_ESP}"    "${DST_ESP}"
+sudo cp "${SRC_OEM}"    "${DST_OEM}"
 
 TEMP_MNT=$(mktemp -d)
 TEMP_ESP_MNT=$(mktemp -d)
