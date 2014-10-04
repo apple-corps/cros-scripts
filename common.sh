@@ -719,6 +719,42 @@ safe_umount() {
   $([[ ${UID:-$(id -u)} != 0 ]] && echo sudo) umount "$@"
 }
 
+# Sanity check the partition device nodes of a loopback device.
+#
+# $1 The loopback device to check.
+# $2 The backing file.
+loopback_check_parts() {
+  local dev="$1"
+  local image="$2"
+
+  local parts=$(shopt -s nullglob; echo "${dev}"p*)
+  local dev_name="${dev##/dev/}"
+
+  if [[ -z "${parts}" ]]; then
+    warn "No partition nodes found for ${dev}"
+    return 1
+  fi
+
+  # Check the start of all the partitions.
+  local part
+  for part in ${parts}; do
+    local pname="${part##/dev/}"
+    local pnum="${pname##*p}"
+    local cgpt_start sys_start
+
+    cgpt_start=$(cgpt show -n -i "${pnum}" -b "${image}")
+    sys_start=$(cat /sys/block/"${dev_name}"/"${pname}"/start)
+
+    if [[ ${cgpt_start} -ne ${sys_start} ]]; then
+      warn "Partition ${pnum} of ${image} starts at offset ${cgpt_start},"
+      warn "but the kernel thinks it starts at offset ${sys_start}."
+      return 1
+    fi
+  done
+
+  return 0
+}
+
 # Setup a loopback device for a file and scan for partitions, with retries.
 #
 # $1 - The file to back the new loopback device.
@@ -734,7 +770,7 @@ loopback_partscan() {
   local i
   for (( i = 1; i <= ${max_checks}; i++ )); do
     # Did it work this time?
-    if [[ -n "$(shopt -s nullglob; echo "${lb_dev}"p*)" ]]; then
+    if loopback_check_parts "${lb_dev}" "${image}"; then
       echo "${lb_dev}"
       return 0
     fi
@@ -745,7 +781,7 @@ loopback_partscan() {
     else
       # warn should output to stderr, so it shouldn't pollute the output of
       # this function.
-      warn "Didn't find partition device files for ${image} on try ${i}. " \
+      warn "Partition device files for ${image} are invalid on try ${i}. " \
            "Rescanning ${lb_dev}."
       sudo blockdev --rereadpt "${lb_dev}"
       sleep 5
