@@ -118,6 +118,16 @@ printf '%s\nYES\n' -9 | sudo etc-update
 PERL_VERSIONS=$(find /usr/lib*/perl5/vendor_perl/ -maxdepth 1 -mindepth 1 \
   -type d -printf '%P\n' | sort -u | wc -w)
 if [ "$PERL_VERSIONS" -gt 1 ] ; then
+  # Some perl packages might not exist anymore due to the upgrade, so unmerge
+  # any that no longer exist.
+  info "Looking for outdated perl packages"
+  pkgs=()
+  for pkg in $(qlist -IC dev-perl/ perl-core/ virtual/perl-); do
+    equery which ${pkg} >/dev/null || pkgs+=( "${pkg}" )
+  done
+  if [[ ${#pkgs[@]} -gt 0 ]]; then
+    sudo qmerge -Uyq "${pkgs[@]}"
+  fi
   sudo perl-cleaner --all -- --quiet
 fi
 
