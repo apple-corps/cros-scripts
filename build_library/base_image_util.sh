@@ -246,6 +246,13 @@ create_base_image() {
     --patch_number="${CHROMEOS_PATCH}" \
     ${arc_version}
 
+  # Set /etc/os-release on the image.
+  # Note: fields in /etc/os-release can come from different places:
+  # * /etc/os-release itself with docrashid
+  # * /etc/os-release.d for fields created with do_osrelease_field
+  sudo "${GCLIENT_ROOT}/chromite/bin/cros_generate_os_release" \
+    --root="${root_fs_dir}"
+
   # Create the boot.desc file which stores the build-time configuration
   # information needed for making the image bootable after creation with
   # cros_make_image_bootable.
