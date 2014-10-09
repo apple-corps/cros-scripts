@@ -190,15 +190,6 @@ if [ -e "${SYSLINUX_USB_A_CONFIG}" ]; then
   sudo sed -i -e 's/sdb3/sda3/g' "${SYSLINUX_USB_A_CONFIG}"
 fi
 
-# Add loading of cirrus fb module
-if [ "${FLAGS_format}" = "qemu" ]; then
-  sudo_clobber "${TEMP_MNT}/etc/init/cirrusfb.conf" <<END
-start on starting boot-splash
-task
-exec modprobe cirrus
-END
-fi
-
 # Unmount everything prior to building a final image
 trap - INT TERM EXIT
 cleanup
