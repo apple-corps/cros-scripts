@@ -755,6 +755,17 @@ loopback_check_parts() {
   return 0
 }
 
+# Run a command with sudo in a way that still preferentially uses files
+# from au-generator.zip, but still finds things in /sbin and /usr/sbin when
+# not using au-generator.zip.
+au_generator_sudo() {
+  # When searching for env, the unmodified path is used and env is potentially
+  # found somewhere out in the system. env itself sees the modified PATH
+  # and will find the command where we're telling it to. Running the command
+  # directly without env will escape our constructed PATH.
+  sudo -E PATH="${PATH}:/sbin:/usr/sbin" env "$@"
+}
+
 # Setup a loopback device for a file and scan for partitions, with retries.
 #
 # $1 - The file to back the new loopback device.
@@ -762,7 +773,7 @@ loopback_check_parts() {
 loopback_partscan() {
   local lb_dev image="$1"
   shift
-  lb_dev=$(sudo losetup --show --partscan -f "$@" "${image}")
+  lb_dev=$(au_generator_sudo losetup --show --partscan -f "$@" "${image}")
 
   # TODO Once we figure out why losetup -P doesn't always work
   # (crbug.com/411693) we can get rid of this retry loop.
@@ -783,7 +794,7 @@ loopback_partscan() {
       # this function.
       warn "Partition device files for ${image} are invalid on try ${i}. " \
            "Rescanning ${lb_dev}."
-      sudo blockdev --rereadpt "${lb_dev}"
+      au_generator_sudo blockdev --rereadpt "${lb_dev}"
       sleep 5
     fi
   done
@@ -793,7 +804,7 @@ loopback_partscan() {
 #
 # $@ - loop device to detach, and additional arguments for losetup.
 loopback_detach() {
-  sudo losetup --detach "$@"
+  au_generator_sudo losetup --detach "$@"
 }
 
 # Get the size of a regular file or a block device.
