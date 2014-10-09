@@ -137,7 +137,9 @@ fi
 if [[ ${FLAGS_unpackonly} -eq ${FLAGS_TRUE} ]]; then
   UPDATE_ARGS+=( --skip_board_pkg_init )
 fi
-
+if [[ -n ${FLAGS_board_root} ]]; then
+  UPDATE_ARGS+=( --board_root "${FLAGS_board_root}" )
+fi
 
 "${SCRIPTS_DIR}"/setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
 
@@ -249,6 +251,8 @@ trap "rm -f '${tmpfile}'" EXIT
 
 if [[ -n "${FLAGS_board_root}" ]]; then
   export ROOT="${FLAGS_board_root}"
+  export PORTAGE_CONFIGROOT="${ROOT}"
+  export SYSROOT="${ROOT}"
   export PKGDIR="${ROOT}"/packages
 fi
 

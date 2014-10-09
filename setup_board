@@ -61,6 +61,8 @@ DEFINE_boolean chrome_binhost_only $FLAGS_FALSE \
   "Only fetch packages from the Chrome binhost."
 DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
   "Don't emerge any packages during setup_board into the board root."
+DEFINE_string board_root "" \
+  "Board root."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -164,7 +166,8 @@ EOF
 }
 
 install_toolchain() {
-  "${GCLIENT_ROOT}/src/scripts/install_toolchain" --board="${BOARD_VARIANT}"
+  "${GCLIENT_ROOT}/src/scripts/install_toolchain" --board="${BOARD_VARIANT}" \
+    --board_root="${BOARD_ROOT}"
 }
 
 # Print contents of $BOARD_ETC/make.conf.board. This file sources make.conf
@@ -376,7 +379,7 @@ case "$BOARD" in
     HOST_BOARD=false
 esac
 # Locations we will need
-BOARD_ROOT="/build/${BOARD_VARIANT}"
+BOARD_ROOT="${FLAGS_board_root:-/build/${BOARD_VARIANT}}"
 CROSSDEV_OVERLAY="/usr/local/portage/crossdev"
 CHROMIUMOS_OVERLAY="/usr/local/portage/chromiumos"
 CHROMIUMOS_CONFIG="${CHROMIUMOS_OVERLAY}/chromeos/config"
@@ -518,7 +521,8 @@ if ! cros_choose_profile \
        --board "${FLAGS_board}" \
        --board_overlay "${FLAGS_board_overlay}" \
        --variant "${FLAGS_variant}" \
-       --profile "${FLAGS_profile}"; then
+       --profile "${FLAGS_profile}" \
+       --board_root "${BOARD_ROOT}"; then
   error "Selecting profile failed, removing incomplete board directory!"
   sudo rm -rf --one-file-system "${BOARD_ROOT}"
   exit 1
@@ -608,6 +612,11 @@ fi
 command_completed
 echo "Done!"
 echo "The SYSROOT is: ${BOARD_ROOT}"
+
+if [[ -n ${FLAGS_board_root} ]]; then
+  # cros_workon do not support board_root.
+  exit 0
+fi
 
 # NOTE: Printing the working-on ebuilds does not only serve the informative
 # purpose. It also causes the ${BOARD_ROOT}/etc/portage/package.* files to be
