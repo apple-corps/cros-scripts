@@ -137,7 +137,7 @@ create_base_image() {
     --board="${BOARD}" \
     --log-level error \
     --output \
-    "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html" &
+    "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
 
   # Remove unreferenced gconv charsets.
   # gconv charsets are .so modules loaded dynamically by iconv_open(3),
@@ -145,13 +145,10 @@ create_base_image() {
   # and we don't known which ones will be used until all the applications are
   # installed. This script looks for the charset names on all the binaries
   # installed on the the ${root_fs_dir} and removes the unreferenced ones.
-  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}" &
+  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}"
 
   # Run ldconfig to create /etc/ld.so.cache.
-  run_ldconfig "${root_fs_dir}" &
-
-  # Wait for all pending background tasks to complete.
-  wait
+  run_ldconfig "${root_fs_dir}"
 
   # Set /etc/lsb-release on the image.
   "${OVERLAY_CHROMEOS_DIR}/scripts/cros_set_lsb_release" \
