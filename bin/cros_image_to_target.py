@@ -227,7 +227,8 @@ class CrosEnv(object):
       self.Info('Using cached update image %s' % dst)
       return True
 
-    if not self.cmd.Run(self.ChrootPath('/usr/bin/cros_generate_update_payload'),
+    if not self.cmd.Run(self.ChrootPath(
+                            '/usr/bin/cros_generate_update_payload'),
                         '--image=%s' % src, '--output=%s' % dst,
                         '--patch_kernel'):
       self.Error('generate_payload failed')
@@ -276,7 +277,7 @@ class CrosEnv(object):
     ret = {}
     for line in string.splitlines():
       if '=' in line:
-        var, sep, val = line.partition('=')
+        var, _, val = line.partition('=')
         var = var.strip('\t ').rstrip('\t ')
         if var:
           ret[var] = val.strip('\t ').rstrip('\t ')
@@ -357,13 +358,14 @@ class CrosEnv(object):
 
     url_base = 'http://localhost:%d' % port
     update_url = '%s/update' % url_base
-    fd, update_log = tempfile.mkstemp(prefix='image-to-target-')
+    _, update_log = tempfile.mkstemp(prefix='image-to-target-')
     self.Info('Starting update on client.  Client output stored to %s' %
               update_log)
 
     # this will make the client read the files we have set up
     self.ssh_cmd.Run('/usr/bin/update_engine_client', '--update',
-                     '--omaha_url', update_url, remote_tunnel=(port, port),
+                     '--omaha_url={}'.format(update_url),
+                     remote_tunnel=(port, port),
                      outfile=update_log)
 
     if self.GetUpdateStatus() != 'UPDATE_STATUS_UPDATED_NEED_REBOOT':
@@ -485,7 +487,7 @@ class PingUpdateResponse(StringUpdateResponse):
     protocol, app, _, _ = autoupdate_lib.ParseUpdateRequest(post_data)
     request_version = app.getAttribute('version')
     if request_version == 'ForcedUpdate':
-      host, pdict = cgi.parse_header(handler.headers.getheader('Host'))
+      host, _ = cgi.parse_header(handler.headers.getheader('Host'))
       url = 'http://%s/%s' % (host, UPDATE_FILENAME)
       self.string = autoupdate_lib.GetUpdateResponse(self.file_hash,
                                                      self.file_sha256,
@@ -600,13 +602,13 @@ def main(argv):
   parser.add_option('--no-test', dest='test',
                     action='store_false', help='Select non-test image')
 
-  (options, args) = parser.parse_args(argv)
+  (options, _) = parser.parse_args(argv)
 
   verbosity = CrosEnv.SILENT
   if options.verbose:
-      verbosity = CrosEnv.INFO
+    verbosity = CrosEnv.INFO
   if options.debug:
-      verbosity = CrosEnv.DEBUG
+    verbosity = CrosEnv.DEBUG
   cros_env = CrosEnv(verbose=verbosity)
 
   if not options.board:
