@@ -71,8 +71,6 @@ switch_to_strict_mode
 
 FULLNAME="ChromeOS Developer"
 DEFGROUPS="eng,adm,cdrom,floppy,audio,video,portage"
-PASSWORD=chronos
-CRYPTED_PASSWD=$(perl -e 'print crypt($ARGV[0], "foo")', $PASSWORD)
 
 USEPKG=""
 if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
@@ -156,7 +154,7 @@ init_users () {
    # determined by the order in /etc/passwd. Let's put ourselves on top
    # of the file.
    bare_chroot useradd -o -G ${DEFGROUPS} -g eng -u ${SUDO_UID} -s \
-     /bin/bash -m -c "${FULLNAME}" -p ${CRYPTED_PASSWD} ${SUDO_USER}
+     /bin/bash -m -c "${FULLNAME}" ${SUDO_USER}
    # Because passwd generally isn't sorted and the entry ended up at the
    # bottom, it is safe to just take it and move it to top instead.
    sed -e '1{h;d};$!{H;d};$G' -i "${FLAGS_chroot}/etc/passwd"
