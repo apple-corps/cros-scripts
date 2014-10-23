@@ -82,12 +82,14 @@ if ! type -p update_x86_bootloaders; then
         -e "s|DMTABLEB|${grub_dm_table_b}|g" \
         -e "s|/dev/\\\$linuxpartA|${root_a_uuid}|g" \
         -e "s|/dev/\\\$linuxpartB|${root_b_uuid}|g" \
+        -e "s|HDROOTUSB|${root_a_uuid}|g" \
         "${template_dir}"/efi/boot/grub.cfg |
         sudo dd of="${esp_fs_dir}"/efi/boot/grub.cfg status=none
 
-    # Rewrite syslinux DM_TABLE for USB booting.
+    # Rewrite syslinux DM_TABLE and HDROOTUSB for USB booting.
     syslinux_dm_table_usb=${dm_table//${old_root}/${root_a_uuid}}
     sed -e "s|DMTABLEA|${syslinux_dm_table_usb}|g" \
+        -e "s|HDROOTUSB|${root_a_uuid}|g" \
         "${template_dir}"/syslinux/usb.A.cfg |
         sudo dd of="${esp_fs_dir}"/syslinux/usb.A.cfg status=none
 

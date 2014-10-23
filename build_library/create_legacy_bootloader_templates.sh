@@ -18,8 +18,6 @@ DEFINE_string arch "x86" \
   "The boot architecture: arm or x86. (Default: x86)"
 DEFINE_string to "/tmp/boot" \
   "Path to populate with bootloader templates (Default: /tmp/boot)"
-DEFINE_string usb_disk /dev/sdb3 \
-  "Path syslinux should use to do a usb boot. Default: /dev/sdb3"
 DEFINE_string boot_args "" \
   "Additional boot arguments to pass to the commandline (Default: '')"
 DEFINE_boolean enable_bootcache ${FLAGS_FALSE} \
@@ -116,7 +114,7 @@ EOF
 label chromeos-usb.A
   menu label chromeos-usb.A
   kernel vmlinuz.A
-  append ${common_args} root=${FLAGS_usb_disk} i915.modeset=1 cros_legacy
+  append ${common_args} root=HDROOTUSB i915.modeset=1 cros_legacy
 
 label chromeos-vusb.A
   menu label chromeos-vusb.A
@@ -217,7 +215,7 @@ menuentry "verified image B" {
 
 # FIXME: usb doesn't support verified boot for now
 menuentry "Alternate USB Boot" {
-  linux (hd0,3)/boot/vmlinuz ${common_args} root=/dev/sdb3 i915.modeset=1 cros_efi
+  linux (hd0,3)/boot/vmlinuz ${common_args} root=HDROOTUSB i915.modeset=1 cros_efi
 }
 EOF
   if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
