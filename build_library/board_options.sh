@@ -10,6 +10,10 @@ fi
 BOARD="${FLAGS_board}"
 BOARD_ROOT="/build/${BOARD}"
 
+if [[ ! -d "${BOARD_ROOT}" ]]; then
+  die_notrace "The board has not been set up: ${BOARD}"
+fi
+
 # What cross-build are we targeting?
 . "${BOARD_ROOT}/etc/make.conf.board_setup"
 
