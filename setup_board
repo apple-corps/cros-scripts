@@ -129,7 +129,7 @@ exec pkg-config "\$@"
 EOF
   wrappers+=( "${wrapper}" )
 
-  for wrapper in 'emerge --root-deps' ebuild eclean equery portageq \
+  for wrapper in 'emerge --root-deps' ebuild eclean emaint equery portageq \
                  qcheck qdepends qfile qlist qmerge qsize; do
     _generate_wrapper ${wrapper}
   done
