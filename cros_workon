@@ -114,7 +114,7 @@ find_keyword_workon_ebuilds() {
   local overlay
 
   # NOTE: overlay may be a symlink, and we have to use ${overlay}/
-  for overlay in ${PORTDIR_OVERLAY}; do
+  for overlay in "${OVERLAYS[@]}"; do
     # only look up ebuilds named 9999 to eliminate duplicates
     find "${overlay}"/*-* -maxdepth 2 -type f -name '*9999.ebuild' \
       -exec grep -l 'inherit.*cros-workon' {} + 2>/dev/null | \
@@ -372,9 +372,12 @@ ebuild_iterate() {
 # Only call portageq when absolutely required, and when we do, only run it
 # once -- it's a slow beast and can easily take hundreds of milliseconds :(.
 if [[ ${WORKON_CMD} != "list" || ${FLAGS_all} != ${FLAGS_FALSE} ]] ; then
-  portageq_vars="ARCH PORTDIR_OVERLAY"
-  unset ${portageq_vars}
-  eval $(${PORTAGEQCMD} envvar -v ${portageq_vars})
+  ARCH=$(${PORTAGEQCMD} envvar ARCH)
+  cmd=( cros_list_overlays --all )
+  if [[ -n ${FLAGS_board} ]]; then
+    cmd+=( --board "${FLAGS_board}" )
+  fi
+  OVERLAYS=( $("${cmd[@]}") )
 fi
 
 # --all makes commands operate on different lists
