@@ -183,13 +183,6 @@ sudo mount "${DST_ROOTFS}" "${TEMP_MNT}"
 mkdir -p "${TEMP_ESP_MNT}"
 sudo mount "${DST_ESP}" "${TEMP_ESP_MNT}"
 
-# Modify the unverified usb template, which uses a default usb_disk of sdb3,
-# for targets (e.g. x86 and amd64) that have syslinux installed.
-SYSLINUX_USB_A_CONFIG="${TEMP_MNT}/boot/syslinux/usb.A.cfg"
-if [ -e "${SYSLINUX_USB_A_CONFIG}" ]; then
-  sudo sed -i -e 's/sdb3/sda3/g' "${SYSLINUX_USB_A_CONFIG}"
-fi
-
 # Unmount everything prior to building a final image
 trap - INT TERM EXIT
 cleanup
