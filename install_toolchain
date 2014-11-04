@@ -123,7 +123,7 @@ install_toolchain_in_board() {
       "mkdir -p '${BOARD_ROOT}/usr/lib/debug'"
       "tar jxpf '${libc_path}' -C '${BOARD_ROOT}/usr/lib/debug' \
           './usr/lib/debug/usr/${FLAGS_toolchain}' --strip-components=6 \
-          || warn 'libc debug info not copied.'"
+          || echo 'WARNING: libc debug info not copied.' >&2"
     )
     # TODO(asharif): Remove this hack after a while.
     local board_gcc_dir="${BOARD_ROOT}/usr/lib/gcc"
