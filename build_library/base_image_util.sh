@@ -85,13 +85,11 @@ create_base_image() {
   # We need to install libc manually from the cross toolchain.
   # TODO: Improve this? It would be ideal to use emerge to do this.
   PKGDIR="/var/lib/portage/pkgs"
-  LIBC_TAR="glibc-${LIBC_VERSION}.tbz2"
-  LIBC_PATH="${PKGDIR}/cross-${CHOST}/${LIBC_TAR}"
+  local libc_atom="cross-${CHOST}/glibc-${LIBC_VERSION}"
+  LIBC_PATH="${PKGDIR}/${libc_atom}.tbz2"
 
-  if ! [[ -e ${LIBC_PATH} ]]; then
-  die_notrace \
-    "${LIBC_PATH} does not exist. Try running ./setup_board" \
-    "--board=${BOARD} to update the version of libc installed on that board."
+  if [[ ! -e ${LIBC_PATH} ]]; then
+    sudo emerge --nodeps -gf "=${libc_atom}"
   fi
 
   # Strip out files we don't need in the final image at runtime.

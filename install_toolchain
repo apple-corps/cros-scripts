@@ -112,12 +112,17 @@ install_toolchain_in_board() {
   fi
   echo "Installing the toolchain into the board root."
   # Untar glibc to get most of the headers required to build.
-  local libc_tar="glibc-${libc_ver}.tbz2"
 
   # Install libc libraries.
   if [ "${CHOST}" != "$FLAGS_toolchain" ] ; then
-    local libc_path="${PKGDIR}/cross-${FLAGS_toolchain}/${libc_tar}"
-    cmds=(
+    local libc_atom="cross-${FLAGS_toolchain}/glibc-${libc_ver}"
+    local libc_path="${PKGDIR}/${libc_atom}.tbz2"
+
+    cmds=()
+    if [[ ! -e ${libc_path} ]]; then
+        cmds+=( "emerge --nodeps -gf =${libc_atom}" )
+    fi
+    cmds+=(
       "tar jxpf '${libc_path}' -C '${BOARD_ROOT}' \
           './usr/${FLAGS_toolchain}' --strip-components=3"
       "mkdir -p '${BOARD_ROOT}/usr/lib/debug'"
