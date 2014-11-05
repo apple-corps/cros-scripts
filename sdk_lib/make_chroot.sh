@@ -455,7 +455,9 @@ for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
 done
 
 info "Updating host toolchain"
-early_enter_chroot $EMERGE_CMD -uNv crossdev
+if [[ ! -e ${FLAGS_chroot}/usr/bin/crossdev ]]; then
+  early_enter_chroot $EMERGE_CMD -uNv crossdev
+fi
 TOOLCHAIN_ARGS=( --deleteold )
 if [[ ${FLAGS_usepkg} -eq ${FLAGS_FALSE} ]]; then
   TOOLCHAIN_ARGS+=( --nousepkg )
@@ -502,11 +504,6 @@ CHROOT_EXAMPLE_OPT=""
 if [[ "$FLAGS_chroot" != "$DEFAULT_CHROOT_DIR" ]]; then
   CHROOT_EXAMPLE_OPT="--chroot=$FLAGS_chroot"
 fi
-
-# As a final pass, build all desired cross-toolchains.
-info "Updating toolchains"
-enter_chroot sudo -E "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
-    "${TOOLCHAIN_ARGS[@]}"
 
 command_completed
 
