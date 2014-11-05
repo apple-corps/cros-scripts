@@ -543,39 +543,6 @@ if ${HOST_BOARD}; then
   sudo -E $EMERGE_CMD $HOST_FLAGS --select=y $PACKAGES
   sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 
-  # Install cross-compilers.
-  COMPILERS=$(equery l cross-*/* --format='=$cpv')
-  sudo -E $EMERGE_CMD $HOST_FLAGS --select=n $COMPILERS
-
-  # Setup needed symlinks for cross-compilers.
-  sudo mkdir -p $BOARD_ROOT/usr/local/portage
-  sudo cp -a ${CROSSDEV_OVERLAY} $BOARD_ROOT/usr/local/portage
-
-  # Setup crossdev configuration for categories.
-  sudo cp -a /etc/portage/* $BOARD_ROOT/etc/portage
-
-  # The new chroot should have gcc for each target. Make sure that
-  # the latest one is correctly selected. Ignore cat errors as not
-  # all overlays will have a toolchain.conf.
-  ALL_TARGETS=$(cros_setup_toolchains --show-board-cfg=sdk)
-  for target in ${ALL_TARGETS//,/ }; do
-    libc=$(eval $(crossdev --show-target-cfg "${target}"); echo ${libc_pn})
-    if [[ ${libc} == "glibc" ]] ; then
-      # Install needed glibc tarball.
-      cross_target_path=/var/lib/portage/pkgs/cross-${target}
-      if [[ -e "$cross_target_path" ]] ; then
-          sudo mkdir -p ${BOARD_ROOT}${cross_target_path}
-          sudo cp -a ${cross_target_path}/glibc-* \
-            ${BOARD_ROOT}${cross_target_path}
-      fi
-    fi
-
-    CURRENT_GCC="$(gcc-config -c ${target})"
-    sudo ROOT=${BOARD_ROOT} gcc-config ${CURRENT_GCC}
-    CURRENT_BINUTILS="$(binutils-config -c ${target})"
-    sudo ROOT=${BOARD_ROOT} binutils-config ${CURRENT_BINUTILS}
-  done
-
   # Now cleanup paths referencing the ROOT from the *.la files.
   sudo find $BOARD_ROOT -type f -name '*.la' | xargs sudo \
       sed -i -e "s|$BOARD_ROOT/|/|g"
