@@ -221,8 +221,8 @@ print_board_binhost_config() {
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
   e_kernel_map=(['chromeos-exynos5']='daisy'
                 ['chromiumos-tegra124']='daisy')
-  i_kernel_map=(['chromeos-exynos5']='daisy_spring'
-                ['chromiumos-tegra124']='daisy_spring')
+  i_kernel_map=(['chromeos-exynos5']='daisy_skate'
+                ['chromiumos-tegra124']='daisy_skate')
   e_arch_map=(
     ['amd64']='amd64-generic'
     ['x86']='x86-generic'
@@ -231,7 +231,7 @@ print_board_binhost_config() {
   i_arch_map=(
     ['amd64']='lumpy'
     ['x86']='x86-alex'
-    ['arm']='daisy_spring'
+    ['arm']='daisy_skate'
   )
   if has chrome_internal $(portageq-${BOARD_VARIANT} envvar USE); then
     chrome_binhost_base=${internal_binhost_dir}
