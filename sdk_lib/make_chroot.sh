@@ -454,23 +454,6 @@ for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
   sudo ln -s -fT "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"/chromite
 done
 
-# Packages that inherit cros-workon commonly get a circular dependency
-# curl->openssl->git->curl that is broken by emerging an early version of git
-# without curl (and webdav that depends on it).
-# We also need to do this before the toolchain as those will sometimes also
-# fetch via remote git trees (for some bot configs).
-if [[ ! -e "${FLAGS_chroot}/usr/bin/git" ]]; then
-  info "Updating early git"
-  USE="-curl -webdav" early_enter_chroot $EMERGE_CMD -uNv $USEPKG dev-vcs/git
-
-  early_enter_chroot $EMERGE_CMD -uNv $USEPKG --select $EMERGE_JOBS \
-      dev-libs/openssl net-misc/curl
-
-  # (Re-)emerge the full version of git.
-  info "Updating full version of git"
-  early_enter_chroot $EMERGE_CMD -uNv $USEPKG dev-vcs/git
-fi
-
 info "Updating host toolchain"
 early_enter_chroot $EMERGE_CMD -uNv crossdev
 TOOLCHAIN_ARGS=( --deleteold )
