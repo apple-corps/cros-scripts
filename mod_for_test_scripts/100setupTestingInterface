@@ -9,12 +9,12 @@ echo "Configuring for backchannel and test network devices"
 testif=eth_test
 wlanifs=wlan1,wlan2,managed0,managed1
 modemif=pseudomodem0p
-blacklist_argument="--device-black-list=${testif},${wlanifs},${modemif}"
+test_devices="${testif},${wlanifs},${modemif}"
 
 # Prevent shill from taking control of the backchannel and test network devices.
 ORIG_CONF=${ROOT_FS_DIR}/etc/init/shill.conf
 TEMP_CONF=${ORIG_CONF}.tmp
-sed -e "s@SHILL_TEST_ARGS=\"\"@SHILL_TEST_ARGS=\"${blacklist_argument}\"@" \
+sed -e "s@SHILL_TEST_DEVICES=\"\"@SHILL_TEST_DEVICES=\"${test_devices}\"@" \
     ${ORIG_CONF} > ${TEMP_CONF}
 mv -f ${TEMP_CONF} ${ORIG_CONF}
 
