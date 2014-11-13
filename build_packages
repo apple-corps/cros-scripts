@@ -28,6 +28,8 @@ DEFINE_boolean fetchonly "${FLAGS_FALSE}" \
   "Don't build anything, instead only fetch what is needed."
 DEFINE_boolean unpackonly "${FLAGS_FALSE}" \
   "Don't build anything; instead only fetch and unpack what is needed."
+DEFINE_boolean withdebugsymbols "${FLAGS_TRUE}" \
+  "Install the debug symbols for all packages"
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -269,6 +271,13 @@ rm "${tmpfile}"
 trap - EXIT
 
 echo "Builds complete"
+
+if [[ ${FLAGS_withdebugsymbols} -eq ${FLAGS_TRUE} ]]; then
+  info "fetching the debug symbols"
+  sudo -E "${GCLIENT_ROOT}/chromite/bin/cros_install_debug_syms" \
+    "--board=${FLAGS_board}" "--all"
+fi
+
 EXTRA_COMMAND_STATS[package_count]=${package_count}
 command_completed
 echo "Done"
