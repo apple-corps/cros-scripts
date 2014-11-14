@@ -85,13 +85,20 @@ if [ "${FLAGS_fast}" -eq "${FLAGS_TRUE}" ]; then
   EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 fi
 
-# In first pass, update portage and toolchains. Lagged updates of both
-# can cause serious issues later.
+# First make sure the cross-compilers have the right config settings.
+# We don't actually build them yet though as we want to wait for the
+# sdk to have all up-to-date packages.
 if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_FALSE}" ]; then
-  # First update crossdev.
-  sudo -E ${EMERGE_CMD} ${EMERGE_FLAGS} crossdev
+  info "Updating cross-compilers"
+  TOOLCHAIN_FLAGS=()
 
-  TOOLCHAIN_FLAGS=( "--include-boards=${FLAGS_toolchain_boards}" )
+  if [[ -n ${FLAGS_toolchain_boards} ]]; then
+    TOOLCHAIN_FLAGS+=(
+      "--targets=boards"
+      "--include-boards=${FLAGS_toolchain_boards}"
+    )
+  fi
+
   # This should really only be skipped while bootstrapping.
   if [ "${FLAGS_usepkg}" -eq "${FLAGS_FALSE}" ]; then
     TOOLCHAIN_FLAGS+=( --nousepkg )
@@ -99,6 +106,8 @@ if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_FALSE}" ]; then
   # Expand the path before sudo, as root doesn't have the same path magic.
   sudo -E $(type -p cros_setup_toolchains) "${TOOLCHAIN_FLAGS[@]}"
 fi
+
+info "Updating the SDK"
 
 # Build cros_workon packages when they are changed.
 for pkg in $("${CHROMITE_BIN}/cros_list_modified_packages" --host); do
