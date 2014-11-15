@@ -296,7 +296,7 @@ maybe_resize_stateful() {
 
   # Create the directories that are going to be needed below. With correct
   # permissions.
-  mkdir --mode=766 "${new_stateful_mnt}/unencrypted"
+  mkdir --mode=755 "${new_stateful_mnt}/unencrypted"
 
   # Copy over any files that need to be preserved.
   for name in ${WHITELIST}; do
