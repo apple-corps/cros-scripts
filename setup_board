@@ -254,7 +254,7 @@ print_board_binhost_config() {
     )
     i_freon_arch_map=(
       ['amd64']='link_freon'
-      ['arm']='rush'
+      ['arm']='rush_ryu'
     )
     e_freon="${e_freon_arch_map[${ARCH}]:-}"
     i_freon="${i_freon_arch_map[${ARCH}]:-}"
