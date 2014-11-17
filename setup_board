@@ -216,7 +216,8 @@ print_board_binhost_config() {
   local internal_binhost_dir="$partner_overlay/chromeos/binhost/target"
   # i_arch_map / e_arch_map: maps architectures to internal / external boards.
   # i_kernel_map / e_kernel_map: maps kernels to internal / external boards.
-  declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map
+  declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map \
+             e_freon_arch_map i_freon_arch_map
   local chrome_binhost_base kernel
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
   e_kernel_map=(['chromeos-exynos5']='daisy'
