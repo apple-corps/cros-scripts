@@ -134,8 +134,8 @@ create_base_image() {
   sudo "${GCLIENT_ROOT}/chromite/licensing/licenses" \
     --board="${BOARD}" \
     --log-level error \
-    --output \
-    "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
+    --generate-licenses \
+    --output "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
 
   # Remove unreferenced gconv charsets.
   # gconv charsets are .so modules loaded dynamically by iconv_open(3),
