@@ -101,9 +101,15 @@ main() {
     "${symlink_dst}" "${symlink_file}" || \
     die "Unable to symlink ${symlink_dst} to ${symlink_file}"
 
+  if [[ "${FLAGS_host_based}" -eq "${FLAGS_TRUE}" ]]; then
+    local nohostbase_option=""
+  else
+    local nohostbase_option="--no-enable-presenter --no-enable-device"
+  fi
+
   local output_toolkit="${output_dir}/install_factory_toolkit.run"
   "${temp_pack_root}/usr/local/factory/py/toolkit/installer.py" \
-    --pack-into "${output_toolkit}"
+    --pack-into "${output_toolkit}" ${nohostbase_option}
 }
 
 main "$@"
