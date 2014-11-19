@@ -59,6 +59,8 @@ DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
 DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
+DEFINE_string image_type "base" \
+  "Type of image we're building for (base/factory_install)."
 
 # Parse flags
 FLAGS "$@" || exit 1
@@ -70,6 +72,7 @@ switch_to_strict_mode
 # N.B.  Ordering matters for some of the libraries below, because
 # some of the files contain initialization used by later files.
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 rootdigest() {
   local digest=${table#*root_hexdigest=}
@@ -99,7 +102,13 @@ modify_kernel_command_line() {
   :
 }
 
+get_base_root() {
+  echo 'PARTUUID=%U/PARTNROFF=1'
+}
+
 load_board_specific_script "${BOARD}" "build_kernel_image.sh"
+
+base_root=$(get_base_root)
 
 device_mapper_args=
 # Even with a rootfs_image, root= is not changed unless specified.
@@ -142,8 +151,6 @@ if [[ -n "${FLAGS_rootfs_image}" && -n "${FLAGS_rootfs_hash}" ]]; then
   if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
     if [[ ${FLAGS_enable_bootcache} -eq ${FLAGS_TRUE} ]]; then
       base_root='254:0'  # major:minor numbers for /dev/dm-0
-    else
-      base_root='PARTUUID=%U/PARTNROFF=1'  # kern_guid + 1
     fi
     table=${table//HASH_DEV/${base_root}}
     table=${table//ROOT_DEV/${base_root}}
@@ -173,7 +180,7 @@ mkdir -p "${FLAGS_working_dir}"
 # production use.  If +%d can be added upstream, then we can use:
 #   root_dev=PARTUID=uuid+1
 dev_wait=0
-root_dev="PARTUUID=%U/PARTNROFF=1"
+root_dev=${base_root}
 if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
   dev_wait=1
   if [[ ${FLAGS_enable_bootcache} -eq ${FLAGS_TRUE} ]]; then
@@ -260,6 +267,33 @@ elif [[ "${FLAGS_arch}" = "arm" || "${FLAGS_arch}" = "mips" ]]; then
 else
   error "Unknown arch: ${FLAGS_arch}"
 fi
+
+already_seen_rootfs=0
+for p in $(get_partitions "${FLAGS_image_type}"); do
+  format=$(get_format "${FLAGS_image_type}" "${p}")
+  if [[ "${format}" == "ubi" ]]; then
+    type=$(get_type "${FLAGS_image_type}" "${p}")
+    # cgpt.py ensures that the rootfs partitions are compatible, in that if
+    # one is ubi then both are, and they have the same number of reserved
+    # blocks. We only want to attach one of them in boot to save time, so
+    # attach %P and get the information for whichever rootfs comes first.
+    if [[ "${type}" == "rootfs" ]]; then
+      if [[ "${already_seen_rootfs}" -ne 0 ]]; then
+        continue
+      fi
+      already_seen_rootfs=1
+      partname='%P'
+    else
+      partname="${p}"
+    fi
+    echo "ubi.mtd=${partname},0,0,${partname}" \
+        >> "${FLAGS_working_dir}/config.txt"
+    fs_format=$(get_filesystem_format "${FLAGS_image_type}" "${p}")
+    if [[ "${fs_format}" != "ubifs" ]]; then
+      echo "ubi.block=${partname},0" >> "${FLAGS_working_dir}/config.txt"
+    fi
+  fi
+done
 
 config_file="${FLAGS_working_dir}/config.txt"
 modify_kernel_command_line "${config_file}"

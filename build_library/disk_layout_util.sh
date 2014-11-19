@@ -93,6 +93,14 @@ get_filesystem_format() {
   cgpt_py readfsformat "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
 }
 
+get_format() {
+  local image_type=$1
+  local part_id=$2
+  get_disk_layout_path
+
+  cgpt_py readformat "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
+}
+
 get_partitions() {
   local image_type=$1
   get_disk_layout_path
@@ -136,7 +144,7 @@ check_valid_layout() {
   local image_type=$1
   get_disk_layout_path
 
-  cgpt_py parseonly "${image_type}" "${DISK_LAYOUT_PATH}" > /dev/null
+  cgpt_py validate "${image_type}" "${DISK_LAYOUT_PATH}" > /dev/null
 }
 
 get_disk_layout_type() {

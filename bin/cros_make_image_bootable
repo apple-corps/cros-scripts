@@ -233,6 +233,7 @@ build_img() {
     --private="${private}" \
     --public="${public}" \
     --enable_serial="${FLAGS_enable_serial}" \
+    --image_type="${FLAGS_image_type}" \
     ${vblock} \
     ${enable_rootfs_verification_flag} \
     ${enable_bootcache_flag}

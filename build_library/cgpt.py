@@ -33,6 +33,12 @@ class InvalidSize(Exception):
 class ConflictingOptions(Exception):
   """Conflicting Options"""
 
+class MismatchedRootfsFormat(Exception):
+  """Rootfs partitions in different formats"""
+
+class MismatchedRootfsBlocks(Exception):
+  """Rootfs partitions have different numbers of reserved erase blocks"""
+
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
 # Blocks of the partition entry array.
@@ -821,6 +827,25 @@ def GetFilesystemFormat(options, image_type, layout_filename, num):
   return partition.get('fs_format')
 
 
+def GetFormat(options, image_type, layout_filename, num):
+  """Returns the format of a given partition for a given layout type.
+
+  Args:
+    options: Flags passed to the script
+    image_type: Type of image eg base/test/dev/factory_install
+    layout_filename: Path to partition configuration file
+    num: Number of the partition you want to read from
+
+  Returns:
+    Format of the selected partition's filesystem
+  """
+
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partition = GetPartitionByNumber(partitions, num)
+
+  return partition.get('format')
+
+
 def GetFilesystemOptions(options, image_type, layout_filename, num):
   """Returns the filesystem options of a given partition and layout type.
 
@@ -952,15 +977,45 @@ def DoDebugOutput(options, image_type, layout_filename):
     ))
 
 
-def DoParseOnly(options, image_type, layout_filename):
-  """Parses a layout file only, used before reading sizes to check for errors.
+def CheckRootfsPartitionsMatch(partitions):
+  """Checks that rootfs partitions are substitutable with each other.
+
+  This function asserts that either all rootfs partitions are in the same format
+  or none have a format, and it asserts that have the same number of reserved
+  erase blocks.
+  """
+  partition_format = None
+  reserved_erase_blocks = -1
+  for partition in partitions:
+    if partition.get('type') == 'rootfs':
+      new_format = partition.get('format', '')
+      new_reserved_erase_blocks = partition.get('reserved_erase_blocks', 0)
+
+      if partition_format is None:
+        partition_format = new_format
+        reserved_erase_blocks = new_reserved_erase_blocks
+
+      if new_format != partition_format:
+        raise MismatchedRootfsFormat(
+            'mismatched rootfs formats: "%s" and "%s"' %
+            (partition_format, new_format))
+
+      if reserved_erase_blocks != new_reserved_erase_blocks:
+        raise MismatchedRootfsBlocks(
+            'mismatched rootfs reserved erase block counts: %s and %s' %
+            (reserved_erase_blocks, new_reserved_erase_blocks))
+
+
+def Validate(options, image_type, layout_filename):
+  """Validates a layout file, used before reading sizes to check for errors.
 
   Args:
     options: Flags passed to the script
     image_type: Type of image eg base/test/dev/factory_install
     layout_filename: Path to partition configuration file
   """
-  GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  CheckRootfsPartitionsMatch(partitions)
 
 
 def main(argv):
@@ -980,6 +1035,10 @@ def main(argv):
       'readpartsize': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
           'func': GetPartitionSize,
+      },
+      'readformat': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetFormat,
       },
       'readfsformat': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
@@ -1013,9 +1072,9 @@ def main(argv):
           'usage': ['<image_type>', '<disk_layout>'],
           'func': DoDebugOutput,
       },
-      'parseonly': {
+      'validate': {
           'usage': ['<image_type>', '<disk_layout>'],
-          'func': DoParseOnly,
+          'func': Validate,
       },
   }
 
