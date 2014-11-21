@@ -5,6 +5,8 @@
 
 """Parse and operate based on disk layout files."""
 
+from __future__ import print_function
+
 import copy
 import json
 import optparse
@@ -60,14 +62,14 @@ def ParseHumanNumber(operand):
   size_factor = block_factor = 1
   suffix = operand[len(operand_digits):].strip()
   if suffix:
-    size_factors = { 'B': 0, 'K': 1, 'M': 2, 'G': 3, 'T': 4, }
+    size_factors = {'B': 0, 'K': 1, 'M': 2, 'G': 3, 'T': 4,}
     try:
       size_factor = size_factors[suffix[0].upper()]
     except KeyError:
       raise InvalidAdjustment('Unknown size type %s' % suffix)
     if size_factor == 0 and len(suffix) > 1:
       raise InvalidAdjustment('Unknown size type %s' % suffix)
-    block_factors = { '': 1024, 'B': 1000, 'IB': 1024, }
+    block_factors = {'': 1024, 'B': 1000, 'IB': 1024,}
     try:
       block_factor = block_factors[suffix[1:].upper()]
     except KeyError:
@@ -301,8 +303,8 @@ def LoadPartitionConfig(filename):
 def _GetPrimaryEntryArrayLBA(config):
   """Return the start LBA of the primary partition entry array.
 
-  Normally this comes after the primary GPT header but can be adjusted by setting
-  the "primary_entry_array_lba" key under "metadata" in the config.
+  Normally this comes after the primary GPT header but can be adjusted by
+  setting the "primary_entry_array_lba" key under "metadata" in the config.
 
   Args:
     config: The config dictionary.
@@ -354,9 +356,9 @@ def GetTableTotals(config, partitions):
 
   start_sector = _GetStartSector(config)
   ret = {
-    'expand_count': 0,
-    'expand_min': 0,
-    'block_count': start_sector * config['metadata']['block_size']
+      'expand_count': 0,
+      'expand_min': 0,
+      'block_count': start_sector * config['metadata']['block_size']
   }
 
   # Total up the size of all non-expanding partitions to get the minimum
@@ -504,14 +506,14 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   partition_totals = GetTableTotals(config, partitions)
 
   lines = [
-    'write_%s_table() {' % func,
-    'create_image $1 %d %s' % (
-        partition_totals['min_disk_size'],
-        config['metadata']['block_size']),
-    'local curr=%d' % _GetStartSector(config),
-    '# Create the GPT headers and tables. Pad the primary ones.',
-    '${GPT} create -p %d $1' % (_GetPrimaryEntryArrayLBA(config) -
-                                (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
+      'write_%s_table() {' % func,
+      'create_image $1 %d %s' % (
+          partition_totals['min_disk_size'],
+          config['metadata']['block_size']),
+      'local curr=%d' % _GetStartSector(config),
+      '# Create the GPT headers and tables. Pad the primary ones.',
+      '${GPT} create -p %d $1' % (_GetPrimaryEntryArrayLBA(config) -
+                                  (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
   # Pass 1: Set up the expanding partition size.
@@ -522,32 +524,32 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       if partition['num'] == 1:
         if 'features' in partition and 'expand' in partition['features']:
           lines += [
-            'local stateful_size=%s' % partition['blocks'],
-            'if [ -b $1 ]; then',
-            '  stateful_size=$(( $(numsectors $1) - %d))' %
-                partition_totals['block_count'],
-            'fi',
+              'local stateful_size=%s' % partition['blocks'],
+              'if [ -b $1 ]; then',
+              '  stateful_size=$(( $(numsectors $1) - %d))' % (
+                  partition_totals['block_count']),
+              'fi',
           ]
           partition['var'] = '${stateful_size}'
 
   lines += [
-    ': $(( stateful_size -= (stateful_size %% %d) ))' % (
-        config['metadata']['fs_block_size'],),
+      ': $(( stateful_size -= (stateful_size %% %d) ))' % (
+          config['metadata']['fs_block_size'],),
   ]
 
   # Pass 2: Write out all the cgpt add commands.
   for partition in partitions:
     if partition['type'] != 'blank':
       lines += [
-        '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" $1 && ' % (
-            partition['num'], str(partition['var']), partition['type'],
-            partition['label']),
+          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" $1 && ' % (
+              partition['num'], str(partition['var']), partition['type'],
+              partition['label']),
       ]
 
     # Increment the curr counter ready for the next partition.
     if partition['var'] != 0:
       lines += [
-        ': $(( curr += %s ))' % partition['var'],
+          ': $(( curr += %s ))' % partition['var'],
       ]
 
   # Set default priorities and retry counter on kernel partitions.
@@ -560,7 +562,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     partition = GetPartitionByNumber(partitions, n)
     if partition['type'] != 'blank':
       lines += [
-        '${GPT} add -i %s -S 0 -T %i -P %i $1' % (n, tries, prio)
+          '${GPT} add -i %s -S 0 -T %i -P %i $1' % (n, tries, prio)
       ]
       prio = 0
       # When not writing 'base' function, make sure the other partitions are
@@ -594,8 +596,8 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
   """
   func_name = 'load_%s_vars' % func
   lines = [
-    '%s() {' % func_name,
-    'DEFAULT_ROOTDEV="%s"' % config['metadata'].get('rootdev_%s' % func, ''),
+      '%s() {' % func_name,
+      'DEFAULT_ROOTDEV="%s"' % config['metadata'].get('rootdev_%s' % func, ''),
   ]
 
   partitions = GetPartitionTable(options, config, image_type)
@@ -865,13 +867,13 @@ def DoDebugOutput(options, image_type, layout_filename):
   msg = 'num:%4s label:%-*s type:%-*s size:%-10s fs_size:%-10s features:%s'
 
   # Print out non-layout options first.
-  print 'Config Data'
+  print('Config Data')
   metadata_msg = 'field:%-14s value:%s'
   for key in config.keys():
     if key not in ('layouts', '_comment'):
-      print metadata_msg % (key, config[key])
+      print(metadata_msg % (key, config[key]))
 
-  print '\n%s Layout Data' % image_type.upper()
+  print('\n%s Layout Data' % image_type.upper())
   for partition in partitions:
     if partition['bytes'] < 1024 * 1024:
       size = '%d B' % partition['bytes']
@@ -886,7 +888,7 @@ def DoDebugOutput(options, image_type, layout_filename):
     else:
       fs_size = 'auto'
 
-    print msg % (
+    print(msg % (
         partition.get('num', 'auto'),
         label_len,
         partition.get('label', ''),
@@ -895,7 +897,7 @@ def DoDebugOutput(options, image_type, layout_filename):
         size,
         fs_size,
         partition.get('features', ''),
-    )
+    ))
 
 
 def DoParseOnly(options, image_type, layout_filename):
@@ -911,54 +913,54 @@ def DoParseOnly(options, image_type, layout_filename):
 
 def main(argv):
   action_map = {
-    'write': {
-      'usage': ['<image_type>', '<partition_config_file>', '<script_file>'],
-      'func': WritePartitionScript,
-    },
-    'readblocksize': {
-      'usage': ['<partition_config_file>'],
-      'func': GetBlockSize,
-    },
-    'readfsblocksize': {
-      'usage': ['<partition_config_file>'],
-      'func': GetFilesystemBlockSize,
-    },
-    'readpartsize': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetPartitionSize,
-    },
-    'readfsformat': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetFilesystemFormat,
-    },
-    'readfssize': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetFilesystemSize,
-    },
-    'readlabel': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetLabel,
-    },
-    'readtype': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetType,
-    },
-    'readpartitionnums': {
-      'usage': ['<image_type>', '<partition_config_file>'],
-      'func': GetPartitions,
-    },
-    'readuuid': {
-      'usage': ['<image_type>', '<partition_config_file>', '<partition_num>'],
-      'func': GetUUID,
-    },
-    'debug': {
-      'usage': ['<image_type>', '<partition_config_file>'],
-      'func': DoDebugOutput,
-    },
-    'parseonly': {
-      'usage': ['<image_type>', '<partition_config_file>'],
-      'func': DoParseOnly,
-    }
+      'write': {
+          'usage': ['<image_type>', '<disk_layout>', '<script_file>'],
+          'func': WritePartitionScript,
+      },
+      'readblocksize': {
+          'usage': ['<disk_layout>'],
+          'func': GetBlockSize,
+      },
+      'readfsblocksize': {
+          'usage': ['<disk_layout>'],
+          'func': GetFilesystemBlockSize,
+      },
+      'readpartsize': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetPartitionSize,
+      },
+      'readfsformat': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetFilesystemFormat,
+      },
+      'readfssize': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetFilesystemSize,
+      },
+      'readlabel': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetLabel,
+      },
+      'readtype': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetType,
+      },
+      'readpartitionnums': {
+          'usage': ['<image_type>', '<disk_layout>'],
+          'func': GetPartitions,
+      },
+      'readuuid': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetUUID,
+      },
+      'debug': {
+          'usage': ['<image_type>', '<disk_layout>'],
+          'func': DoDebugOutput,
+      },
+      'parseonly': {
+          'usage': ['<image_type>', '<disk_layout>'],
+          'func': DoParseOnly,
+      },
   }
 
   usage = """%prog <action> [options]
@@ -999,10 +1001,10 @@ Actions:
     if len(action['usage']) == len(args) - 1:
       ret = action['func'](options, *args[1:])
       if ret is not None:
-        print ret
+        print(ret)
     else:
       sys.exit('Usage: %s %s %s' % (sys.argv[0], args[0],
-               ' '.join(action['usage'])))
+                                    ' '.join(action['usage'])))
 
 
 if __name__ == '__main__':
