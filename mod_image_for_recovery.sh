@@ -295,8 +295,8 @@ maybe_resize_stateful() {
   sudo mount -o loop $small_stateful $new_stateful_mnt
 
   # Create the directories that are going to be needed below. With correct
-  # permissions.
-  mkdir --mode=755 "${new_stateful_mnt}/unencrypted"
+  # permissions and ownership.
+  sudo mkdir --mode=755 "${new_stateful_mnt}/unencrypted"
 
   # Copy over any files that need to be preserved.
   for name in ${WHITELIST}; do
