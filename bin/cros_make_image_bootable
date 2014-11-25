@@ -44,22 +44,18 @@ if [ $# -lt 2 ]; then
 fi
 
 IMAGE_DIR="$(readlink -f "${1}")"
-BOOT_DESC_FILE="${IMAGE_DIR}/boot.desc"
 IMAGE="${IMAGE_DIR}/${2}"
 shift
 shift
-FLAG_OVERRIDES="${@}"
+FLAG_OVERRIDES=( "$@" )
 
-if [ ! -r "${BOOT_DESC_FILE}" ]; then
-  warn "${BOOT_DESC_FILE} cannot be read!"
-  warn "Falling back to command line parsing"
-  BOOT_DESC="${@}"
-else
-  BOOT_DESC="$(cat ${BOOT_DESC_FILE} | tr -s '\n' ' ')"
-  info "Boot-time configuration for $(dirname "${IMAGE}"): "
-  cat ${BOOT_DESC_FILE} | while read line; do
-    info "  ${line}"
+if get_boot_desc "${IMAGE_DIR}/boot.desc"; then
+  info "Boot-time configuration for ${IMAGE_DIR}:"
+  for flag in "${boot_desc_flags[@]}"; do
+    info "  ${flag}"
   done
+else
+  warn "Falling back to command line parsing."
 fi
 
 if [ ! -r "${IMAGE}" ]; then
@@ -149,7 +145,7 @@ DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
 
 # Parse the boot.desc and any overrides
-eval set -- "${BOOT_DESC} ${FLAG_OVERRIDES}"
+set -- "${boot_desc_flags[@]}" "${FLAG_OVERRIDES[@]}"
 FLAGS "${@}" || exit 1
 
 [ -z "${FLAGS_verity_salt}" ] && FLAGS_verity_salt=$(make_salt)

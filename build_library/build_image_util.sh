@@ -117,6 +117,8 @@ make_salt() {
   xxd -l 32 -p -c 32 /dev/urandom
 }
 
+# Create a boot.desc file containing flags used to create this image.
+# The format is a bit fragile -- make sure get_boot_desc parses it back.
 create_boot_desc() {
   local image_type=$1
 
@@ -143,6 +145,33 @@ create_boot_desc() {
   ${enable_rootfs_verification_flag}
   ${enable_bootcache_flag}
 EOF
+}
+
+# Extract flags saved in boot.desc and return it via the boot_desc_flags array.
+get_boot_desc() {
+  local boot_desc_file=$1
+  local line
+
+  if [[ ! -r ${boot_desc_file} ]]; then
+    warn "${boot_desc_file}: cannot be read"
+    return 1
+  fi
+
+  # Do not mark this local as it is the return value.
+  boot_desc_flags=()
+  while read line; do
+    if [[ -z ${line} ]]; then
+      continue
+    fi
+
+    # Hand extract the quotes to deal with random content in the value.
+    # e.g. When you pass --boot_args="foo=\"\$bar'" to build_image, we write it
+    # out in the file as --boot_args="foo="$bar'" which is a parse error if we
+    # tried to eval it directly.
+    line=$(echo "${line}" | sed -r \
+      -e 's:^\s+::;s:\s+$::' -e "s:^(--[^=]+=)([\"'])(.*)\2$:\1\3:")
+    boot_desc_flags+=( "${line}" )
+  done <"${boot_desc_file}"
 }
 
 delete_prompt() {
