@@ -95,12 +95,25 @@ IMAGES_DIR="${DEFAULT_BUILD_ROOT}/images/${FLAGS_board}"
 # Default to the most recent image
 if [ -z "${FLAGS_from}" ] ; then
   FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board=${FLAGS_board})"
-else
-  pushd "${FLAGS_from}" && FLAGS_from=`pwd` && popd
 fi
 if [ -z "${FLAGS_to}" ] ; then
   FLAGS_to="${FLAGS_from}"
 fi
+
+# Convert args to full paths.  Use echo here on the unquoted value to process all
+# shell level expansions like ~ and *.
+if ! resolved=$(readlink -f "$(echo ${FLAGS_from})"); then
+  die_notrace "image_to_vm: processing --from failed." \
+    "Verify the path exists: ${FLAGS_from}" \
+    "  cwd: ${PWD}"
+fi
+FLAGS_from=${resolved}
+if ! resolved=$(readlink -f "$(echo ${FLAGS_to})"); then
+  die_notrace "image_to_vm: Processing --to failed." \
+    "Verify the path exists: ${FLAGS_to}" \
+    "  cwd: ${PWD}"
+fi
+FLAGS_to=${resolved}
 
 if [ ${FLAGS_factory} -eq ${FLAGS_TRUE} ]; then
   SRC_IMAGE="${FLAGS_from}/${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"
@@ -110,6 +123,11 @@ else
   # Use the standard image
   SRC_IMAGE="${FLAGS_from}/${CHROMEOS_IMAGE_NAME}"
 fi
+if [[ ! -e ${SRC_IMAGE} ]]; then
+  die_notrace "image_to_vm: src image does not exist: ${SRC_IMAGE}" \
+    "Please verify you have selected the right input." \
+    "Note: only dev/test/factory images can be used as inputs."
+fi
 
 # Memory units are in MBs
 TEMP_IMG="$(dirname "${SRC_IMAGE}")/vm_temp_image.bin"
@@ -118,11 +136,6 @@ TEMP_IMG="$(dirname "${SRC_IMAGE}")/vm_temp_image.bin"
 if [ "${FLAGS_format}" != "vmware" ]; then
   FLAGS_make_vmx="${FLAGS_FALSE}"
 fi
-
-# Convert args to paths.  Need eval to un-quote the string so that shell
-# chars like ~ are processed; just doing FOO=`readlink -f $FOO` won't work.
-FLAGS_from=`eval readlink -f $FLAGS_from`
-FLAGS_to=`eval readlink -f $FLAGS_to`
 
 # Split apart the partitions and make some new ones
 SRC_DEV=$(loopback_partscan "${SRC_IMAGE}")

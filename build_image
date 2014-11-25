@@ -214,30 +214,36 @@ fi
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
 ln -sfT $(basename ${BUILD_DIR}) ${LINK_NAME}
 
-echo "Done. Image(s) created in ${BUILD_DIR}"
+info "Done. Image(s) created in ${BUILD_DIR}"
+echo
 
 # Print out the images we generated.
+summarize() {
+  local name="$1" img="$2"
+
+  info "${name} image created as ${img}"
+  info "To copy the image to a USB key, use:"
+  info "  cros flash usb:// ${OUTSIDE_OUTPUT_DIR}/${img}"
+  if [[ $# -ge 3 ]]; then
+    info "To convert it to a VM image, use:"
+    info "  ./image_to_vm.sh --from=${OUTSIDE_OUTPUT_DIR} --board=${BOARD} $3"
+  fi
+  echo
+}
 if should_build_image ${CHROMEOS_BASE_IMAGE_NAME}; then
-  echo "Non-developer Chromium OS image created as ${PRISTINE_IMAGE_NAME}"
+  summarize "Non-developer Chromium OS" "${PRISTINE_IMAGE_NAME}"
 fi
 if should_build_image ${CHROMEOS_FACTORY_SHIM_NAME}; then
-  echo "Chromium OS Factory install shim created as ${PRISTINE_IMAGE_NAME}"
+  summarize "Chromium OS Factory install shim" "${PRISTINE_IMAGE_NAME}"
 fi
 if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME}; then
-  echo "Developer image created as ${CHROMEOS_DEVELOPER_IMAGE_NAME}"
+  summarize "Developer" "${CHROMEOS_DEVELOPER_IMAGE_NAME}" ""
 fi
 if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
-  echo "Factory test image created as ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"
+  summarize "Factory test" "${CHROMEOS_FACTORY_TEST_IMAGE_NAME}" "--factory"
 fi
 if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
-  echo "Test image created as ${CHROMEOS_TEST_IMAGE_NAME}"
+  summarize "Test" "${CHROMEOS_TEST_IMAGE_NAME}" "--test"
 fi
 
 command_completed
-
-cat << EOF
-To copy the image to a USB key, use:
-  cros flash usb:// ${OUTSIDE_OUTPUT_DIR}
-To convert it to a VMWare image, use:
-  ./image_to_vm.sh --from=${OUTSIDE_OUTPUT_DIR} --board=${BOARD}
-EOF
