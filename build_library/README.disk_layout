@@ -31,38 +31,40 @@ that ROOT-B is 1 block long).
 
 Here is an example disk layout with comments.
 
-// Comments are NOT legal in json, but are used here.
+# Comments are NOT legal in json, but you can include line comments if
+# the line starts with a #. Note that in-line comments are not supported,
+# the # char must to be the first non-blank char of the line.
 {
-  "_comment": "_comment entries will be ignored.",
+  "_comment": "Old style _comment entries will be ignored as well.",
 
-  // Optional. Defaults to false.
+  # Optional. Defaults to false.
   "hybrid_mbr": true,
 
-  // Space seperated list of files to inherit from.
+  # Space seperated list of files to inherit from.
   "parent": "legacy_disk_layout.json",
 
-  // Required. Define drive and filesystem block sizes.
-  // Inherited.
+  # Required. Define drive and filesystem block sizes.
+  # Inherited.
   "metadata":{
     "block_size": 512,
     "fs_block_size": 4096,
-    // Where (in LBA) to place the primary partition entry array.
-    // If not specified, the value is 2.
+    # Where (in LBA) to place the primary partition entry array.
+    # If not specified, the value is 2.
     "primary_entry_array_lba": 2,
-    // The rootdev sysfs path to install the base image. Wildcards are allowed.
-    // The scripts will translate that path into a block device name.
-    // If not specified in your overlay file, a recovery image can not be used
-    // for that platform.
+    # The rootdev sysfs path to install the base image. Wildcards are allowed.
+    # The scripts will translate that path into a block device name.
+    # If not specified in your overlay file, a recovery image can not be used
+    # for that platform.
     "rootdev_base": "/sys/devices/pci0000:00/0000:00:1f.2/ata1/host*/target*/*/block/sd*"
   },
 
-  // All disk layouts for this file.
+  # All disk layouts for this file.
   "layouts":{
 
-    // All other layouts inherit from 'common'.
+    # All other layouts inherit from 'common'.
     "common": [
-      // Every layout is a list of partitions. They will appear on disk in
-      // the order they appear here.
+      # Every layout is a list of partitions. They will appear on disk in
+      # the order they appear here.
       {
         "num": 11,
         "label":"RWFW",
@@ -70,62 +72,62 @@ Here is an example disk layout with comments.
         "size":"8 MiB"
       },
       {
-        // Number to use in partition device name. ie: /dev/sda1. Not tied to
-        // order of partitions on disk. This is the id used for inheritance.
+        # Number to use in partition device name. ie: /dev/sda1. Not tied to
+        # order of partitions on disk. This is the id used for inheritance.
         "num": 1,
 
-        // Partition name.
+        # Partition name.
         "label":"STATE",
 
-        // GPT partition type uuid. Values map to cgpt binary command line
-        // arguments, which contain ChromiumOS specific extentions.
+        # GPT partition type uuid. Values map to cgpt binary command line
+        # arguments, which contain ChromiumOS specific extentions.
         "type":"data",
 
-        // Size of partition in disk blocks (block_size * blocks == bytes).
-        // Only blocks or size can be used here, error will occur if both are
-        // used.
+        # Size of partition in disk blocks (block_size * blocks == bytes).
+        # Only blocks or size can be used here, error will occur if both are
+        # used.
         "blocks":"2097152",
 
-        // Size of partition in size (block_size * blocks / 1024 / 1024 == MiB).
-        // Only blocks or size can be used here, error will occur if both are
-        // used.
+        # Size of partition in size (block_size * blocks / 1024 / 1024 == MiB).
+        # Only blocks or size can be used here, error will occur if both are
+        # used.
         "size":"1024 MiB",
 
-        // What file system will this partition be formatted with.
+        # What file system will this partition be formatted with.
         "fs_format":"ext4",
 
-        // Optional, default is size of partition. Meaningless without
-        // fs_format. Must be less than size of partition.
-        // Size of filesystem in fs size 
-        // (block_size * fs_blocks / 1024 / 1024 == MiB).
+        # Optional, default is size of partition. Meaningless without
+        # fs_format. Must be less than size of partition.
+        # Size of filesystem in fs size
+        # (block_size * fs_blocks / 1024 / 1024 == MiB).
         "fs_size": "2048 MiB",
 
-        // Special handling of this partition. Expand is only supported value.
+        # Special handling of this partition. Expand is only supported value.
         "features":["expand"],
 
-        // Optional, default 'random'. Explicitly define the partition uuid.
-        // 'random' means generate a new one.
+        # Optional, default 'random'. Explicitly define the partition uuid.
+        # 'random' means generate a new one.
         "uuid": "random"
       }
     ],
-    // common is usually good enough for "base", the partition installed on the
-    // fixed device.
+    # common is usually good enough for "base", the partition installed on the
+    # fixed device.
     "base": [
     ],
     "usb": [
-      // This extends base. Partitions can not be removed or added.
-      // Normaly only used to modify partition or fs sizes.
+      # This extends base. Partitions can not be removed or added.
+      # Normaly only used to modify partition or fs sizes.
       {
-        // This number correlates to same partition in base.
+        # This number correlates to same partition in base.
         "num": 11,
 
-        // This label overrides the label on the base partition.
+        # This label overrides the label on the base partition.
         "label":"RWFW",
 
-        // Type overrides to firmware.
+        # Type overrides to firmware.
         "type":"firmware",
 
-        // This partition is resized to be 4 MiB large (from 1024 MiB).
+        # This partition is resized to be 4 MiB large (from 1024 MiB).
         "size":"4 MiB"
       }
     ]

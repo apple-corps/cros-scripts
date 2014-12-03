@@ -123,6 +123,26 @@ def _ApplyLayoutOverrides(layout_to_override, layout):
       layout_to_override.append(copy.deepcopy(part_to_apply))
 
 
+def LoadJSONWithComments(filename):
+  """Loads a JSON file ignoring lines with comments.
+
+  RFC 7159 doesn't allow comments on the file JSON format. This functions loads
+  a JSON file removing all the comment lines. A comment line is any line
+  starting with # and optionally indented with whitespaces. Note that inline
+  comments are not supported.
+
+  Args:
+    filename: The input filename.
+
+  Returns:
+    The parsed JSON object.
+  """
+  regex = re.compile(r'^\s*#.*')
+  with open(filename) as f:
+    source = ''.join(regex.sub('', line) for line in f)
+  return json.loads(source)
+
+
 def _LoadStackedPartitionConfig(filename):
   """Loads a partition table and its possible parent tables.
 
@@ -138,8 +158,7 @@ def _LoadStackedPartitionConfig(filename):
   """
   if not os.path.exists(filename):
     raise ConfigNotFound('Partition config %s was not found!' % filename)
-  with open(filename) as f:
-    config = json.load(f)
+  config = LoadJSONWithComments(filename)
 
   # Let's first apply our new configs onto base.
   common_layout = config['layouts'].setdefault(COMMON_LAYOUT, [])
@@ -384,6 +403,7 @@ def GetTableTotals(config, partitions):
 
 def GetPartitionTable(options, config, image_type):
   """Generates requested image_type layout from a layout configuration.
+
   This loads the base table and then overlays the requested layout over
   the base layout.
 
@@ -966,7 +986,7 @@ def main(argv):
   usage = """%prog <action> [options]
 
 For information on the JSON format, see:
-  http://dev.chromium.org/chromium-os/building-chromium-os/disk-layout-format
+  http://dev.chromium.org/chromium-os/developer-guide/disk-layout-format
 
 The --adjust_part flag takes arguments like:
   <label>:<op><size>
