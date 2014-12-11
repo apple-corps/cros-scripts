@@ -157,6 +157,13 @@ exec cros_workon --board ${BOARD_VARIANT} "\$@"
 EOF
   wrappers+=( "${wrapper}" )
 
+  wrapper="/usr/local/bin/gdb-${BOARD_VARIANT}"
+  sudo_clobber "${wrapper}" <<EOF
+#!/bin/sh
+exec cros_gdb --board="${BOARD_VARIANT}" "\$@"
+EOF
+  wrappers+=( "${wrapper}" )
+
   cmds+=(
     "chmod a+rx ${wrappers[*]}"
     "chown root:root ${wrappers[*]}"
