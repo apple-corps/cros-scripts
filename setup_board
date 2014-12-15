@@ -217,7 +217,7 @@ print_board_binhost_config() {
   # i_arch_map / e_arch_map: maps architectures to internal / external boards.
   # i_kernel_map / e_kernel_map: maps kernels to internal / external boards.
   declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map \
-             e_freon_arch_map i_freon_arch_map
+             e_chrome_arch_map i_chrome_arch_map
   local chrome_binhost_base kernel
   kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
   e_kernel_map=(['chromeos-exynos5']='daisy'
@@ -246,23 +246,26 @@ print_board_binhost_config() {
   # Chrome binhost.
   local e_generic="${e_kernel_map[${kernel:-none}]:-${e_arch_map[${ARCH}]:-}}"
   local i_generic="${i_kernel_map[${kernel:-none}]:-${i_arch_map[${ARCH}]:-}}"
-  local e_freon="" i_freon=""
+  local e_chrome="" i_chrome=""
   if has ozone $(portageq-${BOARD_VARIANT} envvar USE); then
     # If ozone use flag is present, the grab Chrome prebuilts from a builder
     # that uses the ozone use flags. (This use flag only affects Chrome.)
-    e_freon_arch_map=(
+    e_chrome_arch_map=(
       ['amd64']='amd64-generic_freon'
       ['arm']='arm-generic_freon'
     )
-    i_freon_arch_map=(
+    i_chrome_arch_map=(
       ['amd64']='link_freon'
       ['arm']='rush_ryu'
     )
-    e_freon="${e_freon_arch_map[${ARCH}]:-}"
-    i_freon="${i_freon_arch_map[${ARCH}]:-}"
+    e_chrome="${e_chrome_arch_map[${ARCH}]:-}"
+    i_chrome="${i_chrome_arch_map[${ARCH}]:-}"
+  fi
+  if [[ "$BOARD" == "veyron" ]]; then
+    i_chrome="veyron_pinky"
   fi
   local board chrome_binhost internal_binhost preflight_binhost
-  for board in ${BOARD_VARIANT} ${i_freon} ${e_freon} \
+  for board in ${BOARD_VARIANT} ${i_chrome} ${e_chrome} \
                ${BOARD} ${i_generic} ${e_generic}; do
     if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ]]; then
       chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
