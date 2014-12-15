@@ -226,6 +226,7 @@ print_board_binhost_config() {
                 ['chromiumos-tegra124']='daisy_skate')
   e_arch_map=(
     ['amd64']='amd64-generic'
+    ['mips']='mipsel-o32-generic'
     ['x86']='x86-generic'
     ['arm']='daisy'
   )
