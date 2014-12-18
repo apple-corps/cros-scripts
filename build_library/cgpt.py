@@ -9,6 +9,7 @@ from __future__ import print_function
 
 import copy
 import json
+import math
 import optparse
 import os
 import re
@@ -38,6 +39,12 @@ class MismatchedRootfsFormat(Exception):
 
 class MismatchedRootfsBlocks(Exception):
   """Rootfs partitions have different numbers of reserved erase blocks"""
+
+class MissingEraseBlockField(Exception):
+  """Partition has reserved erase blocks but not other fields needed"""
+
+class ExcessFailureProbability(Exception):
+  """Chances are high that the partition will have too many bad blocks"""
 
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
@@ -243,11 +250,12 @@ def LoadPartitionConfig(filename):
     Object containing disk layout configuration
   """
 
-  valid_keys = set(('_comment', 'hybrid_mbr', 'metadata', 'layouts', 'parent'))
+  valid_keys = set(('_comment', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
-      'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num',
-      'size', 'fs_size', 'fs_options'))
+      'uuid', 'label', 'format', 'fs_format', 'type', 'features',
+      'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
+      'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -274,6 +282,9 @@ def LoadPartitionConfig(filename):
         if unknown_keys:
           raise InvalidLayout('Unknown items in layout %s: %r' %
                               (layout_name, unknown_keys))
+
+        if part.get('num') == 'metadata' and 'type' not in part:
+          part['type'] = 'blank'
 
         if part['type'] != 'blank':
           for s in ('num', 'label'):
@@ -319,6 +330,8 @@ def LoadPartitionConfig(filename):
             raise InvalidLayout(
                 'Filesystem may not be larger than partition: %s %s: %d > %d' %
                 (layout_name, part['label'], part['fs_bytes'], part['bytes']))
+        if 'erase_block_size' in part:
+          part['erase_block_size'] = ParseHumanNumber(part['erase_block_size'])
   except KeyError as e:
     raise InvalidLayout('Layout is missing required entries: %s' % e)
 
@@ -345,6 +358,10 @@ def _GetPrimaryEntryArrayLBA(config):
     raise InvalidLayout('Primary entry array (%d) must be at least %d.' %
                         entry_array, pmbr_and_header_size)
   return entry_array
+
+
+def _HasBadEraseBlocks(partitions):
+  return 'max_bad_erase_blocks' in GetMetadataPartition(partitions)
 
 
 def _GetStartSector(config):
@@ -389,6 +406,8 @@ def GetTableTotals(config, partitions):
   # Total up the size of all non-expanding partitions to get the minimum
   # required disk size.
   for partition in partitions:
+    if partition.get('num') == 'metadata':
+      continue
     if 'features' in partition and 'expand' in partition['features']:
       ret['expand_count'] += 1
       ret['expand_min'] += partition['blocks']
@@ -544,6 +563,8 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
 
   # Pass 1: Set up the expanding partition size.
   for partition in partitions:
+    if partition.get('num') == 'metadata':
+      continue
     partition['var'] = partition['blocks']
 
     if partition['type'] != 'blank':
@@ -565,6 +586,8 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
 
   # Pass 2: Write out all the cgpt add commands.
   for partition in partitions:
+    if partition.get('num') == 'metadata':
+      continue
     if partition['type'] != 'blank':
       lines += [
           '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" $1 && ' % (
@@ -628,6 +651,8 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
 
   partitions = GetPartitionTable(options, config, image_type)
   for partition in partitions:
+    if partition.get('num') == 'metadata':
+      continue
     for key in ('label', 'num'):
       if key in partition:
         shell_label = str(partition[key]).replace('-', '_').upper()
@@ -660,6 +685,22 @@ def GetPartitionByNumber(partitions, num):
       return partition
 
   raise PartitionNotFound('Partition %s not found' % num)
+
+
+def GetMetadataPartition(partitions):
+  """Given a partition table returns the metadata partition object.
+
+  Args:
+    partitions: List of partitions to search in
+
+  Returns:
+    An object for the metadata partition
+  """
+  for partition in partitions:
+    if partition.get('num', None) == "metadata":
+      return partition
+
+  return {}
 
 
 def GetPartitionByLabel(partitions, label):
@@ -769,7 +810,7 @@ def GetPartitions(options, image_type, layout_filename):
     A space delimited string of partition numbers.
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
-  return ' '.join(str(p['num']) for p in partitions if 'num' in p)
+  return ' '.join(str(p['num']) for p in partitions if 'num' in p and p['num'] != 'metadata')
 
 
 def GetUUID(options, image_type, layout_filename, num):
@@ -924,6 +965,26 @@ def GetLabel(options, image_type, layout_filename, num):
     return 'UNTITLED'
 
 
+def GetReservedEraseBlocks(options, image_type, layout_filename, num):
+  """Returns the number of erase blocks reserved in the partition.
+
+  Args:
+    options: Flags passed to the script
+    image_type: Type of image eg base/test/dev/factory_install
+    layout_filename: Path to partition configuration file
+    num: Number of the partition you want to read from
+
+  Returns:
+    Number of reserved erase blocks
+  """
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partition = GetPartitionByNumber(partitions, num)
+  if 'reserved_erase_blocks' in partition:
+    return partition['reserved_erase_blocks']
+  else:
+    return 0
+
+
 def DoDebugOutput(options, image_type, layout_filename):
   """Prints out a human readable disk layout in on-disk order.
 
@@ -952,6 +1013,8 @@ def DoDebugOutput(options, image_type, layout_filename):
 
   print('\n%s Layout Data' % image_type.upper())
   for partition in partitions:
+    if partition.get('num') == 'metadata':
+      continue
     if partition['bytes'] < 1024 * 1024:
       size = '%d B' % partition['bytes']
     else:
@@ -1006,6 +1069,89 @@ def CheckRootfsPartitionsMatch(partitions):
             (reserved_erase_blocks, new_reserved_erase_blocks))
 
 
+def Combinations(n, k):
+  """Calculate the binomial coefficient, i.e., "n choose k"
+
+  This calculates the number of ways that k items can be chosen from
+  a set of size n. For example, if there are n blocks and k of them
+  are bad, then this returns the number of ways that the bad blocks
+  can be distributed over the device.
+  See http://en.wikipedia.org/wiki/Binomial_coefficient
+  """
+  return math.factorial(n) / (math.factorial(k) * math.factorial(n - k))
+
+
+def CheckReservedEraseBlocks(partitions):
+  """Checks that the reserved_erase_blocks in each partition is good.
+
+  This function checks that a reasonable value was given for the reserved
+  erase block count. In particular, it checks that there's a less than
+  1 in 100k probability that, if the manufacturer's maximum bad erase
+  block count is met, and assuming bad blocks are uniformly randomly
+  distributed, then more bad blocks will fall in this partition than are
+  reserved. Smaller partitions need a larger reserve percentage.
+
+  We take the number of reserved blocks as a parameter in disk_layout.json
+  rather than just calculating the value so that it can be tweaked
+  explicitly along with others in squeezing the image onto flash. But
+  we check it so that users have an easy method for determining what's
+  acceptable--just try out a new value and do ./build_image.
+  """
+  for partition in partitions:
+    if 'reserved_erase_blocks' in partition:
+      reserved = partition['reserved_erase_blocks']
+      metadata = GetMetadataPartition(partitions)
+      if (not _HasBadEraseBlocks(partitions)
+          or 'bytes' not in metadata
+          or 'erase_block_size' not in metadata):
+        raise MissingEraseBlockField(
+            'unable to check if partition %s will have too many bad blocks due '
+            'to missing metadata fields erase_block_size, size or '
+            'max_bad_erase_blocks' % partition['label'])
+
+      erase_block_size = metadata['erase_block_size']
+      device_erase_blocks = metadata['bytes'] / erase_block_size
+      device_bad_blocks = metadata['max_bad_erase_blocks']
+      distributions = Combinations(device_erase_blocks, device_bad_blocks)
+      partition_erase_blocks = partition['bytes'] / erase_block_size
+      # The idea is to calculate the number of ways that there could be reserved
+      # or more bad blocks inside the partition, assuming that there are
+      # device_bad_blocks in the device in total (the worst case). To get the
+      # probability, we divide this count by the total number of ways that the
+      # bad blocks can be distributed on the whole device. To find the first
+      # number, we sum over increasing values for the count of bad blocks within
+      # the partition the number of ways that those bad blocks can be inside the
+      # partition, multiplied by the number of ways that the remaining blocks
+      # can be distributed outside of the partition.
+      ways_for_failure = sum(
+          Combinations(partition_erase_blocks, partition_bad_blocks) *
+          Combinations(device_erase_blocks - partition_erase_blocks,
+                       device_bad_blocks - partition_bad_blocks)
+          for partition_bad_blocks
+          in range(reserved + 1, device_bad_blocks + 1))
+      probability = (1.0 * ways_for_failure) / distributions
+      if probability > 0.00001:
+        raise ExcessFailureProbability('excessive probability %f of too many '
+                                       'bad blocks in partition %s'
+                                       % (probability, partition['label']))
+
+
+def CheckSimpleNandProperties(partitions):
+  """Checks that NAND partitions are erase-block-aligned and not expand"""
+  if not _HasBadEraseBlocks(partitions):
+    return
+  metadata = GetMetadataPartition(partitions)
+  for partition in partitions:
+    erase_block_size = metadata['erase_block_size']
+    if partition['bytes'] % erase_block_size != 0:
+      raise UnalignedPartition(
+          'partition size %s does not divide erase block size %s' %
+          (partition['bytes'], erase_block_size))
+    if 'features' in partition and 'expand' in partition['features']:
+      raise ExpandNandImpossible(
+          'expand partitions may not be used with raw NAND')
+
+
 def Validate(options, image_type, layout_filename):
   """Validates a layout file, used before reading sizes to check for errors.
 
@@ -1016,6 +1162,8 @@ def Validate(options, image_type, layout_filename):
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
   CheckRootfsPartitionsMatch(partitions)
+  CheckReservedEraseBlocks(partitions)
+  CheckSimpleNandProperties(partitions)
 
 
 def main(argv):
@@ -1055,6 +1203,10 @@ def main(argv):
       'readlabel': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
           'func': GetLabel,
+      },
+      'readreservederaseblocks': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetReservedEraseBlocks,
       },
       'readtype': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],

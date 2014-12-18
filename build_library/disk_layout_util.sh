@@ -148,6 +148,15 @@ get_label() {
   cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
+get_reserved_erase_blocks() {
+  local image_type=$1
+  local part_id=$2
+  get_disk_layout_path
+
+  cgpt_py readreservederaseblocks "${image_type}" "${DISK_LAYOUT_PATH}" \
+    ${part_id}
+}
+
 check_valid_layout() {
   local image_type=$1
   get_disk_layout_path
