@@ -1006,14 +1006,21 @@ This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
   --adjust_part ROOT-A:-20MiB
 
 Actions:
-""" + '\n'.join(['%20s %s' % (x, ' '.join(action_map[x]['usage']))
-                 for x in sorted(action_map)])
+"""
+
+  action_docs = []
+  for action_name, action in sorted(action_map.iteritems()):
+    doc = action['func'].__doc__.split('\n', 1)[0]
+    action_docs.append('  %s %s\n      %s' % (action_name,
+                                              ' '.join(action['usage']), doc))
+  usage += '\n\n'.join(action_docs)
+
   parser = optparse.OptionParser(usage=usage)
   parser.add_option("--adjust_part", dest="adjust_part",
                     help="adjust partition sizes", default="")
   (options, args) = parser.parse_args(args=argv[1:])
 
-  if len(args) < 1 or args[0] not in action_map:
+  if not args or args[0] not in action_map:
     parser.error('need a valid action to perform')
   else:
     action_name = args[0]
