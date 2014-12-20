@@ -266,7 +266,7 @@ print_board_binhost_config() {
       ['arm']='arm-generic_freon'
     )
     i_chrome_arch_map=(
-      ['amd64']='link_freon'
+      ['amd64']='peppy_freon'
       ['arm']='rush_ryu'
     )
     e_chrome="${e_chrome_arch_map[${ARCH}]:-}"
@@ -278,15 +278,21 @@ print_board_binhost_config() {
   local board chrome_binhost internal_binhost preflight_binhost
   for board in ${BOARD_VARIANT} ${i_chrome} ${e_chrome} \
                ${BOARD} ${i_generic} ${e_generic}; do
-    if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ]]; then
+    if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ||
+          -z $(source "${chrome_binhost}";
+               echo -n ${LATEST_RELEASE_CHROME_BINHOST}) ]]; then
       chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
     fi
   done
   for board in ${BOARD_VARIANT} ${BOARD} ${e_generic}; do
-    if [[ -z ${preflight_binhost} || ! -f ${preflight_binhost} ]]; then
+    if [[ -z ${preflight_binhost} || ! -f ${preflight_binhost} ||
+          -z $(source "${preflight_binhost}";
+               echo -n ${PREFLIGHT_BINHOST}) ]]; then
       preflight_binhost="${binhost_dir}/${board}-PREFLIGHT_BINHOST.conf"
     fi
-    if [[ -z ${internal_binhost} || ! -f ${internal_binhost} ]]; then
+    if [[ -z ${internal_binhost} || ! -f ${internal_binhost} ||
+          -z $(source "${internal_binhost}";
+               echo -n ${PREFLIGHT_BINHOST}) ]]; then
       internal_binhost="${internal_binhost_dir}/${board}-PREFLIGHT_BINHOST.conf"
     fi
   done
