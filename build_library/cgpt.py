@@ -241,7 +241,7 @@ def LoadPartitionConfig(filename):
   valid_layout_keys = set((
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
       'uuid', 'label', 'format', 'fs_format', 'type', 'features', 'num',
-      'size', 'fs_size'))
+      'size', 'fs_size', 'fs_options'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -821,6 +821,38 @@ def GetFilesystemFormat(options, image_type, layout_filename, num):
   return partition.get('fs_format')
 
 
+def GetFilesystemOptions(options, image_type, layout_filename, num):
+  """Returns the filesystem options of a given partition and layout type.
+
+  Args:
+    options: Flags passed to the script
+    image_type: Type of image eg base/test/dev/factory_install
+    layout_filename: Path to partition configuration file
+    num: Number of the partition you want to read from
+
+  Returns:
+    The selected partition's filesystem options
+  """
+
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partition = GetPartitionByNumber(partitions, num)
+
+  fs_options = partition.get('fs_options', {})
+  if isinstance(fs_options, dict):
+    fs_format = partition.get('fs_format')
+    result = fs_options.get(fs_format, '')
+  elif isinstance(fs_options, basestring):
+    result = fs_options
+  else:
+    raise InvalidLayout('Partition number %s: fs_format must be a string or '
+                        'dict, not "%s"' % (num, fs_options.__class__.__name__))
+  if '"' in result or "'" in result:
+    raise InvalidLayout('Partition number %s: fs_format cannot have quotes' %
+                        num)
+
+  return result
+
+
 def GetFilesystemSize(options, image_type, layout_filename, num):
   """Returns the filesystem size of a given partition for a given layout type.
 
@@ -956,6 +988,10 @@ def main(argv):
       'readfssize': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
           'func': GetFilesystemSize,
+      },
+      'readfsoptions': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
+          'func': GetFilesystemOptions,
       },
       'readlabel': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],

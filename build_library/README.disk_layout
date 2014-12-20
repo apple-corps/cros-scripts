@@ -96,6 +96,18 @@ Here is an example disk layout with comments.
         # What file system will this partition be formatted with.
         "fs_format":"ext4",
 
+        # Optional, extra filesystem specific options passed to the program that
+        # creates the filesystem. For example, you can pass compression options
+        # to a compressed filesystem. This accepts a dictionary where the key is
+        # any of the valid fs_format values or a string, which will be used
+        # regardless of the fs_format value.
+        "fs_options":{
+          # Create an inode every 64 KiB of data on ext2 filesystems.
+          "ext2":"-i 65536",
+          # Compress squashfs with lzo.
+          "squashfs":"-comp lzo"
+        },
+
         # Optional, default is size of partition. Meaningless without
         # fs_format. Must be less than size of partition.
         # Size of filesystem in fs size
