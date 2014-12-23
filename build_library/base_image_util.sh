@@ -219,6 +219,14 @@ create_base_image() {
 
   setup_etc_shadow "${root_fs_dir}"
 
+  # Create a package for the dev-only files installed in /usr/local of a base
+  # image. This package can later be downloaded with dev_install running from
+  # a base image.
+  # TODO(deymo): Move dev-only-extras.tbz2 outside packages. See
+  # crbug.com/448178 for details.
+  sudo tar -cf "${BOARD_ROOT}/packages/dev-only-extras.tbz2" -I pbzip2 \
+    -C "${root_fs_dir}/usr/local" .
+
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller
   zero_free_space "${root_fs_dir}"
