@@ -46,6 +46,12 @@ class MissingEraseBlockField(Exception):
 class ExcessFailureProbability(Exception):
   """Chances are high that the partition will have too many bad blocks"""
 
+class UnalignedPartition(Exception):
+  """Partition size does not divide erase block size"""
+
+class ExpandNandImpossible(Exception):
+  """Partition is raw NAND and marked with the incompatible expand feature"""
+
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
 # Blocks of the partition entry array.
@@ -364,7 +370,11 @@ def _HasBadEraseBlocks(partitions):
   return 'max_bad_erase_blocks' in GetMetadataPartition(partitions)
 
 
-def _GetStartSector(config):
+def _HasExternalGpt(partitions):
+  return GetMetadataPartition(partitions).get('external_gpt', False)
+
+
+def _GetStartSector(config, partitions):
   """Return the first usable location (LBA) for partitions.
 
   This value is the first LBA after the PMBR, the primary GPT header, and
@@ -375,14 +385,20 @@ def _GetStartSector(config):
 
   Args:
     config: The config dictionary.
+    partitions: List of partitions to process
 
   Returns:
     A suitable LBA for partitions, at least 64.
   """
 
-  entry_array = _GetPrimaryEntryArrayLBA(config)
-  start_sector = max(entry_array + SIZE_OF_PARTITION_ENTRY_ARRAY, 64)
-  return start_sector
+  if _HasExternalGpt(partitions):
+    # If the GPT is external, then the offset of the partitions' actual data
+    # will be 0, and we don't need to make space at the beginning for the GPT.
+    return 0
+  else:
+    entry_array = _GetPrimaryEntryArrayLBA(config)
+    start_sector = max(entry_array + SIZE_OF_PARTITION_ENTRY_ARRAY, 64)
+    return start_sector
 
 
 def GetTableTotals(config, partitions):
@@ -396,7 +412,7 @@ def GetTableTotals(config, partitions):
     Dict containing totals data
   """
 
-  start_sector = _GetStartSector(config)
+  start_sector = _GetStartSector(config, partitions)
   ret = {
       'expand_count': 0,
       'expand_min': 0,
@@ -548,41 +564,69 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   """
 
   partitions = GetPartitionTable(options, config, image_type)
+  metadata = GetMetadataPartition(partitions)
   partition_totals = GetTableTotals(config, partitions)
 
   lines = [
       'write_%s_table() {' % func,
-      'create_image $1 %d %s' % (
-          partition_totals['min_disk_size'],
-          config['metadata']['block_size']),
-      'local curr=%d' % _GetStartSector(config),
-      '# Create the GPT headers and tables. Pad the primary ones.',
-      '${GPT} create -p %d $1' % (_GetPrimaryEntryArrayLBA(config) -
-                                  (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
+  if _HasExternalGpt(partitions):
+    # Read GPT from device to get size, then wipe it out and operate
+    # on GPT in tmpfs. We don't rely on cgpt's ability to deal
+    # directly with the GPT on SPI NOR flash because rewriting the
+    # table so many times would take a long time (>30min).
+    # Also, wiping out the previous GPT with create_image won't work
+    # for NAND and there's no equivalent via cgpt.
+    lines += [
+        'gptfile=$(mktemp)',
+        'flashrom -r -iRW_GPT:${gptfile}',
+        'gptsize=$(stat ${gptfile} --format %s)',
+        'dd if=/dev/zero of=${gptfile} bs=${gptsize} count=1',
+        'target="-D %d ${gptfile}"' % metadata['bytes'],
+    ]
+  else:
+    lines += [
+        'create_image $1 %d %s' % (
+            partition_totals['min_disk_size'],
+            config['metadata']['block_size']),
+        'target=$1',
+    ]
+
+  # ${target} is referenced unquoted because it may expand into multiple
+  # arguments in the case of NAND
+  lines += [
+      'local curr=%d' % _GetStartSector(config, partitions),
+      '# Create the GPT headers and tables. Pad the primary ones.',
+      '${GPT} create -p %d ${target}' % (_GetPrimaryEntryArrayLBA(config) -
+                                         (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
+  ]
+
+  metadata = GetMetadataPartition(partitions)
   # Pass 1: Set up the expanding partition size.
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
     partition['var'] = partition['blocks']
 
-    if partition['type'] != 'blank':
-      if partition['num'] == 1:
-        if 'features' in partition and 'expand' in partition['features']:
-          lines += [
-              'local stateful_size=%s' % partition['blocks'],
-              'if [ -b $1 ]; then',
-              '  stateful_size=$(( $(numsectors $1) - %d))' % (
-                  partition_totals['block_count']),
-              'fi',
-          ]
-          partition['var'] = '${stateful_size}'
-
-  lines += [
-      ': $(( stateful_size -= (stateful_size %% %d) ))' % (
-          config['metadata']['fs_block_size'],),
-  ]
+    if (partition.get('type') != 'blank' and partition['num'] == 1 and
+        'features' in partition and 'expand' in partition['features']):
+      lines += [
+          'local stateful_size=%s' % partition['blocks'],
+          'if [ -b $1 ]; then',
+          '  stateful_size=$(( $(numsectors $1) - %d))' % (
+              partition_totals['block_count']),
+          'fi',
+          ': $(( stateful_size -= (stateful_size %% %d) ))' % (
+              config['metadata']['fs_block_size']),
+      ]
+      partition['var'] = '${stateful_size}'
+    elif _HasBadEraseBlocks(partitions):
+      erase_block_size = metadata['erase_block_size']
+      blocks_per_erase = (erase_block_size /
+                          config['metadata']['block_size'])
+      partition['var'] += (partition.get('reserved_erase_blocks', 0)
+                           * blocks_per_erase)
 
   # Pass 2: Write out all the cgpt add commands.
   for partition in partitions:
@@ -590,13 +634,13 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       continue
     if partition['type'] != 'blank':
       lines += [
-          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" $1 && ' % (
+          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" ${target} && ' % (
               partition['num'], str(partition['var']), partition['type'],
               partition['label']),
       ]
 
     # Increment the curr counter ready for the next partition.
-    if partition['var'] != 0:
+    if partition['var'] != 0 and partition.get('num') != 'metadata':
       lines += [
           ': $(( curr += %s ))' % partition['var'],
       ]
@@ -611,7 +655,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     partition = GetPartitionByNumber(partitions, n)
     if partition['type'] != 'blank':
       lines += [
-          '${GPT} add -i %s -S 0 -T %i -P %i $1' % (n, tries, prio)
+          '${GPT} add -i %s -S 0 -T %i -P %i ${target}' % (n, tries, prio)
       ]
       prio = 0
       # When not writing 'base' function, make sure the other partitions are
@@ -623,10 +667,13 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       if func != 'base':
         tries = 0
 
-  lines += ['${GPT} boot -p -b $2 -i 12 $1']
-  if config.get('hybrid_mbr'):
-    lines += ['install_hybrid_mbr $1']
-  lines += ['${GPT} show $1']
+  lines += ['${GPT} boot -p -b $2 -i 12 ${target}']
+  if metadata.get('hybrid_mbr'):
+    lines += ['install_hybrid_mbr ${target}']
+  lines += ['${GPT} show ${target}']
+
+  if _HasExternalGpt(partitions):
+    lines += ['flashrom -w -iRW_GPT:${gptfile}']
 
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
