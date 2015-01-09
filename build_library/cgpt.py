@@ -870,7 +870,7 @@ def GetFilesystemOptions(options, image_type, layout_filename, num):
     result = fs_options
   else:
     raise InvalidLayout('Partition number %s: fs_format must be a string or '
-                        'dict, not "%s"' % (num, fs_options.__class__.__name__))
+                        'dict, not %s' % (num, type(fs_options)))
   if '"' in result or "'" in result:
     raise InvalidLayout('Partition number %s: fs_format cannot have quotes' %
                         num)
