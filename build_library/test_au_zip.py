@@ -132,7 +132,7 @@ def main():
 
   working_dir = None
   try:
-    working_dir = tempfile.mkdtemp(suffix='au', prefix='tmp')
+    working_dir = tempfile.mkdtemp(suffix='au', prefix='tmp', dir=os.getcwd())
     logging.debug('Using tempdir = %s', working_dir)
 
     zip_file = os.path.join(options.output_dir, options.zip_name)
