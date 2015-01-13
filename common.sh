@@ -913,6 +913,7 @@ disable_rw_mount() {
   local rootfs=$1
   local offset="${2-0}"  # in bytes
   local ro_compat_offset=$((0x464 + 3))  # Set 'highest' byte
+  is_ext_filesystem "${rootfs}" "${offset}" || return 0
   printf '\377' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
             conv=notrunc count=1 bs=1
@@ -922,9 +923,22 @@ enable_rw_mount() {
   local rootfs=$1
   local offset="${2-0}"
   local ro_compat_offset=$((0x464 + 3))  # Set 'highest' byte
+  is_ext_filesystem "${rootfs}" "${offset}" || return 0
   printf '\000' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
             conv=notrunc count=1 bs=1
+}
+
+# Returns wether the passed rootfs is an extended filesystem by checking the
+# ext2 s_magic field in the superblock.
+is_ext_filesystem() {
+  local rootfs=$1
+  local offset="${2-0}"
+  local ext_magic_offset=$((0x400 + 56))
+  local ext_magic="$(sudo dd if="${rootfs}" \
+      skip=$((offset + ext_magic_offset)) bs=1 count=2 2>/dev/null |
+      hexdump -e '1/2 "%.4x"')"
+  test "${ext_magic}" = "ef53"
 }
 
 # Get current timestamp. Assumes common.sh runs at startup.
