@@ -82,7 +82,7 @@ get_partition_size() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readpartsize "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readpartsize "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 get_filesystem_format() {
@@ -90,7 +90,15 @@ get_filesystem_format() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readfsformat "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readfsformat "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
+}
+
+get_filesystem_options() {
+  local image_type=$1
+  local part_id=$2
+  get_disk_layout_path
+
+  cgpt_py readfsoptions "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 get_format() {
@@ -113,7 +121,7 @@ get_uuid() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readuuid "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readuuid "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 get_type() {
@@ -121,7 +129,7 @@ get_type() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readtype "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readtype "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 get_filesystem_size() {
@@ -129,7 +137,7 @@ get_filesystem_size() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readfssize "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readfssize "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 get_label() {
@@ -137,7 +145,7 @@ get_label() {
   local part_id=$2
   get_disk_layout_path
 
-  cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" ${part_id}
+  cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
 check_valid_layout() {
@@ -300,8 +308,11 @@ mk_fs() {
   done
 
   # Keep `local` decl split from assignment so return code is checked.
-  local fs_bytes fs_label fs_format fs_block_size offset fs_type
+  local fs_bytes fs_label fs_format fs_options fs_block_size offset fs_type
   fs_format=$(get_filesystem_format ${image_type} ${part_num})
+  fs_options="$(get_filesystem_options ${image_type} ${part_num})"
+  # Split the fs_options into an array.
+  local fs_options_arr=(${fs_options})
   if [ -z "${fs_format}" ]; then
     # We only make fs for partitions that specify a format.
     return 0
@@ -336,20 +347,22 @@ mk_fs() {
     sudo mkfs.${fs_format} -F -q -U 00000000-0000-0000-0000-000000000000 \
         -b ${fs_block_size} "${part_dev}" "$((fs_bytes / fs_block_size))"
     sudo tune2fs -L "${fs_label}" \
-            -U "${fs_uuid}" \
-            -c 0 \
-            -i 0 \
-            -T 20091119110000 \
-            -m 0 \
-            -r 0 \
-            -e remount-ro \
-            "${part_dev}"
+        -U "${fs_uuid}" \
+        -c 0 \
+        -i 0 \
+        -T 20091119110000 \
+        -m 0 \
+        -r 0 \
+        -e remount-ro \
+        "${part_dev}" \
+        "${fs_options_arr[@]}"
     ;;
   fat12|fat16|fat32)
-    sudo mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${part_dev}"
+    sudo mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${part_dev}" \
+        "${fs_options_arr[@]}"
     ;;
   fat|vfat)
-    sudo mkfs.vfat -n "${fs_label}" "${part_dev}"
+    sudo mkfs.vfat -n "${fs_label}" "${part_dev}" "${fs_options_arr[@]}"
     ;;
   *)
     die "Unknown fs format '${fs_format}' for part ${part_num}";;
