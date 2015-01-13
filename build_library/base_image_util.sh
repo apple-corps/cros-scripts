@@ -34,6 +34,13 @@ cleanup_mounts() {
 
 zero_free_space() {
   local fs_mount_point=$1
+
+  if ! mountpoint -q "${fs_mount_point}"; then
+    info "Not zeroing freespace in ${fs_mount_point} since it isn't a mounted" \
+        "filesystem. This is normal for squashfs and ubifs partitions."
+    return 0
+  fi
+
   info "Zeroing freespace in ${fs_mount_point}"
   # dd is a silly thing and will produce a "No space left on device" message
   # that cannot be turned off and is confusing to unsuspecting victims.
