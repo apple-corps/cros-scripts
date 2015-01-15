@@ -131,7 +131,7 @@ error() {
 
 
 # For all die functions, they must explicitly force set +eu;
-# no reason to have them cause their own crash if we're inthe middle
+# no reason to have them cause their own crash if we're in the middle
 # of reporting an error condition then exiting.
 die_err_trap() {
   local command=$1 result=$2
@@ -929,7 +929,7 @@ enable_rw_mount() {
             conv=notrunc count=1 bs=1
 }
 
-# Returns wether the passed rootfs is an extended filesystem by checking the
+# Returns whether the passed rootfs is an extended filesystem by checking the
 # ext2 s_magic field in the superblock.
 is_ext_filesystem() {
   local rootfs=$1
@@ -982,7 +982,7 @@ command_completed() {
   local cmd_base=$(basename "${command_line_arr[0]}")
   print_time_elapsed ${run_time} ${cmd_base}
 
-  # Prepare command stats in an associative array.  Additonal command-specific
+  # Prepare command stats in an associative array.  Additional command-specific
   # stats can be added through EXTRA_COMMAND_STATS associative array.
   declare -A stats
   stats=(
