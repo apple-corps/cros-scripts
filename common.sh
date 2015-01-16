@@ -70,7 +70,6 @@ _dump_trace() {
   p=${#BASH_ARGV[@]}
   for (( n = ${#FUNCNAME[@]}; n > 1; --n )); do
     func=${FUNCNAME[${n} - 1]}
-    src=${BASH_SOURCE[${n}]##*/}
     line=${BASH_LINENO[${n} - 1]}
     args=
     if [[ -z ${BASH_ARGC[${n} -1]} ]]; then
@@ -85,6 +84,7 @@ _dump_trace() {
       error "script called: ${0##/*} ${args}"
       error "Backtrace:  (most recent call is last)"
     else
+      src=${BASH_SOURCE[${n}]##*/}
       error "$(printf '  file %s, line %s, called: %s %s' \
                "${src}" "${line}" "${func}" "${args}")"
     fi
