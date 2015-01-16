@@ -77,6 +77,12 @@ get_block_size() {
   cgpt_py readblocksize "${DISK_LAYOUT_PATH}"
 }
 
+get_image_types() {
+  get_disk_layout_path
+
+  cgpt_py readimagetypes "${DISK_LAYOUT_PATH}"
+}
+
 get_partition_size() {
   local image_type=$1
   local part_id=$2

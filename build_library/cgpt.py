@@ -828,6 +828,21 @@ def GetFilesystemBlockSize(_options, layout_filename):
   return config['metadata']['fs_block_size']
 
 
+def GetImageTypes(_options, layout_filename):
+  """Returns a list of all the image types in the layout.
+
+  Args:
+    options: Flags passed to the script
+    layout_filename: Path to partition configuration file
+
+  Returns:
+    List of all image types
+  """
+
+  config = LoadPartitionConfig(layout_filename)
+  return ' '.join(config['layouts'].keys())
+
+
 def GetType(options, image_type, layout_filename, num):
   """Returns the type of a given partition for a given layout.
 
@@ -857,7 +872,8 @@ def GetPartitions(options, image_type, layout_filename):
     A space delimited string of partition numbers.
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
-  return ' '.join(str(p['num']) for p in partitions if 'num' in p and p['num'] != 'metadata')
+  return ' '.join(str(p['num']) for p in partitions
+                  if 'num' in p and p['num'] != 'metadata')
 
 
 def GetUUID(options, image_type, layout_filename, num):
@@ -1242,6 +1258,10 @@ def main(argv):
       'readfssize': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
           'func': GetFilesystemSize,
+      },
+      'readimagetypes': {
+          'usage': ['<disk_layout>'],
+          'func': GetImageTypes,
       },
       'readfsoptions': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],

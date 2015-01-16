@@ -59,8 +59,6 @@ DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
 DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
-DEFINE_string image_type "base" \
-  "Type of image we're building for (base/factory_install)."
 
 # Parse flags
 FLAGS "$@" || exit 1
@@ -73,6 +71,7 @@ switch_to_strict_mode
 # some of the files contain initialization used by later files.
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
+
 
 rootdigest() {
   local digest=${table#*root_hexdigest=}
@@ -268,31 +267,34 @@ else
   error "Unknown arch: ${FLAGS_arch}"
 fi
 
-already_seen_rootfs=0
-for p in $(get_partitions "${FLAGS_image_type}"); do
-  format=$(get_format "${FLAGS_image_type}" "${p}")
-  if [[ "${format}" == "ubi" ]]; then
-    type=$(get_type "${FLAGS_image_type}" "${p}")
-    # cgpt.py ensures that the rootfs partitions are compatible, in that if
-    # one is ubi then both are, and they have the same number of reserved
-    # blocks. We only want to attach one of them in boot to save time, so
-    # attach %P and get the information for whichever rootfs comes first.
-    if [[ "${type}" == "rootfs" ]]; then
-      if [[ "${already_seen_rootfs}" -ne 0 ]]; then
-        continue
+for image_type in $(get_image_types); do
+  already_seen_rootfs=0
+  for partition in $(get_partitions ${image_type}); do
+    format=$(get_format ${image_type} "${partition}")
+    if [[ "${format}" == "ubi" ]]; then
+      type=$(get_type ${image_type} "${partition}")
+      # cgpt.py ensures that the rootfs partitions are compatible, in that if
+      # one is ubi then both are, and they have the same number of reserved
+      # blocks. We only want to attach one of them in boot to save time, so
+      # attach %P and get the information for whichever rootfs comes first.
+      if [[ "${type}" == "rootfs" ]]; then
+        if [[ "${already_seen_rootfs}" -ne 0 ]]; then
+          continue
+        fi
+        already_seen_rootfs=1
+        partname='%P'
+      else
+        partname="${partition}"
       fi
-      already_seen_rootfs=1
-      partname='%P'
-    else
-      partname="${p}"
+      reserved=$(get_reserved_erase_blocks ${image_type} "${partition}")
+      echo "ubi.mtd=${partname},0,${reserved},${partname}" \
+          >> "${FLAGS_working_dir}/config.txt"
+      fs_format=$(get_filesystem_format ${image_type} "${partition}")
+      if [[ "${fs_format}" != "ubifs" ]]; then
+        echo "ubi.block=${partname},0" >> "${FLAGS_working_dir}/config.txt"
+      fi
     fi
-    echo "ubi.mtd=${partname},0,0,${partname}" \
-        >> "${FLAGS_working_dir}/config.txt"
-    fs_format=$(get_filesystem_format "${FLAGS_image_type}" "${p}")
-    if [[ "${fs_format}" != "ubifs" ]]; then
-      echo "ubi.block=${partname},0" >> "${FLAGS_working_dir}/config.txt"
-    fi
-  fi
+  done
 done
 
 config_file="${FLAGS_working_dir}/config.txt"
