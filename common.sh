@@ -63,12 +63,18 @@ fi
 # Turn on bash debug support if available for backtraces.
 shopt -s extdebug 2>/dev/null
 
-# Output a backtrace all the way back to the raw invocation, suppressing
-# only the _dump_trace frame itself.
-_dump_trace() {
+# Output a backtrace. Optional parameter allows hiding the last
+# frame(s) so functions like "die()" can hide their additional
+# frame(s) if they wish.
+dump_trace() {
+  # Default = 0 hidden frames: show everything except dump_trace
+  # frame itself.
+  local hidden_frames=${1:-0}
   local j n p func src line args
   p=${#BASH_ARGV[@]}
-  for (( n = ${#FUNCNAME[@]}; n > 1; --n )); do
+
+  # Frame 0 is ourselves so it's always suppressed / does not count.
+  for (( n = ${#FUNCNAME[@]}; n > hidden_frames; --n )); do
     func=${FUNCNAME[${n} - 1]}
     line=${BASH_LINENO[${n} - 1]}
     args=
@@ -146,7 +152,7 @@ die_err_trap() {
        '(Note bash sometimes misreports "command not found" as exit code 1 '\
 'instead of 127)'
   fi
-  _dump_trace
+  dump_trace 1
   error
   error "Command failed:"
   DIE_PREFIX='  '
@@ -156,7 +162,7 @@ die_err_trap() {
 # Exit this script due to a failure, outputting a backtrace in the process.
 die() {
   set +e +u
-  _dump_trace
+  dump_trace 1
   error
   error "Error was:"
   DIE_PREFIX='  '
