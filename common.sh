@@ -91,8 +91,9 @@ dump_trace() {
       error "Backtrace:  (most recent call is last)"
     else
       src=${BASH_SOURCE[${n}]##*/}
-      error "$(printf '  file %s, line %s, called: %s %s' \
-               "${src}" "${line}" "${func}" "${args}")"
+      curr_func=${FUNCNAME[${n}]}
+      error "$(printf ' %s:%s:%s(), called: %s %s ' \
+               "${src}" "${line}" "${curr_func}" "${func}" "${args}")"
     fi
   done
 }
