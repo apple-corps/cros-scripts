@@ -73,6 +73,8 @@ dump_trace() {
   local j n p func src line args
   p=${#BASH_ARGV[@]}
 
+  error "$(date)"
+
   # Frame 0 is ourselves so it's always suppressed / does not count.
   for (( n = ${#FUNCNAME[@]}; n > hidden_frames; --n )); do
     func=${FUNCNAME[${n} - 1]}
