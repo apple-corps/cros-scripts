@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# BUILD_LIBRARY_DIR must be set prior to sourcing this file, since this file
+# is sourced as ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
+. "${BUILD_LIBRARY_DIR}/filesystem_util.sh" || exit 1
+
 CGPT_PY="${BUILD_LIBRARY_DIR}/cgpt.py"
 PARTITION_SCRIPT_PATH="usr/sbin/write_gpt.sh"
 DISK_LAYOUT_PATH=
@@ -337,7 +341,7 @@ mk_fs() {
   fs_block_size=$(get_fs_block_size)
   if [ "${fs_bytes}" -le ${fs_block_size} ]; then
     # Skip partitions that are too small.
-    info "Skipping partition $part_num as the blocksize is too small."
+    info "Skipping partition ${part_num} as the blocksize is too small."
     return 0
   fi
 
@@ -379,13 +383,26 @@ mk_fs() {
   fat|vfat)
     sudo mkfs.vfat -n "${fs_label}" "${part_dev}" "${fs_options_arr[@]}"
     ;;
+  squashfs)
+    # Creates an empty squashfs filesystem so unsquashfs works.
+    local squash_dir="$(mktemp -d --suffix=.squashfs)"
+    local squash_file="$(mktemp --suffix=.squashfs)"
+    # Make sure / has the right permission. "-all-root" will change the uid/gid.
+    chmod 0755 "${squash_dir}"
+    # If there are errors in mkquashfs they are sent to stderr, but in the
+    # normal case a lot of useless information is sent to stdout.
+    mksquashfs "${squash_dir}" "${squash_file}" -noappend -all-root \
+        -no-progress -no-recovery "${fs_options_arr[@]}" >/dev/null
+    rmdir "${squash_dir}"
+    sudo dd if="${squash_file}" of="${part_dev}" bs=4096 status=none
+    rm "${squash_file}"
+    ;;
   *)
     die "Unknown fs format '${fs_format}' for part ${part_num}";;
   esac
 
   local mount_dir="$(mktemp -d)"
   local cmds=(
-    "mount '${part_dev}' '${mount_dir}'"
     # mke2fs is funky and sets the root dir owner to current uid:gid.
     "chown 0:0 '${mount_dir}' 2>/dev/null || :"
   )
@@ -405,11 +422,10 @@ mk_fs() {
            "sudo mkdir '${mount_dir}/var'"
     )
   fi
+  fs_mount "${part_dev}" "${mount_dir}" "${fs_format}" "rw"
   sudo_multi "${cmds[@]}"
+  fs_umount "${part_dev}" "${mount_dir}" "${fs_format}" "${fs_options}"
 
-  # In case the umount fails, print processes using the mount point.
-  sudo fuser -vm "${mount_dir}" || true
-  sudo umount "${mount_dir}"
   # We are getting a pseudo random error with util-linux 2.24,
   # https://code.google.com/p/chromium/issues/detail?id=337490
   # The umount system call works, but a clean up after unmount
@@ -429,7 +445,7 @@ mk_fs() {
     done
     sleep 1
   done
-  rm -rf "${mount_dir}"
+  fs_remove_mountpoint "${mount_dir}"
 }
 
 # Creates the gpt image for the given disk layout. In addition to creating
