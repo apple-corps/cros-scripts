@@ -8,7 +8,7 @@
 
 # The number of jobs to pass to tools that can run in parallel (such as make
 # and dpkg-buildpackage
-if [[ -z ${NUM_JOBS} ]]; then
+if [[ -z ${NUM_JOBS:-} ]]; then
   NUM_JOBS=$(grep -c "^processor" /proc/cpuinfo)
 fi
 # Ensure that any sub scripts we invoke get the max proc count.
@@ -240,8 +240,8 @@ set_chroot_trunk_dir() {
     DEPOT_TOOLS_DIR="${_DEPOT_TOOLS_DIRS[1]}"
     return
   fi
-  _process_mount_pt "$1" CHROOT_TRUNK_DIR "${_CHROOT_TRUNK_DIRS[@]}" ${2:+true}
-  _process_mount_pt "$1" DEPOT_TOOLS_DIR "${_DEPOT_TOOLS_DIRS[@]}" ${2:+true}
+  _process_mount_pt "${1:-}" CHROOT_TRUNK_DIR "${_CHROOT_TRUNK_DIRS[@]}" ${2:+true}
+  _process_mount_pt "${1:-}" DEPOT_TOOLS_DIR "${_DEPOT_TOOLS_DIRS[@]}" ${2:+true}
 }
 
 set_chroot_trunk_dir
@@ -254,7 +254,7 @@ get_gclient_root_list() {
     echo "${CHROOT_TRUNK_DIR}"
   fi
 
-  if [[ -n ${COMMON_SH} ]]; then echo "$(dirname "${COMMON_SH}")/../.."; fi
+  if [[ -n ${COMMON_SH:-} ]]; then echo "$(dirname "${COMMON_SH}")/../.."; fi
   if [[ -n ${BASH_SOURCE} ]]; then echo "$(dirname "${BASH_SOURCE}")/../.."; fi
 }
 
@@ -262,7 +262,7 @@ get_gclient_root_list() {
 # not already defined by looking for a src directory in each seach path
 # location.  If we do not find a valid looking root we error out.
 get_gclient_root() {
-  if [[ -n ${GCLIENT_ROOT} ]]; then
+  if [[ -n ${GCLIENT_ROOT:-} ]]; then
     return
   fi
 
