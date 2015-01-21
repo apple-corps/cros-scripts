@@ -37,7 +37,7 @@ This script is used to build a Chromium OS image. Chromium OS comes in many
 different forms.  This scripts can be used to build the following:
 
 base - Pristine Chromium OS image. As similar to Chrome OS as possible.
-dev - Developer image. Like base but with additional developer packages.
+dev [default] - Developer image. Like base but with additional dev packages.
 test - Like dev, but with additional test specific packages and can be easily
   used for automated testing using scripts like run_remote_tests, etc.
 factory_test - Like test but with extra packages and modifications used to
