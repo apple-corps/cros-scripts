@@ -242,8 +242,10 @@ set_chroot_trunk_dir() {
     DEPOT_TOOLS_DIR="${_DEPOT_TOOLS_DIRS[1]}"
     return
   fi
-  _process_mount_pt "${1:-}" CHROOT_TRUNK_DIR "${_CHROOT_TRUNK_DIRS[@]}" ${2:+true}
-  _process_mount_pt "${1:-}" DEPOT_TOOLS_DIR "${_DEPOT_TOOLS_DIRS[@]}" ${2:+true}
+  _process_mount_pt "${1:-}" CHROOT_TRUNK_DIR "${_CHROOT_TRUNK_DIRS[@]}" \
+      ${2:+true}
+  _process_mount_pt "${1:-}" DEPOT_TOOLS_DIR "${_DEPOT_TOOLS_DIRS[@]}" \
+      ${2:+true}
 }
 
 set_chroot_trunk_dir
