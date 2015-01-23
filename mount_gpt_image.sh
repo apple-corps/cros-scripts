@@ -170,7 +170,7 @@ get_gpt_partitions() {
     fi
   fi
 
-  # Mount the stateful partition using a loopback device.
+  # Mount the EFI System Partition using a loopback device.
   local esp_size
   if [[ -n "${FLAGS_esp_mountpt}" ]]; then
     esp_size=$(partsize "${FLAGS_from}/${filename}" 12)
