@@ -52,6 +52,9 @@ class UnalignedPartition(Exception):
 class ExpandNandImpossible(Exception):
   """Partition is raw NAND and marked with the incompatible expand feature"""
 
+class ExcessPartitionSize(Exception):
+  """Partitions sum to more than the size of the whole device"""
+
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
 # Blocks of the partition entry array.
@@ -1216,6 +1219,20 @@ def CheckSimpleNandProperties(partitions):
           'expand partitions may not be used with raw NAND')
 
 
+def CheckTotalSize(partitions):
+  """Checks that the sum size of all partitions fits within the device"""
+  metadata = GetMetadataPartition(partitions)
+  if 'bytes' not in metadata:
+    return
+  capacity = metadata['bytes']
+  erase_block_size = metadata.get('erase_block_size', 0);
+  total = sum(partition['bytes'] +
+              erase_block_size * partition.get('reserved_erase_blocks', 0)
+              for partition in partitions if partition.get('num') != 'metadata')
+  if total > capacity:
+    raise ExcessPartitionSize('capacity = %d, total=%d' % (capacity, total))
+
+
 def Validate(options, image_type, layout_filename):
   """Validates a layout file, used before reading sizes to check for errors.
 
@@ -1228,6 +1245,7 @@ def Validate(options, image_type, layout_filename):
   CheckRootfsPartitionsMatch(partitions)
   CheckReservedEraseBlocks(partitions)
   CheckSimpleNandProperties(partitions)
+  CheckTotalSize(partitions)
 
 
 def main(argv):
