@@ -80,6 +80,15 @@
       {
         "num": 3,
         "format":"ubi"
+      },
+      # BBT partition exists just to hold a few blocks open for
+      # the bad block table.
+      {
+        "num": 13,
+        "label": "BBT",
+        "size": 0,
+        "type": "blank",
+        "reserved_erase_blocks": 4
       }
     ],
     "usb": [

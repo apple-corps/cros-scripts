@@ -1166,6 +1166,8 @@ def CheckReservedEraseBlocks(partitions):
   for partition in partitions:
     if ('reserved_erase_blocks' in partition or
         partition.get('format') == 'ubi'):
+      if partition.get('bytes', 0) == 0:
+        continue
       metadata = GetMetadataPartition(partitions)
       if (not _HasBadEraseBlocks(partitions)
           or 'reserved_erase_blocks' not in partition
