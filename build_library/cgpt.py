@@ -676,7 +676,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   lines += ['${GPT} show ${target}']
 
   if _HasExternalGpt(partitions):
-    lines += ['flashrom -w -iRW_GPT:${gptfile}']
+    lines += ['flashrom -w -iRW_GPT:${gptfile} --fast-verify']
 
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
@@ -1225,7 +1225,7 @@ def CheckTotalSize(partitions):
   if 'bytes' not in metadata:
     return
   capacity = metadata['bytes']
-  erase_block_size = metadata.get('erase_block_size', 0);
+  erase_block_size = metadata.get('erase_block_size', 0)
   total = sum(partition['bytes'] +
               erase_block_size * partition.get('reserved_erase_blocks', 0)
               for partition in partitions if partition.get('num') != 'metadata')
