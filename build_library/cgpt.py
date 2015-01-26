@@ -1161,17 +1161,18 @@ def CheckReservedEraseBlocks(partitions):
   acceptable--just try out a new value and do ./build_image.
   """
   for partition in partitions:
-    if 'reserved_erase_blocks' in partition:
-      reserved = partition['reserved_erase_blocks']
+    if ('reserved_erase_blocks' in partition or
+        partition.get('format') == 'ubi'):
       metadata = GetMetadataPartition(partitions)
       if (not _HasBadEraseBlocks(partitions)
+          or 'reserved_erase_blocks' not in partition
           or 'bytes' not in metadata
           or 'erase_block_size' not in metadata):
         raise MissingEraseBlockField(
             'unable to check if partition %s will have too many bad blocks due '
-            'to missing metadata fields erase_block_size, size or '
-            'max_bad_erase_blocks' % partition['label'])
+            'to missing metadata field' % partition['label'])
 
+      reserved = partition['reserved_erase_blocks']
       erase_block_size = metadata['erase_block_size']
       device_erase_blocks = metadata['bytes'] / erase_block_size
       device_bad_blocks = metadata['max_bad_erase_blocks']

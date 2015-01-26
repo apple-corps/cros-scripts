@@ -1,0 +1,92 @@
+{
+  "metadata":{
+    "rootdev_base": "/dev/mtd0",
+    "block_size": 512,
+    "fs_block_size": 4096
+  },
+  "layouts":{
+    "common":[
+      {
+        "num": 6,
+        "label":"KERN-C",
+        "type":"blank",
+        "size":"0"
+      },
+      {
+        "num": 7,
+        "label":"ROOT-C",
+        "type":"blank",
+        "size":"0"
+      },
+      {
+        "num": 2,
+        "label":"KERN-A",
+        "type":"kernel"
+      },
+      {
+        "num": 4,
+        "label":"KERN-B",
+        "type":"kernel"
+      },
+      {
+        "num": 8,
+        "label":"OEM",
+        "type":"data",
+        "fs_format":"ext4",
+        "uuid": "random"
+      },
+      {
+        "num": 1,
+        "label":"STATE",
+        "type":"data",
+        "fs_format":"ext4",
+        "uuid": "random"
+      },
+      {
+        "num": 12,
+        "label":"EFI-SYSTEM",
+        "type":"blank",
+        "size":"0"
+      },
+      {
+        "num": 5,
+        "label":"ROOT-B",
+        "type":"rootfs",
+        "fs_format":"ext2",
+        "uuid": "random"
+      },
+      {
+        "num": 3,
+        "label":"ROOT-A",
+        "type":"rootfs",
+        "fs_format":"ext2",
+        "uuid": "random"
+      }
+    ],
+    "base":[
+      {
+        "num": "metadata",
+        "external_gpt": true
+      },
+      {
+        "num": 1,
+        "format":"ubi",
+        "fs_format":"ubifs"
+      },
+      {
+        "num": 5,
+        "format":"ubi"
+      },
+      {
+        "num": 3,
+        "format":"ubi"
+      }
+    ],
+    "usb": [
+      {
+        "num": 1,
+        "features": ["expand"]
+      }
+    ]
+  }
+}
