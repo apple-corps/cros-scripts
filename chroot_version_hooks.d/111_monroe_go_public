@@ -1,0 +1,15 @@
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# We moved a lot of files to the public overlay.  Make sure we regen the
+# boards profile settings and such so we pull in the public bits.
+
+for b in monroe; do
+  if [[ -d /build/${b} ]]; then
+    ~/trunk/src/scripts/setup_board \
+      --board=${b} \
+      --skip_chroot_upgrade \
+      --regen_configs
+  fi
+done
