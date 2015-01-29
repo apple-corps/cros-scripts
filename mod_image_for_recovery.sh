@@ -157,18 +157,21 @@ create_recovery_kernel_image() {
   local efi_offset_bytes=$(( $efi_offset * $block_size ))
   local efi_size_bytes=$(( $efi_size * $block_size ))
 
-  local efi_dir=$(mktemp -d)
-  sudo mount -o loop,offset=${efi_offset_bytes},sizelimit=${efi_size_bytes} \
-    "${RECOVERY_IMAGE}" "${efi_dir}"
+  if [[ ${efi_size_bytes} -ne 0 ]]; then
+    local efi_dir=$(mktemp -d)
+    sudo mount -o loop,offset=${efi_offset_bytes},sizelimit=${efi_size_bytes} \
+      "${RECOVERY_IMAGE}" "${efi_dir}"
 
-  sudo sed  -i -e "s/cros_legacy/cros_legacy kern_b_hash=$kern_hash/g" \
-    "$efi_dir/syslinux/usb.A.cfg" || true
-  # This will leave the hash in the kernel for all boots, but that should be
-  # safe.
-  sudo sed  -i -e "s/cros_efi/cros_efi kern_b_hash=$kern_hash/g" \
-    "$efi_dir/efi/boot/grub.cfg" || true
-  safe_umount "$efi_dir"
-  rmdir "$efi_dir"
+    sudo sed  -i -e "s/cros_legacy/cros_legacy kern_b_hash=$kern_hash/g" \
+      "$efi_dir/syslinux/usb.A.cfg" || true
+    # This will leave the hash in the kernel for all boots, but that should be
+    # safe.
+    sudo sed  -i -e "s/cros_efi/cros_efi kern_b_hash=$kern_hash/g" \
+      "$efi_dir/efi/boot/grub.cfg" || true
+    safe_umount "$efi_dir"
+    rmdir "$efi_dir"
+  fi
+
   trap - EXIT
 }
 
