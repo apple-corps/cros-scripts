@@ -34,6 +34,9 @@ class InvalidSize(Exception):
 class ConflictingOptions(Exception):
   """Conflicting Options"""
 
+class ConflictingPartitionOrder(Exception):
+  """The partition order in the parent and child layout don't match."""
+
 class MismatchedRootfsFormat(Exception):
   """Rootfs partitions in different formats"""
 
@@ -131,18 +134,48 @@ def _ApplyLayoutOverrides(layout_to_override, layout):
   First add missing partition from layout to layout_to_override.
   Then, update partitions in layout_to_override with layout information.
   """
+  # First check that all the partitions defined in both layouts are defined in
+  # the same order in each layout. Otherwise, the order in which they end up
+  # in the merged layout doesn't match what the user sees in the child layout.
+  common_nums = set.intersection(
+      {part['num'] for part in layout_to_override if 'num' in part},
+      {part['num'] for part in layout if 'num' in part})
+  layout_to_override_order = [part['num'] for part in layout_to_override
+                              if part.get('num') in common_nums]
+  layout_order = [part['num'] for part in layout
+                  if part.get('num') in common_nums]
+  if layout_order != layout_to_override_order:
+    raise ConflictingPartitionOrder(
+        'Layouts share partitions %s but they are in different order: '
+        'layout_to_override: %s, layout: %s' % (
+            sorted(common_nums),
+            [part.get('num') for part in layout_to_override],
+            [part.get('num') for part in layout]))
+
+  # Merge layouts with the partitions in the same order they are in both
+  # layouts.
+  part_index = 0
   for part_to_apply in layout:
     num = part_to_apply.get('num')
-    if not num:
-      continue
 
-    for part in layout_to_override:
-      if part.get('num') == num:
-        part.update(part_to_apply)
-        break
-    # need of deepcopy, in case we change layout later.
-    else:
+    if part_index == len(layout_to_override):
+      # The part_to_apply is past the list of partitions to override, this
+      # means that is a new partition added at the end.
+      # Need of deepcopy, in case we change layout later.
       layout_to_override.append(copy.deepcopy(part_to_apply))
+    elif layout_to_override[part_index].get('num') is None and num is None:
+      # Allow modifying gaps after a partition.
+      # TODO(deymo): Drop support for "gap" partitions and use alignment
+      # instead.
+      layout_to_override[part_index].update(part_to_apply)
+    elif num in common_nums:
+      while layout_to_override[part_index].get('num') != num:
+        part_index += 1
+      layout_to_override[part_index].update(part_to_apply)
+    else:
+      # Need of deepcopy, in case we change layout later.
+      layout_to_override.insert(part_index, copy.deepcopy(part_to_apply))
+    part_index += 1
 
 
 def LoadJSONWithComments(filename):
