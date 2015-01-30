@@ -1147,7 +1147,12 @@ def Combinations(n, k):
   are bad, then this returns the number of ways that the bad blocks
   can be distributed over the device.
   See http://en.wikipedia.org/wiki/Binomial_coefficient
+
+  For convenience to the caller, this function allows impossible cases
+  as input and returns 0 for them.
   """
+  if k < 0 or n < k:
+    return 0
   return math.factorial(n) / (math.factorial(k) * math.factorial(n - k))
 
 
@@ -1169,7 +1174,7 @@ def CheckReservedEraseBlocks(partitions):
   """
   for partition in partitions:
     if ('reserved_erase_blocks' in partition or
-        partition.get('format') == 'ubi'):
+        partition.get('format') in ('ubi', 'nand')):
       if partition.get('bytes', 0) == 0:
         continue
       metadata = GetMetadataPartition(partitions)
@@ -1249,9 +1254,9 @@ def Validate(options, image_type, layout_filename):
   """
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
   CheckRootfsPartitionsMatch(partitions)
-  CheckReservedEraseBlocks(partitions)
-  CheckSimpleNandProperties(partitions)
   CheckTotalSize(partitions)
+  CheckSimpleNandProperties(partitions)
+  CheckReservedEraseBlocks(partitions)
 
 
 def main(argv):
