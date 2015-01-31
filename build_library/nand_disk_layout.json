@@ -36,13 +36,6 @@
         "uuid": "random"
       },
       {
-        "num": 1,
-        "label":"STATE",
-        "type":"data",
-        "fs_format":"ext4",
-        "uuid": "random"
-      },
-      {
         "num": 12,
         "label":"EFI-SYSTEM",
         "type":"blank",
@@ -61,6 +54,13 @@
         "type":"rootfs",
         "fs_format":"ext2",
         "uuid": "random"
+      },
+      {
+        "num": 1,
+        "label": "STATE",
+        "type": "data",
+        "fs_format": "ext4",
+        "uuid": "random"
       }
     ],
     "base":[
@@ -69,17 +69,17 @@
         "external_gpt": true
       },
       {
-        "num": 1,
-        "format":"ubi",
-        "fs_format":"ubifs"
-      },
-      {
         "num": 5,
         "format":"ubi"
       },
       {
         "num": 3,
         "format":"ubi"
+      },
+      {
+        "num": 1,
+        "format": "ubi",
+        "fs_format": "ubifs"
       },
       # BBT partition exists just to hold a few blocks open for
       # the bad block table.
