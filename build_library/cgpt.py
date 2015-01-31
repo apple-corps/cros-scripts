@@ -198,6 +198,10 @@ def _LoadStackedPartitionConfig(filename):
   # Now let's inherit the values from all our parents.
   for parent in config.get('parent', '').split():
     parent_filename = os.path.join(dirname, parent)
+    if not os.path.exists(parent_filename):
+      # Try loading the parent file from the cgpt.py directory (global config).
+      parent_filename = os.path.join(os.path.join(os.path.dirname(__file__),
+                                                  parent))
     parent_config = _LoadStackedPartitionConfig(parent_filename)
 
     # First if the parent is missing any fields the new config has, fill them
