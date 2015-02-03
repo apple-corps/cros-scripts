@@ -502,6 +502,21 @@ def GetPartitionTable(options, config, image_type):
   partitions = copy.deepcopy(config['layouts'][image_type])
   metadata = config['metadata']
 
+  # Convert fs_options to a string.
+  for partition in partitions:
+    fs_options = partition.get('fs_options', '')
+    if isinstance(fs_options, dict):
+      fs_format = partition.get('fs_format')
+      fs_options = fs_options.get(fs_format, '')
+    elif not isinstance(fs_options, basestring):
+      raise InvalidLayout('Partition number %s: fs_format must be a string or '
+                          'dict, not %s' % (partition.get('num'),
+                                            type(fs_options)))
+    if '"' in fs_options or "'" in fs_options:
+      raise InvalidLayout('Partition number %s: fs_format cannot have quotes' %
+                          partition.get('num'))
+    partition['fs_options'] = fs_options
+
   for adjustment_str in options.adjust_part.split():
     adjustment = adjustment_str.split(':')
     if len(adjustment) < 2:
@@ -747,11 +762,13 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
         fs_bytes = partition.get('fs_bytes', part_bytes)
         part_format = partition.get('format', '')
         fs_format = partition.get('fs_format', '')
+        fs_options = partition.get('fs_options', '')
         lines += [
             'PARTITION_SIZE_%s=%s' % (shell_label, part_bytes),
             '     DATA_SIZE_%s=%s' % (shell_label, fs_bytes),
             '        FORMAT_%s=%s' % (shell_label, part_format),
             '     FS_FORMAT_%s=%s' % (shell_label, fs_format),
+            '    FS_OPTIONS_%s="%s"' % (shell_label, fs_options),
         ]
 
   sfile.write('%s\n}\n' % '\n  '.join(lines))
@@ -768,7 +785,7 @@ def GetPartitionByNumber(partitions, num):
     An object for the selected partition
   """
   for partition in partitions:
-    if partition.get('num', None) == int(num):
+    if partition.get('num') == int(num):
       return partition
 
   raise PartitionNotFound('Partition %s not found' % num)
@@ -784,7 +801,7 @@ def GetMetadataPartition(partitions):
     An object for the metadata partition
   """
   for partition in partitions:
-    if partition.get('num', None) == "metadata":
+    if partition.get('num') == "metadata":
       return partition
 
   return {}
@@ -818,7 +835,6 @@ def WritePartitionScript(options, image_type, layout_filename, sfilename):
     layout_filename: Path to partition configuration file
     sfilename: Filename to write the finished script to
   """
-
   config = LoadPartitionConfig(layout_filename)
 
   with open(sfilename, 'w') as f:
@@ -1006,20 +1022,7 @@ def GetFilesystemOptions(options, image_type, layout_filename, num):
   partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
   partition = GetPartitionByNumber(partitions, num)
 
-  fs_options = partition.get('fs_options', {})
-  if isinstance(fs_options, dict):
-    fs_format = partition.get('fs_format')
-    result = fs_options.get(fs_format, '')
-  elif isinstance(fs_options, basestring):
-    result = fs_options
-  else:
-    raise InvalidLayout('Partition number %s: fs_format must be a string or '
-                        'dict, not %s' % (num, type(fs_options)))
-  if '"' in result or "'" in result:
-    raise InvalidLayout('Partition number %s: fs_format cannot have quotes' %
-                        num)
-
-  return result
+  return partition.get('fs_options')
 
 
 def GetFilesystemSize(options, image_type, layout_filename, num):
