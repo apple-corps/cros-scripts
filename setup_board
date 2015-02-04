@@ -239,7 +239,7 @@ print_board_binhost_config() {
     ['amd64']='amd64-generic'
     ['mips']='mipsel-o32-generic'
     ['x86']='x86-generic'
-    ['arm']='daisy'
+    ['arm']='arm-generic'
   )
   i_arch_map=(
     ['amd64']='lumpy'
