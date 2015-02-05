@@ -440,11 +440,10 @@ build_gpt_image() {
   local outdev="$1"
   local disk_layout="$2"
 
-  # Build the partition table. We create a temporary file for this here.
-  local partition_script_path="$(mktemp)"
+  # Build the partition table and partition script.
+  local partition_script_path="$(dirname "${outdev}")/partition_script.sh"
   write_partition_script "${disk_layout}" "${partition_script_path}"
   run_partition_script "${outdev}" "${partition_script_path}"
-  rm "${partition_script_path}"
 
   # Emit the gpt scripts so we can use them from here on out.
   emit_gpt_scripts "${outdev}" "$(dirname "${outdev}")"
