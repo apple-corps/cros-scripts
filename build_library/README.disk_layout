@@ -154,6 +154,9 @@ Here is an example disk layout with comments.
         # Size of an erase block (needed for partition alignment and making
         # the partitions in the GPT bigger for reserved blocks).
         "erase_block_size": "128 KiB",
+        # Size of a page, i.e., write granularity (needed for sizing UBI
+        # metadata).
+        "page_size": "4 KiB",
         # Maximum bad blocks on the device (for verifying reserved_erase_blocks).
         # The value will be found in NAND device datasheets.
         "max_bad_erase_blocks": 80,

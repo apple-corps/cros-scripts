@@ -36,7 +36,7 @@
         "uuid": "random"
       },
       {
-        # Used for Legacy Bios, and EFI Bios, not ChromeOS hardware
+        # Used for Legacy Bios, and EFI Bios, not Chrome OS hardware.
         "num": 12,
         "label": "EFI-SYSTEM",
         "type": "efi",

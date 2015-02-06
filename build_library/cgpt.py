@@ -301,7 +301,8 @@ def LoadPartitionConfig(filename):
       '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
       'uuid', 'label', 'format', 'fs_format', 'type', 'features',
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
-      'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt'))
+      'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
+      'page_size'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -379,6 +380,8 @@ def LoadPartitionConfig(filename):
                 (layout_name, part['label'], part['fs_bytes'], part['bytes']))
         if 'erase_block_size' in part:
           part['erase_block_size'] = ParseHumanNumber(part['erase_block_size'])
+        if 'page_size' in part:
+          part['page_size'] = ParseHumanNumber(part['page_size'])
   except KeyError as e:
     raise InvalidLayout('Layout is missing required entries: %s' % e)
 
@@ -606,6 +609,44 @@ def GetScriptShell():
   return script_shell
 
 
+def GetFullPartitionSize(partition, metadata):
+  """Get the size of the partition including metadata/reserved space in bytes.
+
+  The partition only has to be bigger for raw NAND devices. Formula:
+  - Add UBI per-block metadata (2 pages) if partition is UBI
+  - Round up to erase block size
+  - Add UBI per-partition metadata (4 blocks) if partition is UBI
+  - Add reserved erase blocks
+  """
+
+  erase_block_size = metadata.get('erase_block_size', 0)
+  size = partition['bytes']
+
+  if erase_block_size == 0:
+    return size
+
+  # See "Flash space overhead" in
+  # http://www.linux-mtd.infradead.org/doc/ubi.html
+  # for overhead calculations.
+  is_ubi = partition.get('format') == 'ubi'
+  reserved_erase_blocks = partition.get('reserved_erase_blocks', 0)
+  page_size = metadata.get('page_size', 0)
+
+  if is_ubi:
+    ubi_block_size = erase_block_size - 2 * page_size
+    erase_blocks = (size + ubi_block_size - 1) // ubi_block_size
+    size += erase_blocks * 2 * page_size
+
+  erase_blocks = (size + erase_block_size - 1) // erase_block_size
+  size = erase_blocks * erase_block_size
+
+  if is_ubi:
+    size += erase_block_size * 4
+
+  size += reserved_erase_blocks * erase_block_size
+  return size
+
+
 def WriteLayoutFunction(options, sfile, func, image_type, config):
   """Writes a shell script function to write out a given partition table.
 
@@ -663,7 +704,8 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
-    partition['var'] = partition['blocks']
+    partition['var'] = (GetFullPartitionSize(partition, metadata) /
+                        config['metadata']['block_size'])
 
     if (partition.get('type') != 'blank' and partition['num'] == 1 and
         'features' in partition and 'expand' in partition['features']):
@@ -677,12 +719,6 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
               config['metadata']['fs_block_size']),
       ]
       partition['var'] = '${stateful_size}'
-    elif _HasBadEraseBlocks(partitions):
-      erase_block_size = metadata['erase_block_size']
-      blocks_per_erase = (erase_block_size /
-                          config['metadata']['block_size'])
-      partition['var'] += (partition.get('reserved_erase_blocks', 0)
-                           * blocks_per_erase)
 
   # Pass 2: Write out all the cgpt add commands.
   for partition in partitions:
@@ -707,25 +743,24 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   # The order of partition numbers in this loop matters.
   # Make sure partition #2 is the first one, since it will be marked as
   # default bootable partition.
-  for n in (2, 4, 6):
-    partition = GetPartitionByNumber(partitions, n)
-    if partition['type'] != 'blank':
-      lines += [
-          '${GPT} add -i %s -S 0 -T %i -P %i ${target}' % (n, tries, prio)
-      ]
-      prio = 0
-      # When not writing 'base' function, make sure the other partitions are
-      # marked as non-bootable (retry count == 0), since the USB layout
-      # doesn't have any valid data in slots B & C. But with base function,
-      # called by chromeos-install script, the KERNEL A partition is replicated
-      # into both slots A & B, so we should leave both bootable for error
-      # recovery in this case.
-      if func != 'base':
-        tries = 0
+  for partition in GetPartitionsByType(partitions, 'kernel'):
+    lines += [
+        '${GPT} add -i %s -S 0 -T %i -P %i ${target}' %
+        (partition['num'], tries, prio)
+    ]
+    prio = 0
+    # When not writing 'base' function, make sure the other partitions are
+    # marked as non-bootable (retry count == 0), since the USB layout
+    # doesn't have any valid data in slots B & C. But with base function,
+    # called by chromeos-install script, the KERNEL A partition is replicated
+    # into both slots A & B, so we should leave both bootable for error
+    # recovery in this case.
+    if func != 'base':
+      tries = 0
 
-  efi_partition = GetPartitionByNumber(partitions, 12)
-  if efi_partition.get('type') != 'blank':
-    lines += ['${GPT} boot -p -b $2 -i 12 ${target}']
+  efi_partitions = GetPartitionsByType(partitions, 'efi')
+  if efi_partitions:
+    lines += ['${GPT} boot -p -b $2 -i %d ${target}' % efi_partitions[0]['num']]
   if metadata.get('hybrid_mbr'):
     lines += ['install_hybrid_mbr ${target}']
   lines += ['${GPT} show ${target}']
@@ -794,6 +829,25 @@ def GetPartitionByNumber(partitions, num):
   raise PartitionNotFound('Partition %s not found' % num)
 
 
+def GetPartitionsByType(partitions, typename):
+  """Given a partition table and type returns the partitions of the type.
+
+  Partitions are sorted in num order.
+
+  Args:
+    partitions: List of partitions to search in
+    typename: The type of partitions to select
+
+  Returns:
+    A list of partitions of the type
+  """
+  out = []
+  for partition in partitions:
+    if partition.get('type') == typename:
+      out.append(partition)
+  return sorted(out, key=lambda partition: partition.get('num'))
+
+
 def GetMetadataPartition(partitions):
   """Given a partition table returns the metadata partition object.
 
@@ -804,7 +858,7 @@ def GetMetadataPartition(partitions):
     An object for the metadata partition
   """
   for partition in partitions:
-    if partition.get('num') == "metadata":
+    if partition.get('num') == 'metadata':
       return partition
 
   return {}
@@ -1220,7 +1274,8 @@ def CheckReservedEraseBlocks(partitions):
       if (not _HasBadEraseBlocks(partitions)
           or 'reserved_erase_blocks' not in partition
           or 'bytes' not in metadata
-          or 'erase_block_size' not in metadata):
+          or 'erase_block_size' not in metadata
+          or 'page_size' not in metadata):
         raise MissingEraseBlockField(
             'unable to check if partition %s will have too many bad blocks due '
             'to missing metadata field' % partition['label'])
@@ -1275,9 +1330,7 @@ def CheckTotalSize(partitions):
   if 'bytes' not in metadata:
     return
   capacity = metadata['bytes']
-  erase_block_size = metadata.get('erase_block_size', 0)
-  total = sum(partition['bytes'] +
-              erase_block_size * partition.get('reserved_erase_blocks', 0)
+  total = sum(GetFullPartitionSize(partition, metadata)
               for partition in partitions if partition.get('num') != 'metadata')
   if total > capacity:
     raise ExcessPartitionSize('capacity = %d, total=%d' % (capacity, total))
