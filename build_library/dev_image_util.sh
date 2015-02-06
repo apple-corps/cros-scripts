@@ -14,8 +14,7 @@ install_dev_packages() {
 
   info "Adding developer packages to ${image_name}"
 
-  trap "unmount_image ; delete_prompt" EXIT
-
+  trap "check_full_disk ; unmount_image ; delete_prompt" EXIT
   mount_image "${BUILD_DIR}/${image_name}" "${root_fs_dir}" \
     "${stateful_fs_dir}" "${esp_fs_dir}"
 
@@ -133,7 +132,7 @@ EOF
 
   info "Developer image built and stored at ${image_name}"
 
-  cleanup_mounts
+  unmount_image
   trap - EXIT
 
   if [[ ${skip_kernelblock_install} -ne 1 ]]; then

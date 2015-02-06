@@ -4,7 +4,7 @@
 
 . "${SRC_ROOT}/platform/dev/toolchain_utils.sh" || exit 1
 
-cleanup_mounts() {
+check_full_disk() {
   local prev_ret=$?
 
   # Disable die on error.
@@ -22,11 +22,6 @@ cleanup_mounts() {
       error "${df}"
     fi
   fi
-
-  echo "Cleaning up mounts"
-  safe_umount_tree "${root_fs_dir}"
-  safe_umount_tree "${stateful_fs_dir}"
-  safe_umount_tree "${esp_fs_dir}"
 
    # Turn die on error back on.
   set -e
@@ -74,13 +69,13 @@ create_base_image() {
   stateful_fs_dir="${BUILD_DIR}/stateful"
   esp_fs_dir="${BUILD_DIR}/esp"
 
-  trap "cleanup_mounts && delete_prompt" EXIT
-  cleanup_mounts &> /dev/null
-
+  trap "delete_prompt" EXIT
   mkdir "${root_fs_dir}" "${stateful_fs_dir}" "${esp_fs_dir}"
   build_gpt_image "${BUILD_DIR}/${image_name}" "${image_type}"
-  mount_image "${BUILD_DIR}/${image_name}" \
-    "${root_fs_dir}" "${stateful_fs_dir}" "${esp_fs_dir}"
+
+  trap "check_full_disk ; unmount_image ; delete_prompt" EXIT
+  mount_image "${BUILD_DIR}/${image_name}" "${root_fs_dir}" \
+    "${stateful_fs_dir}" "${esp_fs_dir}"
 
   df -h "${root_fs_dir}"
 
@@ -235,7 +230,8 @@ create_base_image() {
   # payloads become smaller
   zero_free_space "${root_fs_dir}"
 
-  cleanup_mounts
+  unmount_image
+  trap - EXIT
 
   USE_DEV_KEYS=
   if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then

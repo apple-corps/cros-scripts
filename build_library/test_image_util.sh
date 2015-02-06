@@ -22,9 +22,8 @@ emerge_chromeos_test() {
 mod_image_for_test () {
   local image_name="$1"
 
-  trap unmount_image EXIT
-  mount_image "${BUILD_DIR}/${image_name}" \
-    "${root_fs_dir}" "${stateful_fs_dir}"
+  trap "check_full_disk ; unmount_image ; delete_prompt" EXIT
+  mount_image "${BUILD_DIR}/${image_name}" "${root_fs_dir}" "${stateful_fs_dir}"
 
   emerge_chromeos_test
 
@@ -54,7 +53,7 @@ mod_image_for_test () {
   # Re-run ldconfig to fix /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 
-  cleanup_mounts
+  unmount_image
   trap - EXIT
 
   if [[ ${skip_kernelblock_install} -ne 1 ]]; then
