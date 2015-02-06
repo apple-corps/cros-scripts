@@ -151,15 +151,18 @@ FLAGS "${@}" || exit 1
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode -u
 
-# $1 - Directory where developer rootfs is mounted.
-# $2 - Directory where developer stateful_partition is mounted.
-# $3 - Directory where the ESP partition is mounted.
+# $1 - The path to the mounted image.
+# $2 - Optional, directory where developer rootfs is mounted.
+# $3 - Optional, directory where developer stateful_partition is mounted.
+# $4 - Optional, directory where the ESP partition is mounted.
 mount_gpt_cleanup() {
-  local rootfs="${1-$FLAGS_rootfs_mountpoint}"
-  local statefs="${2-$FLAGS_statefulfs_mountpoint}"
-  local espfs="${3-$FLAGS_espfs_mountpoint}"
+  local image="$1"
+  local rootfs="${2-$FLAGS_rootfs_mountpoint}"
+  local statefs="${3-$FLAGS_statefulfs_mountpoint}"
+  local espfs="${4-$FLAGS_espfs_mountpoint}"
   "${SCRIPTS_DIR}/mount_gpt_image.sh" \
-    -u -r "${rootfs}" -s "${statefs}" -e "${espfs}"
+    --unmount -r "${rootfs}" -s "${statefs}" -e "${espfs}" \
+    --from "$(dirname "${image}")" --image "$(basename ${image})"
 }
 
 append_boot_flag() {
@@ -236,7 +239,8 @@ build_img() {
 make_image_bootable() {
   local image="$1"
 
-  trap "mount_gpt_cleanup" EXIT
+  trap "mount_gpt_cleanup '${image}' ; die 'cros_make_image_bootable failed.'" \
+    EXIT
   "${SCRIPTS_DIR}/mount_gpt_image.sh" --from "$(dirname "${image}")" \
     --image "$(basename ${image})" -r "${FLAGS_rootfs_mountpoint}" \
     -s "${FLAGS_statefulfs_mountpoint}"

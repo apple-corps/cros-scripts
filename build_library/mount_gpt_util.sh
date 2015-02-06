@@ -13,23 +13,24 @@ MOUNT_GPT_OPTIONS=( )
 # $3: path to stateful fs mount point
 # $4: path to ESP fs mount point; if empty the ESP will not be mounted
 mount_image() {
-  local image_dir="$(dirname $1)"
-  local image="$(basename $1)"
-  MOUNT_GPT_OPTIONS=( -r "$2" -s "$3" )
+  MOUNT_GPT_OPTIONS=(
+    --from "$1"
+    --rootfs_mountpt "$2"
+    --stateful_mountpt "$3"
+  )
 
   if [ $# -ge 4 ]; then
-    MOUNT_GPT_OPTIONS=( "${MOUNT_GPT_OPTIONS[@]}" -e "$4" )
+    MOUNT_GPT_OPTIONS+=( --esp_mountpt "$4" )
   fi
 
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" --from="$image_dir" --image="$image" \
-    "${MOUNT_GPT_OPTIONS[@]}"
+  "${SCRIPTS_DIR}/mount_gpt_image.sh" "${MOUNT_GPT_OPTIONS[@]}"
 }
 
 # unmount_image - Unmount the file systems mounted in the previous
 #   call to mount_image.
 # No arguments
 unmount_image() {
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" -u "${MOUNT_GPT_OPTIONS[@]}"
+  "${SCRIPTS_DIR}/mount_gpt_image.sh" --unmount "${MOUNT_GPT_OPTIONS[@]}"
 
   MOUNT_GPT_OPTIONS=( )
 }
