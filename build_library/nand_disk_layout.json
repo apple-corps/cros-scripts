@@ -36,10 +36,13 @@
         "uuid": "random"
       },
       {
+        # Used for Legacy Bios, and EFI Bios, not ChromeOS hardware
         "num": 12,
-        "label":"EFI-SYSTEM",
-        "type":"blank",
-        "size":"0"
+        "label": "EFI-SYSTEM",
+        "type": "efi",
+        "fs_format": "vfat",
+        "size": "16 MiB",
+        "uuid": "clear"
       },
       {
         "num": 5,
@@ -67,6 +70,12 @@
       {
         "num": "metadata",
         "external_gpt": true
+      },
+      {
+        "num": 12,
+        "label":"EFI-SYSTEM",
+        "type":"blank",
+        "size":"0"
       },
       {
         "num": 5,

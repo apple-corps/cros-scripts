@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -722,7 +722,9 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       if func != 'base':
         tries = 0
 
-  lines += ['${GPT} boot -p -b $2 -i 12 ${target}']
+  efi_partition = GetPartitionByNumber(partitions, 12)
+  if efi_partition.get('type') != 'blank':
+    lines += ['${GPT} boot -p -b $2 -i 12 ${target}']
   if metadata.get('hybrid_mbr'):
     lines += ['install_hybrid_mbr ${target}']
   lines += ['${GPT} show ${target}']
