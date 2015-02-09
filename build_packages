@@ -28,7 +28,7 @@ DEFINE_boolean fetchonly "${FLAGS_FALSE}" \
   "Don't build anything, instead only fetch what is needed."
 DEFINE_boolean unpackonly "${FLAGS_FALSE}" \
   "Don't build anything; instead only fetch and unpack what is needed."
-DEFINE_boolean withdebugsymbols "${FLAGS_TRUE}" \
+DEFINE_boolean withdebugsymbols "${FLAGS_FALSE}" \
   "Install the debug symbols for all packages"
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
