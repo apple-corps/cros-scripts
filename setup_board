@@ -266,7 +266,7 @@ print_board_binhost_config() {
       ['arm']='arm-generic_freon'
     )
     i_chrome_arch_map=(
-      ['amd64']='peppy_freon'
+      ['amd64']='peppy'
       ['arm']='rush_ryu'
     )
     e_chrome="${e_chrome_arch_map[${ARCH}]:-}"
