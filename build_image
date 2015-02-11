@@ -130,7 +130,7 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
 
   BASE_PACKAGE="chromeos-base/chromeos-installshim"
 
-  export USE="${USE} fbconsole vtconsole initramfs tpm i2cdev vfat"
+  export USE="${USE} fbconsole vtconsole factory_shim_ramfs tpm i2cdev vfat"
 fi
 
 if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
