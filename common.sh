@@ -33,8 +33,8 @@ pv_cat_cmd() {
 
 # Make sure we have the location and name of the calling script, using
 # the current value if it is already set.
-: ${SCRIPT_LOCATION:=$(dirname "$(readlink -f "$0")")}
-: ${SCRIPT_NAME:=$(basename "$0")}
+: ${SCRIPT_LOCATION:=$(dirname "$(readlink -f -- "$0")")}
+: ${SCRIPT_NAME:=$(basename -- "$0")}
 
 # Detect whether we're inside a chroot or not
 if [[ -e /etc/cros_chroot_version ]]; then
@@ -681,7 +681,7 @@ sub_mounts() {
   # that things were mounted (since it always has and hopefully always
   # will).  As such, we have to unmount in reverse order to cleanly
   # unmount submounts (think /dev/pts and /dev).
-  awk -v path=$1 -v len="${#1}" \
+  awk -v path="$1" -v len="${#1}" \
     '(substr($2, 1, len) == path) { print $2 }' /proc/mounts | \
     tac | \
     sed -e 's/\\040(deleted)$//'
@@ -695,32 +695,51 @@ sub_mounts() {
 #
 # $1 - The path to unmount.
 safe_umount_tree() {
-  local mounts=$(sub_mounts "$1")
+  local mount_point="$1"
 
-  # Hmm, this shouldn't normally happen, but anything is possible.
-  if [[ -z ${mounts} ]]; then
+  local mounts=( $(sub_mounts "${mount_point}") )
+
+  # Silently return if the mount_point was already unmounted.
+  if [[ ${#mounts[@]} -eq 0 ]]; then
     return 0
   fi
 
   # First try to unmount in one shot to speed things up.
-  # Hide output since we may have devices mounted within a mount point.
-  if safe_umount -d ${mounts} 2> /dev/null; then
+  # Filter out the "filesystem was unmounted" messages to suppress failures to
+  # remove a loop device when the passed mount points are not loop devices. See
+  # crbug.com/458267 for details. Last "| cat" is to keep both exit codes.
+  LC_ALL=C safe_umount -d "${mounts[@]}" 2>&1 |
+    grep -v -F \
+      'filesystem was unmounted, but mount(8) failed: Invalid argument' |
+    cat
+  local umount_code="${PIPESTATUS[0]}"
+  local grep_code="${PIPESTATUS[1]}"
+  if [[ "${umount_code}" == "0" ]]; then
     return 0
   fi
 
-  # Check whether our mounts were successfully unmounted.
-  mounts=$(sub_mounts "$1")
-  if [[ -z ${mounts} ]]; then
-    warn "umount failed, but devices were unmounted anyway"
+  # Check whether our mounts were successfully unmounted even if the umount
+  # command failed.
+  mounts=( $(sub_mounts "${mount_point}") )
+  if [[ ${#mounts[@]} -eq 0 ]]; then
+    # We only warn about the umount error code if there is there was an error
+    # printed in the output.
+    if [[ "${grep_code}" == "0" ]]; then
+      warn "umount failed (exit code ${umount_code}), but the tree was" \
+        "unmounted anyway. See umount errors above."
+    fi
     return 0
   fi
 
   # Well that didn't work, so lazy unmount remaining ones.
-  warn "Failed to unmount ${mounts}"
+  warn "Failed to unmount ${mounts[@]}, these are the processes using the" \
+    "mount points."
+  sudo fuser -vm "${mount_point}" || true
+
   warn "Doing a lazy unmount"
-  if ! safe_umount -d -l ${mounts}; then
-    mounts=$(sub_mounts "$1")
-    die "Failed to lazily unmount ${mounts}"
+  if ! safe_umount -d -l "${mounts[@]}"; then
+    mounts=( $(sub_mounts "${mount_point}") )
+    die "Failed to lazily unmount ${mounts[@]}"
   fi
 }
 
