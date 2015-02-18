@@ -340,8 +340,9 @@ def LoadPartitionConfig(filename):
         if 'size' in part:
           if 'blocks' in part:
             raise ConflictingOptions(
-                'Conflicting settings are used. '
-                'Found section sets both \'blocks\' and \'size\'.')
+                '%s: Conflicting settings are used. '
+                'Found section sets both \'blocks\' and \'size\'.' %
+                part['label'])
           part['bytes'] = ParseHumanNumber(part['size'])
           part['blocks'] = part['bytes'] / metadata['block_size']
 
