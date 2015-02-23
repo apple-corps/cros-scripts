@@ -246,6 +246,10 @@ print_board_binhost_config() {
     ['x86']='x86-alex'
     ['arm']='daisy_skate'
   )
+  declare -A chrome_blacklist
+  chrome_blacklist=(
+    ['falco']=yes
+  )
   if has chrome_internal $(portageq-${BOARD_VARIANT} envvar USE); then
     chrome_binhost_base=${internal_binhost_dir}
   else
@@ -278,6 +282,9 @@ print_board_binhost_config() {
   local board chrome_binhost internal_binhost preflight_binhost
   for board in ${BOARD_VARIANT} ${i_chrome} ${e_chrome} \
                ${BOARD} ${i_generic} ${e_generic}; do
+    if [[ -n "${chrome_blacklist[${board}]}" ]]; then
+      continue
+    fi
     if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ||
           -z $(source "${chrome_binhost}";
                echo -n ${LATEST_RELEASE_CHROME_BINHOST}) ]]; then
