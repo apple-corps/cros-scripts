@@ -1,10 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Script to generate a zip file of delta-generator and its dependencies."""
+
+from __future__ import print_function
 
 import logging.handlers
 import optparse
@@ -32,7 +34,7 @@ BINARY_EXECUTABLES = [
 EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/cros_generate_update_payload',
-    '~/trunk/src/scripts/chromeos-common.sh',
+    '/usr/share/misc/chromeos-common.sh',
     os.path.join(image_sign_dir, 'convert_recovery_to_ssd.sh'),
     os.path.join(image_sign_dir, 'common_minimal.sh'),
     ]
@@ -104,7 +106,7 @@ def GenerateZipFile(zip_file, zip_base):
     os.unlink(zip_file)
 
   logging.debug('Generating zip file %s with contents from %s', zip_file,
-               zip_base)
+                zip_base)
   current_dir = os.getcwd()
   try:
     os.chdir(zip_base)
