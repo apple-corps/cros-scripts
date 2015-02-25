@@ -16,7 +16,6 @@ import subprocess
 import tempfile
 
 # GLOBALS
-image_sign_dir = '~/trunk/src/platform/vboot_reference/scripts/image_signing'
 BINARY_EXECUTABLES = [
     # These are present to add support for auto-allocating loopback devices,
     # and scanning for loopback device partitions.
@@ -35,8 +34,8 @@ EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/cros_generate_update_payload',
     '/usr/share/misc/chromeos-common.sh',
-    os.path.join(image_sign_dir, 'convert_recovery_to_ssd.sh'),
-    os.path.join(image_sign_dir, 'common_minimal.sh'),
+    '/usr/share/misc/convert_recovery_to_ssd.sh',
+    '/usr/share/misc/common_minimal.sh',
     ]
 # We need directories to be copied recursively to a dest within tempdir
 SHELL_LIBRARIES = {'~/trunk/src/scripts/lib/shflags': 'lib/shflags'}
