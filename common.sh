@@ -208,7 +208,7 @@ _process_mount_pt() {
   local base=${1:-/} var=$2 old=$3 new=$4 force=${5:-false}
   local _sudo=$([[ ${USER} != "root" ]] && echo sudo)
   local val=${new}
-  if [[ -L ${base}/${new} ]] || [[ ! -e ${base}/${new} ]]; then
+  if ${force} || [[ -L ${base}/${new} ]] || [[ ! -e ${base}/${new} ]]; then
     # Ok, it's either a symlink or this is the first run.  Upgrade if we can-
     # specifically, if we're outside the chroot and we can rmdir the old.
     # If we cannot rmdir the old, that's due to a mount being bound to that
