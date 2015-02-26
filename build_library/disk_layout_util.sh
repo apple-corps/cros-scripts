@@ -364,6 +364,7 @@ mk_fs() {
   case ${fs_format} in
   ext[234])
     sudo mkfs.${fs_format} -F -q -U 00000000-0000-0000-0000-000000000000 \
+        -E lazy_itable_init=0 \
         -b ${fs_block_size} "${part_dev}" "$((fs_bytes / fs_block_size))"
     sudo tune2fs -L "${fs_label}" \
         -U "${fs_uuid}" \
