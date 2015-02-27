@@ -129,22 +129,25 @@ ebuild_to_package() {
 
 show_project_ebuild_map() {
   local keyword="$1"
-  local cros_workon_vars
+  local project_var
 
   # Column 1: Repo name
   # Column 2: Package name
   for EBUILD in $(find_keyword_workon_ebuilds ${keyword}); do
     (
-      cros_workon_vars=$(grep -E '^CROS_WORKON' "${EBUILD}")
+      project_var=$(awk -- \
+        '/CROS_WORKON_PROJECT=/,/CROS_WORKON_PROJECT=[^(]|\)/' "${EBUILD}")
       # Can only detect syntax errors in subshells; not in our own.
-      if ( eval "${cros_workon_vars}" ); then
-        eval "${cros_workon_vars}"
+      if ( eval "${project_var}" ); then
+        eval "${project_var}"
       else
         error "From $EBUILD, failed to eval:"
-        error "$cros_workon_vars"
+        error "$project_var"
+        continue
       fi
       CP=$(echo "$EBUILD" | ebuild_to_package)
-      echo "${CROS_WORKON_PROJECT}" "${CP}"
+      projects=$(echo "${CROS_WORKON_PROJECT[@]}" | sed 's/ /,/g')
+      echo "${projects:--}" "${CP}"
     )
   done
 }
