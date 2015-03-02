@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python2
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -201,6 +201,289 @@ class JSONLoadingTest(unittest.TestCase):
                     {'num': 5}
                 ]
             }})
+
+  def testFileSystemSizeMustBePositive(self):
+    """Test that zero or negative file system size will raise exception."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": 1,
+        "type": "rootfs",
+        "label": "ROOT-A",
+        "fs_size": "0 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidSize as e:
+      self.assertTrue('must be positive' in str(e))
+    else:
+      self.fail('InvalidSize not raised.')
+
+  def testFileSystemSizeLargerThanPartition(self):
+    """Test that file system size must not be greater than partition."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": 1,
+        "type": "rootfs",
+        "label": "ROOT-A",
+        "size": "4 KiB",
+        "fs_size": "8 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidSize as e:
+      self.assertTrue('may not be larger than partition' in str(e))
+    else:
+      self.fail('InvalidSize not raised.')
+
+  def testFileSystemSizeNotMultipleBlocks(self):
+    """Test that file system size must be multiples of file system blocks."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": 1,
+        "type": "rootfs",
+        "label": "ROOT-A",
+        "size": "4 KiB",
+        "fs_size": "3 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidSize as e:
+      self.assertTrue('not an even number of fs blocks' in str(e))
+    else:
+      self.fail('InvalidSize not raised.')
+
+  def testFileSystemSizeForUbiWithNoPageSize(self):
+    """Test that "page_size" must be present to calculate UBI fs size."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": 1,
+        "type": "rootfs",
+        "format": "ubi",
+        "label": "ROOT-A",
+        "size": "4 KiB",
+        "fs_size": "4 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidLayout as e:
+      self.assertTrue('page_size' in str(e))
+    else:
+      self.fail('InvalidLayout not raised.')
+
+  def testFileSystemSizeForUbiWithNoEraseBlockSize(self):
+    """Test that "erase_block_size" must be present to calculate UBI fs size."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": "metadata",
+        "page_size": "4 KiB"
+      },
+      {
+        "num": 1,
+        "type": "rootfs",
+        "format": "ubi",
+        "label": "ROOT-A",
+        "size": "4 KiB",
+        "fs_size": "4 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidLayout as e:
+      self.assertTrue('erase_block_size' in str(e))
+    else:
+      self.fail('InvalidLayout not raised.')
+
+  def testFileSystemSizeForUbiIsNotMultipleOfUbiEraseBlockSize(self):
+    """Test that we raise when fs_size is not multiple of eraseblocks."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": "metadata",
+        "page_size": "4 KiB",
+        "erase_block_size": "262144"
+      },
+      {
+        "num": 1,
+        "type": "rootfs",
+        "format": "ubi",
+        "label": "ROOT-A",
+        "size": "256 KiB",
+        "fs_size": "256 KiB"
+      }
+    ]
+  }
+}""")
+    try:
+      cgpt.LoadPartitionConfig(self.layout_json)
+    except cgpt.InvalidSize as e:
+      self.assertTrue('to "248 KiB" in the "common" layout' in str(e))
+    else:
+      self.fail('InvalidSize not raised')
+
+  def testFileSystemSizeForUbiIsMultipleOfUbiEraseBlockSize(self):
+    """Test that everything is okay when fs_size is multiple of eraseblocks."""
+    with open(self.layout_json, 'w') as f:
+      f.write("""{
+  "metadata": {
+    "block_size": "512",
+    "fs_block_size": "4 KiB"
+  },
+  "layouts": {
+    "base": [
+      {
+        "num": "metadata",
+        "page_size": "4 KiB",
+        "erase_block_size": "262144"
+      },
+      {
+        "num": 1,
+        "type": "rootfs",
+        "format": "ubi",
+        "label": "ROOT-A",
+        "size": "256 KiB",
+        "fs_size": "253952"
+      }
+    ]
+  }
+}""")
+    self.assertEqual(
+        cgpt.LoadPartitionConfig(self.layout_json),
+        {
+            'layouts': {
+                'base': [
+                    {
+                        'erase_block_size': 262144,
+                        'num': 'metadata',
+                        'page_size': 4096,
+                        'type': 'blank'
+                    },
+                    {
+                        'blocks': 512,
+                        'bytes': 262144,
+                        'format': 'ubi',
+                        'fs_bytes': 253952,
+                        'fs_size': "253952",
+                        'label': 'ROOT-A',
+                        'num': 1,
+                        'size': '256 KiB',
+                        'type': 'rootfs'
+                    }
+                ],
+                'common': []
+            },
+            'metadata': {
+                'block_size': 512,
+                'fs_block_size': 4096
+            }
+        })
+
+
+class UtilityTest(unittest.TestCase):
+  """Test various utility functions in cgpt.py."""
+
+  def testParseHumanNumber(self):
+    """Test that ParseHumanNumber is correct."""
+    test_cases = [
+        ("1", 1),
+        ("2", 2),
+        ("1KB", 1000),
+        ("1KiB", 1024),
+        ("1 K", 1024),
+        ("1 KiB", 1024),
+        ("3 MB", 3000000),
+        ("4 MiB", 4 * 2**20),
+        ("5GB", 5 * 10**9),
+        ("6GiB", 6 * 2**30),
+        ("7TB", 7 * 10**12),
+        ("8TiB", 8 * 2**40),
+    ]
+    for inp, exp in test_cases:
+      self.assertEqual(cgpt.ParseHumanNumber(inp), exp)
+
+  def testProduceHumanNumber(self):
+    """Test that ProduceHumanNumber is correct."""
+    test_cases = [
+        ("1", 1),
+        ("2", 2),
+        ("1 KB", 1000),
+        ("1 KiB", 1024),
+        ("3 MB", 3 * 10**6),
+        ("4 MiB", 4 * 2**20),
+        ("5 GB", 5 * 10**9),
+        ("6 GiB", 6 * 2**30),
+        ("7 TB", 7 * 10**12),
+        ("8 TiB", 8 * 2**40),
+    ]
+    for exp, inp in test_cases:
+      self.assertEqual(cgpt.ProduceHumanNumber(inp), exp)
+
+
+  def testParseProduce(self):
+    """Test that ParseHumanNumber(ProduceHumanNumber()) yields same value."""
+    test_cases = [
+        1, 2,
+        1000, 1024,
+        2 * 10**6, 2 * 2**20,
+        3 * 10**9, 3 * 2**30,
+        4 * 10**12, 4 * 2**40
+    ]
+    for n in test_cases:
+      self.assertEqual(cgpt.ParseHumanNumber(cgpt.ProduceHumanNumber(n)), n)
 
 
 if __name__ == '__main__':

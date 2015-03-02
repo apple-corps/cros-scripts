@@ -103,6 +103,32 @@ def ParseHumanNumber(operand):
   return int(operand_digits) * pow(block_factor, size_factor) * negative
 
 
+def ProduceHumanNumber(number):
+  """A simple reverse of ParseHumanNumber, converting a number to human form.
+
+  Args:
+    number: A number (int) to be converted to human form.
+
+  Returns:
+    A string, such as "1 KiB", that satisfies the condition
+      ParseHumanNumber(ProduceHumanNumber(i)) == i.
+  """
+  scales = [
+      (2**40, 'Ti'),
+      (10**12, 'T'),
+      (2**30, 'Gi'),
+      (10**9, 'G'),
+      (2**20, 'Mi'),
+      (10**6, 'M'),
+      (2**10, 'Ki'),
+      (10**3, 'K')
+  ]
+  for denom, suffix in scales:
+    if (number % denom) == 0:
+      return '%d %sB' % (number // denom, suffix)
+  return str(number)
+
+
 def ParseRelativeNumber(max_number, number):
   """Return the number that is relative to |max_number| by |number|
 
@@ -354,8 +380,12 @@ def LoadPartitionConfig(filename):
 
         if 'fs_size' in part:
           part['fs_bytes'] = ParseHumanNumber(part['fs_size'])
+          if part['fs_bytes'] <= 0:
+            raise InvalidSize(
+                'File system size "%s" must be positive' %
+                part['fs_size'])
           if part['fs_bytes'] > part['bytes']:
-            raise InvalidLayout(
+            raise InvalidSize(
                 'Filesystem may not be larger than partition: %s %s: %d > %d' %
                 (layout_name, part['label'], part['fs_bytes'], part['bytes']))
           if part['fs_bytes'] % metadata['fs_block_size'] != 0:
@@ -363,6 +393,20 @@ def LoadPartitionConfig(filename):
                 'File system size: "%s" (%s bytes) is not an even number of '
                 'fs blocks: %s' %
                 (part['fs_size'], part['fs_bytes'], metadata['fs_block_size']))
+          if part.get('format') == 'ubi':
+            part_meta = GetMetadataPartition(layout)
+            page_size = ParseHumanNumber(part_meta['page_size'])
+            eb_size = ParseHumanNumber(part_meta['erase_block_size'])
+            ubi_eb_size = eb_size - 2 * page_size
+            if (part['fs_bytes'] % ubi_eb_size) != 0:
+              # Trim fs_bytes to multiple of UBI eraseblock size.
+              fs_bytes = part['fs_bytes'] - (part['fs_bytes'] % ubi_eb_size)
+              raise InvalidSize(
+                  'File system size: "%s" (%d bytes) is not a multiple of UBI '
+                  'erase block size (%d). Please set "fs_size" to "%s" in the '
+                  '"common" layout instead.' %
+                  (part['fs_size'], part['fs_bytes'], ubi_eb_size,
+                   ProduceHumanNumber(fs_bytes)))
 
         if 'blocks' in part:
           part['blocks'] = ParseHumanNumber(part['blocks'])
