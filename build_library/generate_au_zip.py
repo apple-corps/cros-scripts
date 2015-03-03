@@ -34,8 +34,8 @@ EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/cros_generate_update_payload',
     '/usr/share/misc/chromeos-common.sh',
-    '/usr/share/misc/convert_recovery_to_ssd.sh',
-    '/usr/share/misc/common_minimal.sh',
+    '/usr/share/vboot/bin/convert_recovery_to_ssd.sh',
+    '/usr/share/vboot/bin/common_minimal.sh',
     ]
 # We need directories to be copied recursively to a dest within tempdir
 SHELL_LIBRARIES = {'~/trunk/src/scripts/lib/shflags': 'lib/shflags'}
