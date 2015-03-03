@@ -180,10 +180,11 @@ check_kernel_size() {
 build_img() {
   local image_name="$1"
   local root_dev="$2"
-  local keyblock="$3"
-  local private="$4"
-  local public="$5"
-  local vblock=${6:-""}
+  local root_dev_size="$3"
+  local keyblock="$4"
+  local private="$5"
+  local public="$6"
+  local vblock=${7:-""}
 
   # Default to non-verified
   local enable_rootfs_verification_flag=--noenable_rootfs_verification
@@ -208,6 +209,7 @@ build_img() {
     --boot_args="${FLAGS_boot_args}" \
     --keep_work \
     --rootfs_image=${root_dev} \
+    --rootfs_image_size=${root_dev_size} \
     --rootfs_hash=${FLAGS_rootfs_hash} \
     --verity_hash_alg=${FLAGS_verity_algorithm} \
     --verity_max_ios=${FLAGS_verity_max_ios} \
@@ -288,10 +290,11 @@ make_image_bootable() {
   fi
 
   # Builds the kernel partition image.
-  build_img "vmlinuz.image" "${root_dev}" "${keyblock}" \
+  local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} 3)
+  build_img "vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" "${keyblock}" \
             "recovery_kernel_data_key.vbprivk" "recovery_key.vbpubk"
-  build_img "hd_vmlinuz.image" "${root_dev}" "kernel.keyblock" \
-            "kernel_data_key.vbprivk" "kernel_subkey.vbpubk" \
+  build_img "hd_vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" \
+            "kernel.keyblock" "kernel_data_key.vbprivk" "kernel_subkey.vbpubk" \
             "vmlinuz_hd.vblock"
 
   # Check the size of kernel image and issue warning when image size is
@@ -304,7 +307,6 @@ make_image_bootable() {
   check_kernel_size ${kernel_image_size_B} 4 B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
-  local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} 3)
   local rootfs_partition_size=$(get_partition_size ${FLAGS_image_type} 3)
   local rootfs_hash_pad=$(( rootfs_partition_size - rootfs_fs_size ))
   info "Appending rootfs.hash (${rootfs_hash_size} bytes) to the root fs"

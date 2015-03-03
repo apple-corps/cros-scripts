@@ -40,6 +40,9 @@ DEFINE_string boot_args "noinitrd" \
 # If provided, will automatically add verified boot arguments.
 DEFINE_string rootfs_image "" \
   "Optional path to the rootfs device or image.(Default: \"\")"
+DEFINE_string rootfs_image_size "" \
+  "Optional size in bytes of the rootfs_image file. Must be a multiple of 4 \
+KiB. If omitted, the filesystem size detected from rootfs_image is used."
 DEFINE_string rootfs_hash "" \
   "Optional path to output the rootfs hash to. (Default: \"\")"
 DEFINE_integer verity_error_behavior 3 \
@@ -113,25 +116,54 @@ device_mapper_args=
 # Even with a rootfs_image, root= is not changed unless specified.
 if [[ -n "${FLAGS_rootfs_image}" && -n "${FLAGS_rootfs_hash}" ]]; then
   # Gets the number of blocks. 4096 byte blocks _are_ expected.
-  if [ -f "${FLAGS_rootfs_image}" ]; then
-    root_fs_block_sz=4096
-    root_fs_sz=$(stat -c '%s' ${FLAGS_rootfs_image})
-    root_fs_blocks=$((root_fs_sz / ${root_fs_block_sz}))
+  if [[ -n "${FLAGS_rootfs_image_size}" ]]; then
+    root_fs_size=${FLAGS_rootfs_image_size}
   else
-    root_fs_blocks=$(sudo dumpe2fs "${FLAGS_rootfs_image}" 2> /dev/null |
-                   grep "Block count" |
-                   tr -d ' ' |
-                   cut -f2 -d:)
-    root_fs_block_sz=$(sudo dumpe2fs "${FLAGS_rootfs_image}" 2> /dev/null |
-                     grep "Block size" |
-                     tr -d ' ' |
-                     cut -f2 -d:)
+    # We try to autodetect the rootfs_image filesystem size.
+    if [[ -f "${FLAGS_rootfs_image}" ]]; then
+      root_fs_size=$(stat -c '%s' ${FLAGS_rootfs_image})
+    elif [[ -b "${FLAGS_rootfs_image}" ]]; then
+      root_fs_type="$(awk -v rootdev="${FLAGS_rootfs_image}" \
+                     '$1 == rootdev { print $3 }' /proc/mounts | head -n 1)"
+      case "${root_fs_type}" in
+        squashfs)
+          # unsquashfs returns the size in KiB as a float value with two
+          # decimals, rounded as printf() would do. To avoid corner cases like
+          # when the fractional part of the size in KiB is less than 0.005,
+          # instead of rounding up the value to the nearest 4KiB, we round it
+          # down and add 1 extra 4 KiB block.
+          root_fs_size_kib=$(sudo unsquashfs -stat "${FLAGS_rootfs_image}" |
+                             grep -E -o 'Filesystem size [0-9\.]+ Kbytes' |
+                             cut -f 3 -d ' ' | cut -f 1 -d '.')
+          root_fs_size=$(( (root_fs_size_kib / 4 + 1) * 4096 ))
+        ;;
+        ext[234])
+          root_fs_blocks=$(sudo dumpe2fs "${FLAGS_rootfs_image}" 2>/dev/null |
+                         grep "Block count" |
+                         tr -d ' ' |
+                         cut -f2 -d:)
+          root_fs_block_sz=$(sudo dumpe2fs "${FLAGS_rootfs_image}" 2>/dev/null |
+                           grep "Block size" |
+                           tr -d ' ' |
+                           cut -f2 -d:)
+          root_fs_size=$(( root_fs_blocks * root_fs_block_sz ))
+        ;;
+        *)
+          die "Unknown root filesystem type ${root_fs_type}."
+        ;;
+      esac
+    else
+      die "Couldn't determine the size of ${FLAGS_rootfs_image}, pass the size \
+with --rootfs_image_size."
+    fi
   fi
-
-  info "rootfs is ${root_fs_blocks} blocks of ${root_fs_block_sz} bytes"
-  if [[ ${root_fs_block_sz} -ne 4096 ]]; then
-    error "Root file system blocks are not 4k!"
+  # Verity assumes a 4 KiB block size.
+  if [[ ! $(( root_fs_size % 4096 )) -eq 0 ]]; then
+    die "The root filesystem size (${root_fs_size}) must be a multiple of \
+4 KiB."
   fi
+  root_fs_blocks=$((root_fs_size / 4096))
+  info "rootfs is ${root_fs_blocks} blocks of 4096 bytes."
 
   info "Generating root fs hash tree (salt '${FLAGS_verity_salt}')."
   # Runs as sudo in case the image is a block device.
