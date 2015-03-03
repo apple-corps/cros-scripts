@@ -443,8 +443,10 @@ if [ -d "${BOARD_ROOT}" ]; then
       warn "Not setting up board root. "
       warn "Use --force to clobber the board root and start again."
     fi
-    # Update the users libc in their board if needed.
-    install_toolchain
+    if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
+      # Update the users libc in their board if needed.
+      install_toolchain
+    fi
     exit 0
   fi
 else
@@ -509,7 +511,8 @@ if ! ${HOST_BOARD}; then
 
   # We install the toolchain related bits after the BOARD_ROOT, BOARD_PROFILE
   # and BOARD_ETC directories have been created.
-  if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
+  if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE}  && \
+        ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
     install_toolchain
   fi
 fi
