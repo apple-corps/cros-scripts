@@ -35,6 +35,7 @@ assert_inside_chroot
 . /usr/share/misc/chromeos-common.sh || exit 1
 . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
+. "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh" || exit 1
 
 switch_to_strict_mode
 
@@ -151,20 +152,6 @@ FLAGS "${@}" || exit 1
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode -u
 
-# $1 - The path to the mounted image.
-# $2 - Optional, directory where developer rootfs is mounted.
-# $3 - Optional, directory where developer stateful_partition is mounted.
-# $4 - Optional, directory where the ESP partition is mounted.
-mount_gpt_cleanup() {
-  local image="$1"
-  local rootfs="${2-$FLAGS_rootfs_mountpoint}"
-  local statefs="${3-$FLAGS_statefulfs_mountpoint}"
-  local espfs="${4-$FLAGS_espfs_mountpoint}"
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" \
-    --unmount -r "${rootfs}" -s "${statefs}" -e "${espfs}" \
-    --from "$(dirname "${image}")" --image "$(basename ${image})"
-}
-
 append_boot_flag() {
   local file="$1"
   local pattern="$2"
@@ -239,11 +226,9 @@ build_img() {
 make_image_bootable() {
   local image="$1"
 
-  trap "mount_gpt_cleanup '${image}' ; die 'cros_make_image_bootable failed.'" \
-    EXIT
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" --from "$(dirname "${image}")" \
-    --image "$(basename ${image})" -r "${FLAGS_rootfs_mountpoint}" \
-    -s "${FLAGS_statefulfs_mountpoint}"
+  trap "unmount_image ; die 'cros_make_image_bootable failed.'" EXIT
+  mount_image "${image}" "${FLAGS_rootfs_mountpoint}" \
+    "${FLAGS_statefulfs_mountpoint}"
 
   # Update legacy boot config templates (in rootfs) before rootfs is locked.
   # This is required because postinst will copy new legacy boot configurations
@@ -262,11 +247,19 @@ make_image_bootable() {
 
   # The rootfs should never be mounted rw again after this point without
   # re-calling make_image_bootable.
-  sudo mount -o remount,ro "${FLAGS_rootfs_mountpoint}"
+  remount_image --safe
+
   # Newer `mount` will decode the filename backing the loop device,
   # so we need to dig deeper and find the answer ourselves.
   root_dev=$(awk -v mnt="${FLAGS_rootfs_mountpoint}" \
              '$2 == mnt { print $1 }' /proc/mounts)
+  if [[ -z "${root_dev}" ]]; then
+    # If the read-only rootfs is not mounted via the kernel using a real block
+    # device and we need to create one here. So far, all the filesystems we
+    # use in the rootfs can be mounted read-only by the kernel (including
+    # squashfs) so we just exit if that's the case.
+    die "Didn't find the rootfs block device device after mounting it."
+  fi
 
   # Make the filesystem un-mountable as read-write.
   # mount_gpt_image.sh will undo this as needed.
@@ -274,7 +267,7 @@ make_image_bootable() {
   if [ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]; then
     # TODO(wad) this would be a good place to reset any other ext2 metadata.
     warn "Disabling r/w mount of the root filesystem"
-    disable_rw_mount "$root_dev"
+    disable_rw_mount "${root_dev}"
   fi
 
   # We sign the image with the recovery_key, because this is what goes onto the
@@ -383,7 +376,7 @@ make_image_bootable() {
       --from="${FLAGS_rootfs_mountpoint}"/boot \
       --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
       ${bootloader_to_flags} \
-      $kernel_part
+      ${kernel_part}
   fi
 
   # We don't need to keep these files around anymore.
@@ -391,9 +384,8 @@ make_image_bootable() {
              "${FLAGS_output_dir}/hd_vmlinuz.image" \
              "${FLAGS_output_dir}/vmlinuz_hd.vblock"
 
+  unmount_image
   trap - EXIT
-  ${SCRIPTS_DIR}/mount_gpt_image.sh -u -r "${FLAGS_rootfs_mountpoint}" \
-    -s "${FLAGS_statefulfs_mountpoint}"
 }
 
 verify_image_rootfs() {

@@ -29,12 +29,15 @@ DEFAULT_IMAGE="chromiumos_image.bin"
 # Flags.
 DEFINE_string board "$DEFAULT_BOARD" \
   "The board for which the image was built." b
-DEFINE_boolean read_only $FLAGS_FALSE \
+DEFINE_boolean read_only ${FLAGS_FALSE} \
   "Mount in read only mode -- skips stateful items."
-DEFINE_boolean safe $FLAGS_FALSE \
+DEFINE_boolean safe ${FLAGS_FALSE} \
   "Mount rootfs in read only mode."
-DEFINE_boolean unmount $FLAGS_FALSE \
-  "Unmount previously mounted dir." u
+DEFINE_boolean unmount ${FLAGS_FALSE} \
+  "Unmount previously mounted image. Can't be used with --remount." u
+DEFINE_boolean remount ${FLAGS_FALSE} \
+  "Remount a previously mounted image. This is useful when changing the "\
+"--read_only and --safe settings. Can't be used with --unmount."
 DEFINE_string from "" \
   "Directory, image, or device with image on it" f
 DEFINE_string image "${DEFAULT_IMAGE}" \
@@ -61,6 +64,11 @@ if [[ ${FLAGS_most_recent} -eq ${FLAGS_TRUE} ]] ; then
 fi
 
 # Check for conflicting args.
+if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} &&
+      ${FLAGS_remount} -eq ${FLAGS_TRUE} ]]; then
+  die_notrace "Can't use --unmount with --remount."
+fi
+
 # If --from is a block device, --image can't also be specified.
 if [[ -b "${FLAGS_from}" ]]; then
   if [[ "${FLAGS_image}" != "${DEFAULT_IMAGE}" ]]; then
@@ -109,6 +117,19 @@ get_partition_size() {
   return 0
 }
 
+load_partition_script() {
+  local partition_script="${FLAGS_from}/${FLAGS_partition_script}"
+  # Attempt to load the partition script from the rootfs when not found in the
+  # FLAGS_from directory.
+  if [[ ! -f "${partition_script}" ]]; then
+    partition_script="${FLAGS_rootfs_mountpt}/${PARTITION_SCRIPT_PATH}"
+  fi
+  if [[ -f "${partition_script}" ]]; then
+    . "${partition_script}"
+    load_partition_vars
+  fi
+}
+
 # Common unmounts for either a device or directory
 unmount_image() {
   info "Unmounting image from ${FLAGS_stateful_mountpt}" \
@@ -138,16 +159,7 @@ unmount_image() {
     fi
   fi
 
-  local partition_script="${FLAGS_from}/${FLAGS_partition_script}"
-  # Attempt to load the partition script from the rootfs when not found in the
-  # FLAGS_from directory.
-  if [[ ! -f "${partition_script}" ]]; then
-    partition_script="${FLAGS_rootfs_mountpt}/${PARTITION_SCRIPT_PATH}"
-  fi
-  if [[ -f "${partition_script}" ]]; then
-    . "${partition_script}"
-    load_partition_vars
-  fi
+  load_partition_script
 
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
@@ -304,6 +316,45 @@ mount_image() {
     "${FLAGS_rootfs_mountpt} successfully."
 }
 
+# Remount a previously mounted gpt based image.
+remount_image() {
+  local ro_rw="rw"
+  if [[ ${FLAGS_read_only} -eq ${FLAGS_TRUE} ]]; then
+    ro_rw="ro"
+  fi
+
+  load_partition_script
+
+  # If all the filesystems are mounted via the kernel, just issue the remount
+  # command with the proper flags.
+  local var_name mountpoint
+  local part_num part_ro_rw part_size
+  for part_num in 3 1 8 12; do
+    var_name="PART_${part_num}_MOUNTPOINT"
+    mountpoint="${!var_name:-}"
+    [[ -n "${mountpoint}" ]] || continue
+
+    part_size=$(get_partition_size "${filename}" ${part_num}) || continue
+
+    if ! mountpoint -q "${mountpoint}"; then
+      # Fallback to unmount everything and re-mount everything.
+      info "Fallback --remount to --unmount and then --remount."
+      unmount_image
+      mount_image
+      return
+    fi
+
+    # The "safe" flags tells if the rootfs should be mounted as read-only,
+    # otherwise we use ${ro_rw}.
+    part_ro_rw="${ro_rw}"
+    if [[ ${part_num} -eq 3 && ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
+      part_ro_rw="ro"
+    fi
+
+    sudo mount "${mountpoint}" -o "remount,${part_ro_rw}"
+  done
+}
+
 # Turn paths into absolute paths.
 [[ -n "${FLAGS_from}" ]] && FLAGS_from="$(readlink -f "${FLAGS_from}")"
 FLAGS_rootfs_mountpt="$(readlink -f "${FLAGS_rootfs_mountpt}")"
@@ -318,6 +369,8 @@ PART_12_MOUNTPOINT="${FLAGS_esp_mountpt}"
 # Perform desired operation.
 if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} ]]; then
   unmount_image
+elif [[ ${FLAGS_remount} -eq ${FLAGS_TRUE} ]]; then
+  remount_image
 else
   mount_image
 fi
