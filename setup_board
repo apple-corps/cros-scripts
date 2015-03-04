@@ -433,21 +433,23 @@ if [ -d "${BOARD_ROOT}" ]; then
     TEMP_DIR=`mktemp -d`
     sudo mv "${BOARD_ROOT}" "${TEMP_DIR}"
     sudo rm -rf --one-file-system "${TEMP_DIR}" &
-  elif [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
+  else
     if ! ${HOST_BOARD}; then
       { print_board_make_conf; print_board_binhost_config; } | \
         sudo_clobber $BOARD_ETC/make.conf.board
     fi
-    if [[ ${FLAGS_quiet} -eq ${FLAGS_FALSE} ]]; then
-      warn "Board output directory '$BOARD_ROOT' already exists."
-      warn "Not setting up board root. "
-      warn "Use --force to clobber the board root and start again."
+    if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
+      if [[ ${FLAGS_quiet} -eq ${FLAGS_FALSE} ]]; then
+        warn "Board output directory '$BOARD_ROOT' already exists."
+        warn "Not setting up board root. "
+        warn "Use --force to clobber the board root and start again."
+      fi
+      if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
+        # Update the users libc in their board if needed.
+        install_toolchain
+      fi
+      exit 0
     fi
-    if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
-      # Update the users libc in their board if needed.
-      install_toolchain
-    fi
-    exit 0
   fi
 else
   # Regenerating configs w/out a board root doesn't make sense.
