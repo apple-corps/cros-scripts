@@ -44,11 +44,13 @@ DEFINE_string image "${DEFAULT_IMAGE}" \
   "Name of the bin file if a directory is specified in the from flag" i
 DEFINE_string partition_script "partition_script.sh" \
   "Name of the script with the partition layout if a directory is specified"
-DEFINE_string "rootfs_mountpt" "/tmp/m" "Mount point for rootfs" r
-DEFINE_string "stateful_mountpt" "/tmp/s" \
+DEFINE_string rootfs_mountpt "/tmp/m" "Mount point for rootfs" r
+DEFINE_string stateful_mountpt "/tmp/s" \
   "Mount point for stateful partition" s
-DEFINE_string "esp_mountpt" "" \
+DEFINE_string esp_mountpt "" \
   "Mount point for esp partition" e
+DEFINE_boolean delete_mountpts ${FLAGS_FALSE} \
+  "Delete the mountpoint directories when unmounting."
 DEFINE_boolean most_recent ${FLAGS_FALSE} "Use the most recent image dir" m
 
 # Parse flags
@@ -194,6 +196,18 @@ unmount_image() {
     fs_umount "${filename}" "${mountpoint}" "${fs_format}" "${fs_options}" \
       "${mount_options}"
   done
+
+  # We need to remove the mountpoints after we unmount all the partitions since
+  # there could be nested mounts.
+  if [[ ${FLAGS_delete_mountpts} -eq ${FLAGS_TRUE} ]]; then
+    for part_num in 12 8 1 3; do
+      var_name="PART_${part_num}_MOUNTPOINT"
+      mountpoint="${!var_name:-}"
+      # Check this is a directory.
+      [[ -n "${mountpoint}" && -d "${mountpoint}" ]] || continue
+      fs_remove_mountpoint "${mountpoint}"
+    done
+  fi
 
   switch_to_strict_mode
 }

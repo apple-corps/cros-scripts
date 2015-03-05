@@ -10,7 +10,7 @@ MOUNT_GPT_OPTIONS=( )
 #   [esp_mount]
 #
 # Mount the root, stateful, and optionally ESP partitions in a Chromium OS
-# image.
+# image. Create the mountpoints when needed.
 # Args:
 #  image: path to image to be mounted
 #  rootfs_mountpt: path to root fs mount point
@@ -53,15 +53,18 @@ remount_image() {
   "${SCRIPTS_DIR}/mount_gpt_image.sh" --remount "${MOUNT_GPT_OPTIONS[@]}" "$@"
 }
 
-# Usage: unmount_image - Unmount the file systems mounted in the previous
-#   call to mount_image.
-# No arguments
+# Usage: unmount_image
+# Unmount the file systems mounted in the previous call to mount_image. The
+# mountpoint directories will be removed, regardless of whether or not they
+# existed when mount_image was called.
+# No arguments.
 unmount_image() {
   if [[ ${#MOUNT_GPT_OPTIONS[@]} -eq 0 ]]; then
     warn "Image already unmounted."
     return 1
   fi
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" --unmount "${MOUNT_GPT_OPTIONS[@]}"
+  "${SCRIPTS_DIR}/mount_gpt_image.sh" --unmount "${MOUNT_GPT_OPTIONS[@]}" \
+    --delete_mountpts
 
   MOUNT_GPT_OPTIONS=( )
 }
