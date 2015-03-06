@@ -1063,6 +1063,14 @@ command_completed() {
 get_board_and_variant() {
   local flags_board=$1
   local flags_variant=$2
+  local flags_brick=$3
+
+  if [[ -n "${flags_brick}" ]]; then
+    BOARD="$(cros_brick_utils --friendly-name ${flags_brick})"
+    BOARD_VARIANT="${BOARD}"
+    VARIANT=""
+    return
+  fi
 
   BOARD=$(echo "${flags_board}" | cut -d '_' -f 1)
   VARIANT=${flags_variant:-$(echo "${flags_board}" | cut -s -d '_' -f 2)}

@@ -23,6 +23,7 @@ DEFINE_boolean force $FLAGS_FALSE \
   "Install toolchain even if already up to date."
 DEFINE_string toolchain "" \
   "Toolchain.  For example: i686-pc-linux-gnu, armv7a-softfloat-linux-gnueabi"
+DEFINE_string brick "" "The brick to install the toolchain for."
 
 
 FLAGS_HELP="usage: $(basename $0) [flags]
@@ -170,18 +171,20 @@ install_toolchain_in_board() {
 
 set -u
 
-if [ -z "$FLAGS_board" ] ; then
-  die "--board required."
+if [[ -z "${FLAGS_board}" ]] && [[ -z "${FLAGS_brick}" ]] ; then
+  die "--board or --brick required."
+elif [[ -n "${FLAGS_board}" ]] && [[ -n "${FLAGS_brick}" ]] ; then
+  die "--board and --brick are incompatible."
 fi
 
-get_board_and_variant $FLAGS_board ""
+get_board_and_variant "${FLAGS_board}" "" "${FLAGS_brick}"
 
 BOARD_ROOT="${FLAGS_board_root:-/build/${BOARD_VARIANT}}"
 BOARD_ETC="${BOARD_ROOT}/etc"
 BOARD_SETUP="${BOARD_ETC}/make.conf.board_setup"
 BOARD_PROFILE="${BOARD_ETC}/portage/profile"
 
-all_toolchains=( $(get_all_board_toolchains "${BOARD}") )
+all_toolchains=( $(get_all_board_toolchains "${FLAGS_brick:-${BOARD}}") )
 : ${FLAGS_toolchain:=${all_toolchains[0]}}
 
 if [ -z "${FLAGS_toolchain}" ]; then

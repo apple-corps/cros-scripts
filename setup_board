@@ -63,6 +63,7 @@ DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
   "Don't emerge any packages during setup_board into the board root."
 DEFINE_string board_root "" \
   "Board root."
+DEFINE_string brick "" "Brick to set up."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -173,8 +174,12 @@ EOF
 }
 
 install_toolchain() {
-  "${GCLIENT_ROOT}/src/scripts/install_toolchain" --board="${BOARD_VARIANT}" \
-    --board_root="${BOARD_ROOT}"
+  local toolchain_cmd="${GCLIENT_ROOT}/src/scripts/install_toolchain"
+  if [[ -n "${FLAGS_brick}" ]]; then
+    "${toolchain_cmd}" --brick="${FLAGS_brick}"
+  else
+    "${toolchain_cmd}" --board="${BOARD_VARIANT}" --board_root="${BOARD_ROOT}"
+  fi
 }
 
 # Print contents of $BOARD_ETC/make.conf.board. This file sources make.conf
@@ -356,19 +361,24 @@ eval set -- "${FLAGS_ARGV}"
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode
 
-if [ -z "$FLAGS_board" ] ; then
-  error "--board required."
-  exit 1
+if [[ -z "${FLAGS_board}" ]] && [[ -z "${FLAGS_brick}" ]]; then
+  die "--board or --brick required."
+elif [[ -n "${FLAGS_board}" ]] && [[ -n "${FLAGS_brick}" ]]; then
+  die "--board and --brick are incompatible."
 fi
 
-get_board_and_variant $FLAGS_board $FLAGS_variant
+get_board_and_variant "${FLAGS_board}" "${FLAGS_variant}" "${FLAGS_brick}"
 
 #
 # Construct board overlay list.
 #
-BOARD_OVERLAY_LIST=$(cros_list_overlays \
-  --board "$BOARD_VARIANT" \
-  --board_overlay "$FLAGS_board_overlay")
+if [[ -n "${FLAGS_brick}" ]]; then
+  BOARD_OVERLAY_LIST=$(cros_list_overlays --brick "${FLAGS_brick}")
+else
+  BOARD_OVERLAY_LIST=$(cros_list_overlays \
+    --board "${BOARD_VARIANT}" \
+    --board_overlay "${FLAGS_board_overlay}")
+fi
 
 # Before we can run any tools, we need to update chroot
 UPDATE_ARGS="--toolchain_boards=${BOARD}"
@@ -385,7 +395,8 @@ fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   UPDATE_ARGS+=" --jobs=${FLAGS_jobs}"
 fi
-if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]; then
+if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]] \
+  || [[ -n "${FLAGS_brick}" ]]; then
   UPDATE_ARGS+=" --skip_toolchain_update"
 fi
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_FALSE}" ] ; then
@@ -395,7 +406,7 @@ fi
 #
 # Fetch the toolchain from the board overlay.
 #
-all_toolchains=( $(get_all_board_toolchains "${BOARD}") )
+all_toolchains=( $(get_all_board_toolchains "${FLAGS_brick:-${BOARD}}") )
 : ${FLAGS_toolchain:=${all_toolchains[0]}}
 
 if [ -z "${FLAGS_toolchain}" ]; then
@@ -403,7 +414,7 @@ if [ -z "${FLAGS_toolchain}" ]; then
   exit 1
 fi
 
-ARCH=$(get_board_arch "${BOARD}") || exit 1
+ARCH=$(get_board_arch "${FLAGS_brick:-${BOARD}}") || exit 1
 
 case "$BOARD" in
   *-host)
@@ -551,6 +562,7 @@ if ! cros_choose_profile \
        --board "${FLAGS_board}" \
        --board_overlay "${FLAGS_board_overlay}" \
        --variant "${FLAGS_variant}" \
+       --brick "${FLAGS_brick}" \
        --profile "${FLAGS_profile}" \
        --board_root "${BOARD_ROOT}"; then
   error "Selecting profile failed, removing incomplete board directory!"
@@ -621,7 +633,7 @@ fi
 # NOTE: Printing the working-on ebuilds does not only serve the informative
 # purpose. It also causes the ${BOARD_ROOT}/etc/portage/package.* files to be
 # regenerated.
-WORKING_ON=$(cros_workon --board=${FLAGS_board} list)
+WORKING_ON=$(cros_workon --board=${BOARD_VARIANT} list)
 if [ -n "${WORKING_ON}" ]; then
   echo
   echo "Currently working on the following ebuilds for this board:"
