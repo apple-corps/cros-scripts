@@ -76,14 +76,6 @@ install_dev_packages() {
     sudo ln -sf vim "${root_fs_dir}/usr/local/bin/vi"
   fi
 
-  # If pygtk is installed in stateful-dev, then install a path.
-  local d
-  for d in "${root_fs_dir}"/usr/local/lib/python*/site-packages/gtk-2.0; do
-    if [[ -d ${d} ]]; then
-      sudo_clobber "${d%/*}/pygtk.pth" <<<"gtk-2.0"
-    fi
-  done
-
   # File searches /usr/share by default, so add a wrapper script so it
   # can find the right path in /usr/local.
   local path="${root_fs_dir}/usr/local/bin/file"
