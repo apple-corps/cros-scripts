@@ -81,7 +81,7 @@ create_base_image() {
 
   # Create symlinks so that /usr/local/usr based directories are symlinked to
   # /usr/local/ directories e.g. /usr/local/usr/bin -> /usr/local/bin, etc.
-  setup_symlinks_on_root "${stateful_fs_dir}/dev_image" \
+  setup_symlinks_on_root "." \
     "${stateful_fs_dir}/var_overlay" "${stateful_fs_dir}"
 
   # We need to install libc manually from the cross toolchain.
@@ -204,7 +204,7 @@ create_base_image() {
   # Clean up symlinks so they work on a running target rooted at "/".
   # Here development packages are rooted at /usr/local.  However, do not
   # create /usr/local or /var on host (already exist on target).
-  setup_symlinks_on_root "/usr/local" "/var" "${stateful_fs_dir}"
+  setup_symlinks_on_root . "/var" "${stateful_fs_dir}"
 
   # Our masking of files will implicitly leave behind a bunch of empty
   # dirs.  We can't differentiate between empty dirs we want and empty

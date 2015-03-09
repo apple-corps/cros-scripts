@@ -140,8 +140,7 @@ unmount_image() {
   set +e
   # Reset symlinks in /usr/local.
   if mount | egrep -q ".* ${FLAGS_stateful_mountpt} .*\(rw,"; then
-    setup_symlinks_on_root "/usr/local" "/var" \
-      "${FLAGS_stateful_mountpt}"
+    setup_symlinks_on_root "." "/var" "${FLAGS_stateful_mountpt}"
     fix_broken_symlinks "${FLAGS_rootfs_mountpt}"
   fi
 
@@ -323,7 +322,7 @@ mount_image() {
 
   # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
-    setup_symlinks_on_root "${FLAGS_stateful_mountpt}/dev_image" \
+    setup_symlinks_on_root "." \
       "${FLAGS_stateful_mountpt}/var_overlay" "${FLAGS_stateful_mountpt}"
   fi
   info "Image specified by ${FLAGS_from} mounted at"\
