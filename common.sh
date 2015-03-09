@@ -897,9 +897,12 @@ disable_rw_mount() {
   local offset="${2-0}"  # in bytes
   local ro_compat_offset=$((0x464 + 3))  # Set 'highest' byte
   is_ext_filesystem "${rootfs}" "${offset}" || return 0
+  is_ext2_rw_mount_enabled "${rootfs}" "${offset}" || return 0
+
+  make_block_device_rw "${rootfs}"
   printf '\377' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
-            conv=notrunc count=1 bs=1
+      conv=notrunc count=1 bs=1 status=none
 }
 
 enable_rw_mount() {
@@ -907,9 +910,22 @@ enable_rw_mount() {
   local offset="${2-0}"
   local ro_compat_offset=$((0x464 + 3))  # Set 'highest' byte
   is_ext_filesystem "${rootfs}" "${offset}" || return 0
+  is_ext2_rw_mount_enabled "${rootfs}" "${offset}" && return 0
+
+  make_block_device_rw "${rootfs}"
   printf '\000' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
-            conv=notrunc count=1 bs=1
+      conv=notrunc count=1 bs=1 status=none
+}
+
+is_ext2_rw_mount_enabled() {
+  local rootfs=$1
+  local offset="${2-0}"
+  local ro_compat_offset=$((0x464 + 3))  # Get 'highest' byte
+  local ro_compat_flag=$(sudo dd if="${rootfs}" \
+    skip=$((offset + ro_compat_offset)) bs=1 count=1  status=none \
+    2>/dev/null | hexdump -e '1 "%.2x"')
+  test "${ro_compat_flag}" = "00"
 }
 
 # Returns whether the passed rootfs is an extended filesystem by checking the
@@ -918,10 +934,20 @@ is_ext_filesystem() {
   local rootfs=$1
   local offset="${2-0}"
   local ext_magic_offset=$((0x400 + 56))
-  local ext_magic="$(sudo dd if="${rootfs}" \
-      skip=$((offset + ext_magic_offset)) bs=1 count=2 2>/dev/null |
-      hexdump -e '1/2 "%.4x"')"
+  local ext_magic=$(sudo dd if="${rootfs}" \
+    skip=$((offset + ext_magic_offset)) bs=1 count=2 2>/dev/null |
+    hexdump -e '1/2 "%.4x"')
   test "${ext_magic}" = "ef53"
+}
+
+# If the passed argument is a block device, ensure it is writtable and make it
+# writtable if not.
+make_block_device_rw() {
+  local block_dev="$1"
+  [[ -b "${block_dev}" ]] || return 0
+  if [[ $(sudo blockdev --getro "${block_dev}") == "1" ]]; then
+    sudo blockdev --setrw "${block_dev}"
+  fi
 }
 
 # Get current timestamp. Assumes common.sh runs at startup.
