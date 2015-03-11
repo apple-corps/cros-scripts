@@ -22,6 +22,7 @@ BINARY_EXECUTABLES = [
     '/bin/mount',
     '/bin/umount',
     '/sbin/losetup',
+    '/usr/sbin/partx',
     '/sbin/blockdev',
     # These are specific to our build.
     '/usr/bin/cgpt',

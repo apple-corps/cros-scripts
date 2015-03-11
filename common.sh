@@ -808,7 +808,11 @@ au_generator_sudo() {
 loopback_partscan() {
   local lb_dev image="$1"
   shift
-  lb_dev=$(au_generator_sudo losetup --show --partscan -f "$@" "${image}")
+  lb_dev=$(au_generator_sudo losetup --show -f "$@" "${image}")
+  # Ignore problems deleting existing partitions. There shouldn't be any
+  # which will upset partx, but that's actually ok.
+  au_generator_sudo partx -d "${lb_dev}" 2>/dev/null || true
+  au_generator_sudo partx -a "${lb_dev}"
 
   # TODO Once we figure out why losetup -P doesn't always work
   # (crbug.com/411693) we can get rid of this retry loop.
@@ -837,8 +841,10 @@ loopback_partscan() {
 
 # Detach a loopback device set up earlier.
 #
-# $@ - loop device to detach, and additional arguments for losetup.
+# $1 - The loop device to detach.
+# $2-$N - Additional arguments to pass to losetup.
 loopback_detach() {
+  au_generator_sudo partx -d "$1"
   au_generator_sudo losetup --detach "$@"
 }
 
