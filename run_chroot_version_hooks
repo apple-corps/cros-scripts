@@ -17,20 +17,19 @@ assert_not_root_user
 
 DEFINE_string version "" \
   "Assume current chroot version is this."
-DEFINE_boolean force_latest "${FLAGS_FALSE}" \
-  "Assume latest version and recreate the version file"
+DEFINE_boolean init_latest "${FLAGS_FALSE}" \
+  "Create the version file with the latest version if it doesn't exist"
 DEFINE_boolean skipfirst "${FLAGS_FALSE}" \
   "Skip the first upgrade. This may be dangerous."
 
 FLAGS "$@" || exit 1
 
-VERSION_FILE=/etc/cros_chroot_version
 VERSION_HOOKS_DIR="$(dirname "$(readlink -f "${0}")")/chroot_version_hooks.d"
 
 update_version() {
-  sudo touch ${VERSION_FILE}
-  sudo chown ${USER} ${VERSION_FILE}
-  echo "${1}" > "${VERSION_FILE}"
+  sudo touch "${CHROOT_VERSION_FILE}"
+  sudo chown "${USER}" "${CHROOT_VERSION_FILE}"
+  echo "${1}" > "${CHROOT_VERSION_FILE}"
 }
 
 ######################################################################
@@ -38,15 +37,15 @@ update_version() {
 # Sanity checks:
 if [ -n "${FLAGS_version}" ] && \
     ( [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ] || \
-    [ "${FLAGS_force_latest}" == "${FLAGS_TRUE}" ] ); then
+    [ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ] ); then
   error "The option --version cannot be combined with either"
-  error "--skipfirst or --force_latest."
+  error "--skipfirst or --init_latest."
   exit 1
 fi
 
 if [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ] &&
-    [ "${FLAGS_force_latest}" == "${FLAGS_TRUE}" ]; then
-  error "--skipfirst and --force_latest cannot be combined."
+    [ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ]; then
+  error "--skipfirst and --init_latest cannot be combined."
   exit 1
 fi
 
@@ -58,23 +57,28 @@ LATEST_VERSION=$(
   cd "${VERSION_HOOKS_DIR}"
   ls [0-9]*_* | cut -d_ -f1 | sort -rn | head -n1)
 
-if [ "${FLAGS_force_latest}" == "${FLAGS_TRUE}" ]; then
-  update_version "${LATEST_VERSION}"
-  exit 0
-fi
-
 # If the file does not exist at all, chroot is old and does not have a version.
 # default goes here
-if ! [ -f "${VERSION_FILE}" ]; then
-  info "Chroot of unknown version, initializing to 0"
+if ! [ -f "${CHROOT_VERSION_FILE}" ]; then
   update_version 0
 fi
 
-CHROOT_VERSION=$(<"${VERSION_FILE}")
+CHROOT_VERSION=$(<"${CHROOT_VERSION_FILE}")
 # Check if version is a number.
 if ! [ "${CHROOT_VERSION}" -ge "0" ] &> /dev/null; then
-  error "Your chroot version file ${VERSION_FILE} is bogus: ${CHROOT_VERSION}"
+  error "Your chroot version file ${CHROOT_VERSION_FILE} is bogus: "
+  error "${CHROOT_VERSION}"
   exit 1
+fi
+
+if [[ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ]]; then
+  if [[ "${CHROOT_VERSION}" -eq "0" ]]; then
+    info "Initializing chroot to version ${LATEST_VERSION}"
+    update_version "${LATEST_VERSION}"
+  else
+    info "Chroot is already initialized to ${CHROOT_VERSION}"
+  fi
+  exit 0
 fi
 
 if [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ]; then
@@ -137,7 +141,7 @@ if [ "${LATEST_VERSION}" -gt "${CHROOT_VERSION}" ]; then
     # NOTE: We source the upgrade scripts because:
     # 1) We can impose set -something on them.
     # 2) They can reuse local variables and functions (fe. from common.sh)
-    # 3) They're allowed to use VERSION_HOOKS_DIR and VERSION_FILE.
+    # 3) They're allowed to use VERSION_HOOKS_DIR and CHROOT_VERSION_FILE.
     # Note that the upgrade scripts have to be subshelled to protect ourselves,
     # else a script running exit would stop the upgrade process entirely.
     if ! ( source ${hook} ); then

@@ -577,6 +577,9 @@ if ${HOST_BOARD}; then
   sudo -E $EMERGE_CMD $HOST_FLAGS --select=y $PACKAGES
   sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 
+  # Copy our chroot version into the newly packaged chroot.
+  sudo cp -a "${CHROOT_VERSION_FILE}" "${BOARD_ROOT}${CHROOT_VERSION_FILE}"
+
   # Now cleanup paths referencing the ROOT from the *.la files.
   sudo find $BOARD_ROOT -type f -name '*.la' | xargs sudo \
       sed -i -e "s|$BOARD_ROOT/|/|g"

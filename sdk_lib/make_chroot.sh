@@ -474,7 +474,7 @@ if [ -n "${INITIALIZE_CHROOT}" ]; then
   # If we're creating a new chroot, we also want to set it to the latest
   # version.
   enter_chroot \
-    "${CHROOT_TRUNK_DIR}/src/scripts/run_chroot_version_hooks" --force_latest
+    "${CHROOT_TRUNK_DIR}/src/scripts/run_chroot_version_hooks" --init_latest
 fi
 
 # Update chroot.
