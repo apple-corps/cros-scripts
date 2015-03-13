@@ -254,7 +254,6 @@ print_board_binhost_config() {
   declare -A chrome_blacklist
   chrome_blacklist=(
     ['falco']=yes
-    ['veyron_pinky']=yes
   )
   if has chrome_internal $(portageq-${BOARD_VARIANT} envvar USE); then
     chrome_binhost_base=${internal_binhost_dir}
@@ -284,6 +283,9 @@ print_board_binhost_config() {
     fi
     e_chrome="${e_chrome_arch_map[${ARCH}]:-}"
     i_chrome="${i_chrome_arch_map[${ARCH}]:-}"
+  fi
+  if [[ "${BOARD}" == "veyron" ]]; then
+    i_chrome="veyron_pinky"
   fi
   local board chrome_binhost internal_binhost preflight_binhost
   for board in ${BOARD_VARIANT} ${i_chrome} ${e_chrome} \
