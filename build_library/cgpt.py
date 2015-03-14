@@ -841,12 +841,14 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
       if key in partition:
         shell_label = str(partition[key]).replace('-', '_').upper()
         part_bytes = partition['bytes']
+        reserved_ebs = partition.get('reserved_erase_blocks', 0)
         fs_bytes = partition.get('fs_bytes', part_bytes)
         part_format = partition.get('format', '')
         fs_format = partition.get('fs_format', '')
         fs_options = partition.get('fs_options', '')
         lines += [
             'PARTITION_SIZE_%s=%s' % (shell_label, part_bytes),
+            '  RESERVED_EBS_%s=%s' % (shell_label, reserved_ebs),
             '     DATA_SIZE_%s=%s' % (shell_label, fs_bytes),
             '        FORMAT_%s=%s' % (shell_label, part_format),
             '     FS_FORMAT_%s=%s' % (shell_label, fs_format),
