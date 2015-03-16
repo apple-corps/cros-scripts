@@ -73,105 +73,6 @@ DEFINE_boolean reuse_pkgs_from_local_boards $FLAGS_FALSE \
   "Bootstrap from local packages instead of remote packages."
 
 
-# builds wrappers like equery-arm-generic.
-# args:
-#   $1:  command to wrap
-#   rest:  extra arguments to pass to the command
-_generate_wrapper() {
-  local command="${1}"
-  shift
-  local extra_args="$@"
-
-
-  local target="/usr/local/bin/${command}-${BOARD_VARIANT}"
-  sudo_clobber "${target}" <<EOF
-#!/bin/sh
-
-# If we try to use sudo when the sandbox is active, we get ugly warnings that
-# just confuse developers.  Disable the sandbox in this case by rexecing.
-if [ "\${SANDBOX_ON}" = "1" ]; then
-  SANDBOX_ON=0 exec "\$0" "\$@"
-else
-  unset LD_PRELOAD
-fi
-
-export CHROMEOS_ROOT="$GCLIENT_ROOT"
-export CHOST="$FLAGS_toolchain"
-export PORTAGE_CONFIGROOT="$BOARD_ROOT"
-export SYSROOT="$BOARD_ROOT"
-if [ -z "\$PORTAGE_USERNAME" ]; then
-  export PORTAGE_USERNAME=\$(basename "\${HOME}")
-fi
-export ROOT="$BOARD_ROOT"
-exec sudo -E ${command} ${extra_args} "\$@"
-EOF
-  # Note: parent will process these.
-  wrappers+=( "${target}" )
-  eval ${command^^}_WRAPPER="${target}" # ${foo^^} returns toupper($foo)
-}
-
-generate_all_wrappers() {
-  local cmds=() wrappers=()
-  local wrapper
-
-  info "Generating wrapper scripts"
-
-  wrapper="/usr/local/bin/pkg-config-${BOARD_VARIANT}"
-  sudo_clobber "${wrapper}" <<EOF
-#!/bin/bash
-
-PKG_CONFIG_LIBDIR=\$(printf '%s:' "${BOARD_ROOT}"/usr/*/pkgconfig)
-export PKG_CONFIG_LIBDIR
-
-export PKG_CONFIG_SYSROOT_DIR="${BOARD_ROOT}"
-
-exec pkg-config "\$@"
-EOF
-  wrappers+=( "${wrapper}" )
-
-  for wrapper in 'emerge --root-deps' ebuild eclean emaint equery portageq \
-                 qcheck qdepends qfile qlist qmerge qsize; do
-    _generate_wrapper ${wrapper}
-  done
-
-  if [ "${CHOST}" != "$FLAGS_toolchain" ] ; then
-    # TODO(cmasone): Do this more cleanly, if we figure out what "cleanly"
-    # means.  Set up wrapper for pkg-config.  Point a board-specific wrapper
-    # at the generic wrapper script created by crossdev-wrapper.
-    cmds+=(
-      "ln -sf '/usr/bin/cross-pkg-config' \
-        '/usr/bin/${FLAGS_toolchain}-pkg-config'"
-    )
-  fi
-
-  # Create a link so gdb can automatically locate debug files for the target.
-  cmds+=(
-    "mkdir -p '$(dirname "/usr/lib/debug/${BOARD_ROOT}")'"
-    "ln -sfT '${BOARD_ROOT}/usr/lib/debug' '/usr/lib/debug/${BOARD_ROOT}'"
-  )
-
-  wrapper="/usr/local/bin/cros_workon-${BOARD_VARIANT}"
-  sudo_clobber "${wrapper}" <<EOF
-#!/bin/bash
-exec cros_workon --board ${BOARD_VARIANT} "\$@"
-EOF
-  wrappers+=( "${wrapper}" )
-
-  wrapper="/usr/local/bin/gdb-${BOARD_VARIANT}"
-  sudo_clobber "${wrapper}" <<EOF
-#!/bin/sh
-exec cros_gdb --board="${BOARD_VARIANT}" "\$@"
-EOF
-  wrappers+=( "${wrapper}" )
-
-  cmds+=(
-    "chmod a+rx ${wrappers[*]}"
-    "chown root:root ${wrappers[*]}"
-  )
-
-  sudo_multi "${cmds[@]}"
-}
-
 install_toolchain() {
   local toolchain_cmd="${GCLIENT_ROOT}/src/scripts/install_toolchain"
   if [[ -n "${FLAGS_brick}" ]]; then
@@ -566,7 +467,8 @@ if ! cros_choose_profile \
   exit 1
 fi
 
-generate_all_wrappers
+cros_sysroot_utils create-wrappers --sysroot="${BOARD_ROOT}" \
+  --toolchain="${FLAGS_toolchain}" --friendlyname="${BOARD_VARIANT}"
 
 if ${HOST_BOARD}; then
   EMERGE_CMD="${GCLIENT_ROOT}/chromite/bin/parallel_emerge"
@@ -604,7 +506,7 @@ else
       BASE_EMERGE_FLAGS+=" --getbinpkg --usepkg"
     fi
 
-    sudo -E "${EMERGE_WRAPPER}" ${BASE_EMERGE_FLAGS} \
+    sudo -E "emerge-${BOARD_VARIANT}" ${BASE_EMERGE_FLAGS} \
       sys-kernel/linux-headers sys-libs/gcc-libs
     unset BASE_EMERGE_FLAGS
   fi
