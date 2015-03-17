@@ -754,42 +754,6 @@ safe_umount() {
   $([[ ${UID:-$(id -u)} != 0 ]] && echo sudo) umount "$@"
 }
 
-# Sanity check the partition device nodes of a loopback device.
-#
-# $1 The loopback device to check.
-# $2 The backing file.
-loopback_check_parts() {
-  local dev="$1"
-  local image="$2"
-
-  local parts=$(shopt -s nullglob; echo "${dev}"p*)
-  local dev_name="${dev##/dev/}"
-
-  if [[ -z "${parts}" ]]; then
-    warn "No partition nodes found for ${dev}"
-    return 1
-  fi
-
-  # Check the start of all the partitions.
-  local part
-  for part in ${parts}; do
-    local pname="${part##/dev/}"
-    local pnum="${pname##*p}"
-    local cgpt_start sys_start
-
-    cgpt_start=$(cgpt show -n -i "${pnum}" -b "${image}")
-    sys_start=$(cat /sys/block/"${dev_name}"/"${pname}"/start)
-
-    if [[ ${cgpt_start} -ne ${sys_start} ]]; then
-      warn "Partition ${pnum} of ${image} starts at offset ${cgpt_start},"
-      warn "but the kernel thinks it starts at offset ${sys_start}."
-      return 1
-    fi
-  done
-
-  return 0
-}
-
 # Run a command with sudo in a way that still preferentially uses files
 # from au-generator.zip, but still finds things in /sbin and /usr/sbin when
 # not using au-generator.zip.
@@ -814,29 +778,7 @@ loopback_partscan() {
   au_generator_sudo partx -d "${lb_dev}" 2>/dev/null || true
   au_generator_sudo partx -a "${lb_dev}"
 
-  # TODO Once we figure out why losetup -P doesn't always work
-  # (crbug.com/411693) we can get rid of this retry loop.
-  local max_checks=11
-  local i
-  for (( i = 1; i <= ${max_checks}; i++ )); do
-    # Did it work this time?
-    if loopback_check_parts "${lb_dev}" "${image}"; then
-      echo "${lb_dev}"
-      return 0
-    fi
-
-    if [[ ${i} -eq ${max_checks} ]]; then
-      # Scanning for partitions didn't work.
-      return 1
-    else
-      # warn should output to stderr, so it shouldn't pollute the output of
-      # this function.
-      warn "Partition device files for ${image} are invalid on try ${i}. " \
-           "Rescanning ${lb_dev}."
-      au_generator_sudo blockdev --rereadpt "${lb_dev}"
-      sleep 5
-    fi
-  done
+  echo "${lb_dev}"
 }
 
 # Detach a loopback device set up earlier.

@@ -23,7 +23,6 @@ BINARY_EXECUTABLES = [
     '/bin/umount',
     '/sbin/losetup',
     '/usr/sbin/partx',
-    '/sbin/blockdev',
     # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
