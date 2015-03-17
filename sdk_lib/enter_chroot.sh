@@ -80,12 +80,12 @@ fi
 switch_to_strict_mode
 
 # These config files are to be copied into chroot if they exist in home dir.
+# Additionally, git relevant files are copied by setup_git.
 FILES_TO_COPY_TO_CHROOT=(
   .gdata_cred.txt             # User/password for Google Docs on chromium.org
   .gdata_token                # Auth token for Google Docs on chromium.org
   .disable_build_stats_upload # Presence of file disables command stats upload
   .netrc                      # May contain required source fetching credentials
-  .gitcookies                 # May contain required source fetching credentials
 )
 
 INNER_CHROME_ROOT=$FLAGS_chrome_root_mount  # inside chroot
@@ -232,6 +232,44 @@ generate_locales() {
     chroot "${FLAGS_chroot}" env LC_ALL=C locale-gen -q -u \
       -G "$(printf '%s\n' "${gen_locales[@]}")"
   fi
+}
+
+setup_git() {
+  # Copy .gitconfig into chroot so repo and git can be used from inside.
+  # This is required for repo to work since it validates the email address.
+  copy_into_chroot_if_exists "${SUDO_HOME}/.gitconfig" \
+      "/home/${SUDO_USER}/.gitconfig"
+  local -r chroot_gitconfig="${FLAGS_chroot}/home/${SUDO_USER}/.gitconfig"
+
+  # If the user didn't set up their username in their gitconfig, look
+  # at the default git settings for the user.
+  if ! git config -f "${chroot_gitconfig}" user.email >& /dev/null; then
+    local ident=$(cd /; sudo -u ${SUDO_USER} -- git var GIT_COMMITTER_IDENT || \
+                  :)
+    local ident_name=${ident%% <*}
+    local ident_email=${ident%%>*}; ident_email=${ident_email##*<}
+    git config -f "${chroot_gitconfig}" --replace-all user.name \
+        "${ident_name}" || :
+    git config -f "${chroot_gitconfig}" --replace-all user.email \
+        "${ident_email}" || :
+  fi
+
+  # Copy the gitcookies file, updating the user's gitconfig to point to it.
+  local gitcookies
+  gitcookies="$(git config -f "${chroot_gitconfig}" --get http.cookiefile)"
+  if [[ $? -ne 0 ]]; then
+    # Try the default location anyway.
+    gitcookies="${SUDO_HOME}/.gitcookies"
+  fi
+  copy_into_chroot_if_exists "${gitcookies}" "/home/${SUDO_USER}/.gitcookies"
+  local -r chroot_gitcookies="${FLAGS_chroot}/home/${SUDO_USER}/.gitcookies"
+  if [[ -e "${chroot_gitcookies}" ]]; then
+    git config -f "${chroot_gitconfig}" --replace-all http.cookiefile \
+        "/home/${SUDO_USER}/.gitcookies"
+  fi
+  # This line must be at the end because using `git config` changes ownership of
+  # the .gitconfig.
+  chown ${SUDO_UID}:${SUDO_GID} "${chroot_gitconfig}"
 }
 
 setup_env() {
@@ -460,6 +498,7 @@ setup_env() {
     for fn in "${FILES_TO_COPY_TO_CHROOT[@]}"; do
       copy_into_chroot_if_exists "${SUDO_HOME}/${fn}" "/home/${SUDO_USER}/${fn}"
     done
+    setup_git
     promote_api_keys
 
     # Fix permissions on shared memory to allow non-root users access to POSIX

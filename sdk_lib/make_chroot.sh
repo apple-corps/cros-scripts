@@ -297,25 +297,6 @@ EOF
      user_cp -rp "${SUDO_HOME}/.ssh" "$FLAGS_chroot/home/${SUDO_USER}/"
    fi
 
-   if [[ -f ${SUDO_HOME}/.gitconfig ]]; then
-     # Copy .gitconfig into chroot so repo and git can be used from inside.
-     # This is required for repo to work since it validates the email address.
-     echo "Copying ~/.gitconfig into chroot"
-     user_cp "${SUDO_HOME}/.gitconfig" "$FLAGS_chroot/home/${SUDO_USER}/"
-   fi
-
-   # If the user didn't set up their username in their gitconfig, look
-   # at the default git settings for the user.
-   if ! git config -f "${SUDO_HOME}/.gitconfig" user.email >& /dev/null; then
-     ident=$(cd /; sudo -u ${SUDO_USER} -- git var GIT_COMMITTER_IDENT || :)
-     ident_name=${ident%% <*}
-     ident_email=${ident%%>*}; ident_email=${ident_email##*<}
-     gitconfig=${FLAGS_chroot}/home/${SUDO_USER}/.gitconfig
-     git config -f ${gitconfig} --replace-all user.name "${ident_name}" || :
-     git config -f ${gitconfig} --replace-all user.email "${ident_email}" || :
-     chown ${SUDO_UID}:${SUDO_GID} ${FLAGS_chroot}/home/${SUDO_USER}/.gitconfig
-   fi
-
    if [[ -f ${SUDO_HOME}/.cros_chroot_init ]]; then
      sudo -u ${SUDO_USER} -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
        "${FLAGS_chroot}"
