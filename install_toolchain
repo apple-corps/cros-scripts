@@ -131,11 +131,6 @@ install_toolchain_in_board() {
           './usr/lib/debug/usr/${FLAGS_toolchain}' --strip-components=6 \
           || echo 'WARNING: libc debug info not copied.' >&2"
     )
-    # TODO(asharif): Remove this hack after a while.
-    local board_gcc_dir="${BOARD_ROOT}/usr/lib/gcc"
-    if [[ -L "${board_gcc_dir}" ]] ; then
-      cmd+=("rm -f '${board_gcc_dir}'")
-    fi
     sudo_multi "${cmds[@]}"
   else
     cmds=(
