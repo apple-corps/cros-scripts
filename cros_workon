@@ -18,6 +18,8 @@ assert_not_root_user
 
 DEFINE_string board "${DEFAULT_BOARD}" \
   "The board to set package keywords for."
+DEFINE_string brick "" \
+  "The brick to set package keywords for."
 DEFINE_boolean host "${FLAGS_FALSE}" \
   "Uses the host instead of board"
 DEFINE_string remote "" \
@@ -47,16 +49,26 @@ shift
 
 # Board dir config
 
-# If both are specified, just use host, because board does not
-# have to be specified and may come from default, in which case
-# there's no way to override.
-[ -n "${FLAGS_board}" ] && [ "${FLAGS_host}" = ${FLAGS_TRUE} ] && \
-  FLAGS_board="" # kill board
+# --host takes precedence over --{brick,board}; --brick takes precedence over
+# --board. This preserves prior behavior meant to accommodate default values.
+if [[ "${FLAGS_host}" == ${FLAGS_TRUE} ]]; then
+  if [[ -n "${FLAGS_board}" ]] || [[ -n "${FLAGS_brick}" ]]; then
+    warn "--host was used, ignoring --brick and --board values"
+    FLAGS_brick=""
+    FLAGS_board=""
+  fi
+elif [[ -n "${FLAGS_brick}" ]]; then
+  # Override board name with the brick's friendly name (backward compatibility).
+  [[ -z "${FLAGS_board}" ]] || warn "--brick was used, ignoring --board value"
+  FLAGS_board="$(cros_brick_utils --friendly-name "${FLAGS_brick}")"
+  [[ -n "${FLAGS_board}" ]] || die_notrace
+fi
+
 if [ -z "${FLAGS_board}" ] && \
    [ "${FLAGS_host}" = ${FLAGS_FALSE} ] && \
    [ "${WORKON_CMD}" != "list-all" ]; then
   flags_help
-  die "You must specify either --host or --board="
+  die "You must specify either --host, --board or --brick"
 fi
 
 if [ -n "${FLAGS_board}" ]; then
@@ -73,16 +85,16 @@ else
   BOARD_STR="host"
 fi
 
-WORKON_DIR=${CHROOT_TRUNK_DIR}/.config/cros_workon
-CONFIG_DIR=${BOARD_DIR}/etc/portage
-KEYWORDS_DIR=${CONFIG_DIR}/package.keywords
-MASK_DIR=${CONFIG_DIR}/package.mask
-UNMASK_DIR=${CONFIG_DIR}/package.unmask
-WORKON_FILE=${WORKON_DIR}/${FLAGS_board:-host}
-MASK_WORKON_FILE=${WORKON_FILE}.mask
-KEYWORDS_FILE=${KEYWORDS_DIR}/cros-workon
-MASK_FILE=${MASK_DIR}/cros-workon
-UNMASK_FILE=${UNMASK_DIR}/cros-workon
+WORKON_DIR="${CHROOT_TRUNK_DIR}/.config/cros_workon"
+CONFIG_DIR="${BOARD_DIR}/etc/portage"
+KEYWORDS_DIR="${CONFIG_DIR}/package.keywords"
+MASK_DIR="${CONFIG_DIR}/package.mask"
+UNMASK_DIR="${CONFIG_DIR}/package.unmask"
+WORKON_FILE="${WORKON_DIR}/${BOARD_STR}"
+MASK_WORKON_FILE="${WORKON_FILE}.mask"
+KEYWORDS_FILE="${KEYWORDS_DIR}/cros-workon"
+MASK_FILE="${MASK_DIR}/cros-workon"
+UNMASK_FILE="${UNMASK_DIR}/cros-workon"
 CHROME_ATOM=chromeos-base/chromeos-chrome
 
 mkdir -p "${WORKON_DIR}" || die "mkdir -p ${WORKON_DIR}"
@@ -384,9 +396,14 @@ ebuild_iterate() {
 # once -- it's a slow beast and can easily take hundreds of milliseconds :(.
 if [[ ${WORKON_CMD} != "list" || ${FLAGS_all} != ${FLAGS_FALSE} ]] ; then
   ARCH=$(${PORTAGEQCMD} envvar ARCH)
-  cmd=( cros_list_overlays --all )
-  if [[ -n ${FLAGS_board} ]]; then
-    cmd+=( --board "${FLAGS_board}" )
+  cmd=( cros_list_overlays )
+  if [[ -n "${FLAGS_brick}" ]]; then
+    cmd+=( --brick "${FLAGS_brick}" )
+  else
+    cmd+=( --all )
+    if [[ -n "${FLAGS_board}" ]]; then
+      cmd+=( --board "${FLAGS_board}" )
+    fi
   fi
   OVERLAYS=( $("${cmd[@]}") )
 fi
