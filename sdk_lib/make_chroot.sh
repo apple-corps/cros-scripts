@@ -39,7 +39,6 @@ DEFINE_boolean usepkg $FLAGS_TRUE "Use binary packages to bootstrap."
 DEFINE_boolean delete $FLAGS_FALSE "Delete an existing chroot."
 DEFINE_boolean replace $FLAGS_FALSE "Overwrite existing chroot, if any."
 DEFINE_integer jobs -1 "How many packages to build in parallel at maximum."
-DEFINE_boolean fast ${DEFAULT_FAST} "Call many emerges in parallel"
 DEFINE_string stage3_date "2010.03.09" \
   "Use the stage3 with the given date."
 DEFINE_string stage3_path "" \
@@ -80,12 +79,7 @@ if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
   USEPKG="--getbinpkg --usepkg --with-bdeps y"
 fi
 
-# Support faster build if necessary.
-EMERGE_CMD="emerge"
-if [ "$FLAGS_fast" -eq "${FLAGS_TRUE}" ]; then
-  CHROOT_CHROMITE_DIR="${CHROOT_TRUNK_DIR}/chromite"
-  EMERGE_CMD="${CHROOT_CHROMITE_DIR}/bin/parallel_emerge"
-fi
+EMERGE_CMD="${CHROOT_TRUNK_DIR}/chromite/bin/parallel_emerge"
 
 ENTER_CHROOT_ARGS=(
   CROS_WORKON_SRCROOT="$CHROOT_TRUNK"
@@ -485,11 +479,6 @@ if [[ ${FLAGS_usepkg} -eq ${FLAGS_TRUE} ]]; then
   UPDATE_ARGS+=( --usepkg )
 else
   UPDATE_ARGS+=( --nousepkg )
-fi
-if [[ ${FLAGS_fast} -eq ${FLAGS_TRUE} ]]; then
-  UPDATE_ARGS+=( --fast )
-else
-  UPDATE_ARGS+=( --nofast )
 fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )

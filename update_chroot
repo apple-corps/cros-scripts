@@ -26,7 +26,6 @@ show_help_if_requested "$@"
 # The following options are advanced options, only available to those willing
 # to read the source code. They are not shown in help output, since they are
 # not needed for the typical developer workflow.
-DEFINE_boolean fast ${DEFAULT_FAST} "Call many emerges in parallel"
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
 DEFINE_boolean skip_toolchain_update $FLAGS_FALSE \
@@ -79,11 +78,8 @@ if [[ "${FLAGS_jobs}" -ne -1 ]]; then
 fi
 
 # Perform an update of all the sdk packages in the chroot.
-EMERGE_CMD="emerge"
 CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
-if [ "${FLAGS_fast}" -eq "${FLAGS_TRUE}" ]; then
-  EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
-fi
+EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
 # First make sure the cross-compilers have the right config settings.
 # We don't actually build them yet though as we want to wait for the
