@@ -20,7 +20,7 @@ DEFINE_string board "$DEFAULT_BOARD" \
   "board for which the image was built" \
   b
 DEFINE_integer statefulfs_sectors 4096 \
-  "number of sectors in stateful filesystem when minimizing"
+  "number of free sectors in stateful filesystem when minimizing"
 DEFINE_string kernel_image "" \
   "path to a pre-built recovery kernel"
 DEFINE_string kernel_outfile "" \
@@ -240,23 +240,20 @@ install_recovery_kernel() {
 find_sectors_needed() {
   # Find the minimum disk sectors needed for a file system to hold a list of
   # files or directories.
-  local base_dir file_list
+  local base_dir="$1"
+  local file_list="$2"
 
-  base_dir="$1"
-  file_list="$2"
+  # Calculate space needed by the files we'll be copying, plus
+  # a reservation for recovery logs or other runtime data.
+  local in_use=$(cd "${base_dir}"
+                 du -s -B512 ${file_list} |
+                   awk '{ sum += $1 } END { print sum }')
+  local sectors_needed=$(( in_use + FLAGS_statefulfs_sectors ))
 
-  local sectors_needed=1
-  local size name
-  for name in ${file_list}; do
-    if [ -e "${base_dir}/${name}" ]; then
-      size=$(du -B512 -s "${base_dir}/${name}" | awk '{ print $1 }')
-      sectors_needed=$((${sectors_needed} + ${size}))
-    fi
-  done
-  # Add 5% overhead for the FS, rounded down.
-  sectors_needed=$((${sectors_needed} + (${sectors_needed} / 20)))
-
-  echo "${sectors_needed}"
+  # Add 10% overhead for the FS, rounded down.  There's some
+  # empirical justification for this number, but at heart, it's a
+  # wild guess.
+  echo $(( sectors_needed + sectors_needed / 10 ))
 }
 
 maybe_resize_stateful() {
@@ -276,12 +273,7 @@ maybe_resize_stateful() {
   sudo mount -o ro,loop,offset=$((old_stateful_offset * 512)) \
     "$FLAGS_image" $old_stateful_mnt
 
-  # Add 5% overhead for the FS, rounded down.
   sectors_needed=$(find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}")
-
-  if [ ${FLAGS_statefulfs_sectors} -gt ${sectors_needed} ]; then
-    sectors_needed="${FLAGS_statefulfs_sectors}"
-  fi
 
   # Rebuild the image with stateful partition sized by sectors_needed.
   small_stateful=$(mktemp)
