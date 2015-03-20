@@ -66,6 +66,8 @@ show_help_if_requested "$@"
 # not needed for the typical developer workflow.
 DEFINE_integer build_attempt 1 \
   "The build attempt for this image build."
+DEFINE_string extra_packages "" \
+  "Space-delimited list of additional packages to add to the image."
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
 DEFINE_boolean replace ${FLAGS_FALSE} \
