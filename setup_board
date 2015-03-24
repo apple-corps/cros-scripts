@@ -74,12 +74,7 @@ DEFINE_boolean reuse_pkgs_from_local_boards $FLAGS_FALSE \
 
 
 install_toolchain() {
-  local toolchain_cmd="${GCLIENT_ROOT}/src/scripts/install_toolchain"
-  if [[ -n "${FLAGS_brick}" ]]; then
-    "${toolchain_cmd}" --brick="${FLAGS_brick}"
-  else
-    "${toolchain_cmd}" --board="${BOARD_VARIANT}" --board_root="${BOARD_ROOT}"
-  fi
+  "${GCLIENT_ROOT}/src/scripts/install_toolchain" --sysroot="${BOARD_ROOT}"
 }
 
 # Print contents of $BOARD_ETC/make.conf.board. This file sources make.conf
