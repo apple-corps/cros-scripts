@@ -266,10 +266,9 @@ switch_to_strict_mode
 if [[ -z "${FLAGS_board}" ]] && [[ -z "${FLAGS_brick}" ]]; then
   die "--board or --brick required."
 elif [[ -n "${FLAGS_brick}" ]]; then
-  # Override board name with the brick's friendly name (backward compatibility).
+  # Clear the board value if brick was provided (backward compatibility).
   [[ -z "${FLAGS_board}" ]] || warn "--brick was used, ignoring --board value"
-  FLAGS_board="$(cros_brick_utils --friendly-name "${FLAGS_brick}")"
-  [[ -n "${FLAGS_board}" ]] || die_notrace
+  FLAGS_board=
 fi
 
 get_board_and_variant "${FLAGS_board}" "${FLAGS_variant}" "${FLAGS_brick}"
