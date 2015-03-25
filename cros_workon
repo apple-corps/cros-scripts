@@ -30,6 +30,8 @@ DEFINE_string command "git status" \
   "The command to be run by forall."
 DEFINE_boolean all "${FLAGS_FALSE}" \
   "Apply to all possible packages for the given command"
+DEFINE_boolean workon_only "${FLAGS_FALSE}" \
+  "Apply to packages that have a workon ebuild only"
 
 FLAGS_HELP="usage: $0 <command> [flags] [<list of packages>|.|--all]
 commands:
@@ -173,6 +175,22 @@ show_project_path_map() {
 show_workon_ebuilds() {
   local keyword="$1"
   find_keyword_workon_ebuilds "${keyword}" | ebuild_to_package | sort -u
+}
+
+# Prints only the atoms that have nothing but 9999 ebuilds across all overlays.
+filter_workon_only() {
+  local atoms="$1"
+  local atom
+  local num_ebuilds
+  local overlay
+  for atom in ${atoms}; do
+    num_ebuilds=0
+    for overlay in "${OVERLAYS[@]}"; do
+      num_ebuilds=$(ls -1 "${overlay}"/${atom}/*.ebuild 2>/dev/null | wc -l)
+      [[ "${num_ebuilds}" -gt 1 ]] && break
+    done
+    [[ "${num_ebuilds}" -le 1 ]] && echo ${atom}
+  done
 }
 
 show_workon_info() {
@@ -392,9 +410,13 @@ ebuild_iterate() {
   done
 }
 
+unset use_list
+[[ ${FLAGS_workon_only} = ${FLAGS_TRUE} ]] && use_list="--workon_only"
+[[ ${FLAGS_all} = ${FLAGS_TRUE} ]] && use_list="--all"
+
 # Only call portageq when absolutely required, and when we do, only run it
 # once -- it's a slow beast and can easily take hundreds of milliseconds :(.
-if [[ ${WORKON_CMD} != "list" || ${FLAGS_all} != ${FLAGS_FALSE} ]] ; then
+if [[ ${WORKON_CMD} != "list" || -n "${use_list}" ]] ; then
   ARCH=$(${PORTAGEQCMD} envvar ARCH)
   cmd=( cros_list_overlays )
   if [[ -n "${FLAGS_brick}" ]]; then
@@ -408,15 +430,22 @@ if [[ ${WORKON_CMD} != "list" || ${FLAGS_all} != ${FLAGS_FALSE} ]] ; then
   OVERLAYS=( $("${cmd[@]}") )
 fi
 
-# --all makes commands operate on different lists
-if [ ${FLAGS_all} = "${FLAGS_TRUE}" ]; then
+# --all and --workon_only make commands operate on different lists.
+if [[ -n "${use_list}" ]]; then
   case ${WORKON_CMD} in
-    start|info) ATOM_LIST=$(show_workon_ebuilds ${ARCH});;
-    stop|iterate) ATOM_LIST=$(show_live_ebuilds);;
-    list) ;;
-    *) die "--all is invalid for the given command";;
+    start|info|list)
+      ATOM_LIST=$(show_workon_ebuilds ${ARCH})
+      if [[ "${use_list}" = "--workon_only" ]]; then
+        ATOM_LIST=$(filter_workon_only "${ATOM_LIST}")
+      fi;;
+    stop|iterate)
+      ATOM_LIST=$(show_live_ebuilds)
+      if [[ "${use_list}" = "--workon_only" ]]; then
+        ATOM_LIST=$(filter_workon_only "${ATOM_LIST}")
+      fi;;
+    *) die "${use_list} is invalid for the given command";;
   esac
-else # not selected --all
+else
   case ${WORKON_CMD} in
     start|stop|info|iterate)
       ATOM_LIST=$@
@@ -437,8 +466,12 @@ case ${WORKON_CMD} in
   start) ebuild_to_live "${ATOM_LIST}" ;;
   stop) ebuild_to_stable "${ATOM_LIST}" ;;
   info) show_workon_info "${ATOM_LIST}" "${ARCH}" ;;
-  list) [ ${FLAGS_all} = "${FLAGS_FALSE}" ] && show_live_ebuilds || \
-    show_workon_ebuilds ${ARCH} ;;
+  list)
+    if [[ -n "${use_list}" ]]; then
+      for atom in ${ATOM_LIST}; do echo ${atom}; done
+    else
+      show_live_ebuilds
+    fi;;
   list-all) show_all_live_ebuilds ;;
   iterate) ebuild_iterate "${ATOM_LIST}" ;;
   *)
