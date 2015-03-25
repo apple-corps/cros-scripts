@@ -1034,9 +1034,9 @@ get_board_and_variant() {
 # $1 - Board to match overlays to.
 # $2 - File to load.
 load_board_specific_script() {
-  local board=$1 file=$2 overlay
-  [[ $# -ne 2 ]] && die "load_board_specific_script requires exactly 2 params"
-  for overlay in $(cros_list_overlays --board "${board}"); do
+  local file=$1 overlay
+  [[ $# -ne 1 ]] && die "load_board_specific_script requires exactly 1 param"
+  for overlay in ${BOARD_OVERLAY}; do
     local setup_sh="${overlay}/scripts/${file}"
     if [[ -e ${setup_sh} ]]; then
       source "${setup_sh}"

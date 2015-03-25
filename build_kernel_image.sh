@@ -108,7 +108,7 @@ get_base_root() {
   echo 'PARTUUID=%U/PARTNROFF=1'
 }
 
-load_board_specific_script "${BOARD}" "build_kernel_image.sh"
+load_board_specific_script "build_kernel_image.sh"
 
 base_root=$(get_base_root)
 
