@@ -401,16 +401,14 @@ if [[ ${FLAGS_regen_configs} -eq ${FLAGS_TRUE} ]]; then
   SAVED_VERSION=$(grep -s ^LIBC_VERSION= ${BOARD_SETUP} || true)
 fi
 
-sudo_clobber "${BOARD_SETUP}" <<EOF
-# Created by setup_board
-CHOST="${FLAGS_toolchain}"
-ROOT="${BOARD_ROOT}/"
-BOARD_OVERLAY="${BOARD_OVERLAY_LIST}"
-MAKEOPTS="-j${NUM_JOBS}"
-PKG_CONFIG="pkg-config-${BOARD_VARIANT}"
-BOARD_USE="${BOARD_VARIANT}"
-${SAVED_VERSION}
-EOF
+if [[ -n "${FLAGS_brick}" ]]; then
+  cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
+    --brick="${FLAGS_brick}" --out-file="${BOARD_SETUP}"
+else
+  cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
+    --board="${FLAGS_board}" --out-file="${BOARD_SETUP}"
+fi
+echo "${SAVED_VERSION}" | sudo_append "${BOARD_SETUP}"
 
 if ! ${HOST_BOARD}; then
   for a in ${ARCH} generic; do
