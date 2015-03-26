@@ -371,8 +371,10 @@ ebuild_to_live() {
       warn "Already working on ${atom}"
     fi
   done
-  [ ${#atoms_success[@]} -gt 0 ] && regen_manifest_and_sync && \
+  if [ ${#atoms_success[@]} -gt 0 ]; then
+    regen_manifest_and_sync
     info "Started working on '${atoms_success[*]}' for '${BOARD_STR}'"
+  fi
 }
 
 # Move a live development ebuild back to stable.
@@ -392,8 +394,9 @@ ebuild_to_stable() {
       warn "Not working on ${atom}"
     fi
   done
-  [ ${#atoms_success[@]} -gt 0 ] && \
+  if [ ${#atoms_success[@]} -gt 0 ]; then
     info "Stopped working on '${atoms_success[*]}' for '${BOARD_STR}'"
+  fi
 }
 
 # Run a command on all or a set of repos.
