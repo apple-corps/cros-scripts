@@ -1055,6 +1055,26 @@ get_board_and_variant() {
   fi
 }
 
+# Load a setting from the sysroot's standard configuration file,
+# etc/make.conf.board_setup.
+# $1 - Path to the sysroot.
+# $2 - Variable to get.
+get_sysroot_config() {
+  local sysroot=$1
+  local variable=$2
+  local config_file="${sysroot%/}/etc/make.conf.board_setup"
+
+  if [[ -e "${config_file}" ]]; then
+    (
+      . ${config_file}
+      if [[ "${!variable+set}" == "set" ]]; then
+        echo "${!variable}"
+        return
+      fi
+    )
+  fi
+}
+
 # Load configuration files that allow board-specific overrides of default
 # functionality to be specified in overlays.
 # $1 - File to load.

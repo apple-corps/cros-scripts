@@ -90,7 +90,8 @@ print_board_make_conf() {
   echo
   echo "# Source make.conf from each overlay."
   local boto_config=""
-  for overlay in $BOARD_OVERLAY_LIST; do
+  local overlay_list="$(get_sysroot_config "${BOARD_ROOT}" "BOARD_OVERLAY")"
+  for overlay in ${overlay_list[@]}; do
     if [[ -f "$overlay/make.conf" ]]; then
       echo source "$overlay/make.conf"
     fi
@@ -272,17 +273,6 @@ elif [[ -n "${FLAGS_brick}" ]]; then
 fi
 
 get_board_and_variant "${FLAGS_board}" "${FLAGS_variant}" "${FLAGS_brick}"
-
-#
-# Construct board overlay list.
-#
-if [[ -n "${FLAGS_brick}" ]]; then
-  BOARD_OVERLAY_LIST=$(cros_list_overlays --brick "${FLAGS_brick}")
-else
-  BOARD_OVERLAY_LIST=$(cros_list_overlays \
-    --board "${BOARD_VARIANT}" \
-    --board_overlay "${FLAGS_board_overlay}")
-fi
 
 # Before we can run any tools, we need to update chroot
 UPDATE_ARGS="--toolchain_boards=${BOARD}"
