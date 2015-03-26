@@ -408,7 +408,7 @@ else
   cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
     --board="${FLAGS_board}" --out-file="${BOARD_SETUP}"
 fi
-echo "${SAVED_VERSION}" | sudo_append "${BOARD_SETUP}"
+printf "\n%s\n" "${SAVED_VERSION}" | sudo_append "${BOARD_SETUP}"
 
 if ! ${HOST_BOARD}; then
   for a in ${ARCH} generic; do
