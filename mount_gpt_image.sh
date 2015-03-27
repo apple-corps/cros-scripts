@@ -164,7 +164,7 @@ unmount_image() {
 
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
-  local part_num part_offset part_size
+  local part_num part_offset part_size data_size
   for part_num in 12 8 1 3; do
     var_name="PART_${part_num}_MOUNTPOINT"
     mountpoint="${!var_name:-}"
@@ -189,9 +189,13 @@ unmount_image() {
     fs_format="${!var_name:-}"
     var_name="FS_OPTIONS_${part_num}"
     fs_options="${!var_name:-}"
+    var_name="DATA_SIZE_${part_num}"
+    data_size="${!var_name:-}"
 
-    # TODO(deymo): Pass the partition size limit in the mount options.
     mount_options="offset=$(( part_offset * 512 ))"
+    if [[ -n "${data_size}" ]]; then
+      mount_options+=",sizelimit=${data_size}"
+    fi
     fs_umount "${filename}" "${mountpoint}" "${fs_format}" "${fs_options}" \
       "${mount_options}"
   done

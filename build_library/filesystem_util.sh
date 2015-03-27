@@ -4,23 +4,30 @@
 
 . "${BUILD_LIBRARY_DIR}/../common.sh" || exit 1
 
-# Usage: fs_offset_from_options <mount_options>
+# Usage: fs_parse_option <mount_options> <option_key> [default_value]
 #
-# Print the offset passed in the mount_options or 0 if it wasn't specified.
+# Print the value associated with the option_key in the passed mount_options,
+# or the optional default_value if it wasn't specified.
 #
 # Args:
 #   mount_options: Options that could be passed to the "mount" command, for
 #       example "loop,ro,offset=1234".
-fs_offset_from_options() {
+#   option_key: The key you are looking for.
+#   default_value: An optional default value used if the option key is not
+#       found.
+fs_parse_option() {
   # If we are mounting a partition inside a device by passing an offset
   # in the mount options, we need to tell unsquashfs to read from there.
   local mount_options="$1"
-  local offset_option
-  if offset_option="$(echo "${mount_options}" | tr , '\n' | \
-      grep -E '^offset=[0-9]+$')"; then
-    echo "${offset_option}" | cut -f 2 -d =
+  local option_key="$2"
+  local default_value="${3:-}"
+
+  local option_value
+  if option_value=$(echo "${mount_options}" | tr , '\n' | \
+      grep -E "^${option_key}"'(=|$)'); then
+    echo "${option_value}" | cut --fields=2 --delimiter== --only-delimited
   else
-    echo 0
+    echo "${default_value}"
   fi
 }
 
@@ -65,10 +72,15 @@ fs_mount() {
       sudo mount "${part_dev}" "${mount_point}" -o "${all_options}" \
           -t "${fs_format}"
     else
-      local offset=$(fs_offset_from_options "${mount_options}")
-      if [[ "${offset}" != "0" ]]; then
-        part_dev="$(sudo losetup --show --read-only --offset ${offset} -f \
-            "${part_dev}")"
+      local offset=$(fs_parse_option "${mount_options}" offset 0)
+      local sizelimit=$(fs_parse_option "${mount_options}" sizelimit)
+      local sizelimit_arg=""
+      if [[ "${offset}" != "0" || -n "${sizelimit}" ]]; then
+        local losetup_opts=( --show --read-only --offset "${offset}" )
+        if [[ -n "${sizelimit}" ]]; then
+          losetup_opts+=( --sizelimit "${sizelimit}" )
+        fi
+        part_dev=$(sudo losetup "${losetup_opts[@]}" -f "${part_dev}")
       fi
 
       sudo unsquashfs -dest "${mount_point}" -no-progress -force "${part_dev}"
@@ -128,9 +140,18 @@ fs_umount() {
     sudo mksquashfs "${mount_point}" "${squash_file}" -noappend \
         -no-progress -no-recovery "${fs_options_arr[@]}" >/dev/null
 
-    local offset=$(fs_offset_from_options "${mount_options}")
-    # TODO(deymo): If "size-limit=" is passed in the mount_options, check
-    # that the squashed file system fits in that size limit.
+    local sizelimit=$(fs_parse_option "${mount_options}" sizelimit)
+    local squashed_size=$(stat -c%s "${squash_file}")
+
+    if [[ -n "${sizelimit}" && "${sizelimit}" -lt "${squashed_size}" ]]; then
+      sudo rm -f "${squash_file}"
+      die "The squashfs filesystem mounted at ${mount_point} is "\
+"${squashed_size} bytes but the sizelimit is ${sizelimit} bytes, about "\
+"$(( (squashed_size - sizelimit) / 1024 )) KiB smaller. Please increase the "\
+"size of your filesystem or remove some files from it."
+    fi
+
+    local offset=$(fs_parse_option "${mount_options}" offset 0)
     # mksquashfs pads the filesystem up to 4kB, but we can use a bigger block
     # size to improve speed.
     sudo dd if="${squash_file}" of="${part_dev}" bs=8M seek="${offset}" \
