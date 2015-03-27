@@ -129,10 +129,12 @@ find_keyword_workon_ebuilds() {
 
   # NOTE: overlay may be a symlink, and we have to use ${overlay}/
   for overlay in "${OVERLAYS[@]}"; do
-    # only look up ebuilds named 9999 to eliminate duplicates
+    # Only look up ebuilds named 9999 to eliminate duplicates.
+    # Packages inheriting from cros-workon or chromium-source are considered
+    # workon-able.
     find "${overlay}"/*-* -maxdepth 2 -type f -name '*9999.ebuild' \
-      -exec grep -l 'inherit.*cros-workon' {} + 2>/dev/null | \
-      xargs egrep -l "KEYWORDS=\".*~([*]|${keyword})[ \"]"
+      -exec egrep -l '^inherit.*\<(cros-workon|chromium-source)\>' {} + \
+      2>/dev/null | xargs egrep -l "KEYWORDS=\".*~([*]|${keyword})[ \"]"
   done
 }
 
@@ -248,8 +250,9 @@ canonicalize_name() {
   pkgname=$(echo "${pkgfile}" | awk -F '/' '{ print $(NF-2) "/" $(NF-1) }')
 
   # TODO(rcui): remove special casing of chromeos-chrome here when we make it
-  # inherit from cros-workon class.  Tracked in chromium-os:19259.
+  # inherit from cros-workon / chromium-source class (chromium-os:19259).
   if [ "${pkgname}" != "${CHROME_ATOM}" ] && \
+     ! grep -q "^inherit.*\<chromium-source\>" ${pkgfile} && \
      ! grep -q "cros-workon" ${pkgfile}; then
     warn "${pkgname} is not a cros-workon package" 1>&2
     return 1
