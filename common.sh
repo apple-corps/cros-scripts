@@ -1031,8 +1031,7 @@ get_board_and_variant() {
 
 # Load configuration files that allow board-specific overrides of default
 # functionality to be specified in overlays.
-# $1 - Board to match overlays to.
-# $2 - File to load.
+# $1 - File to load.
 load_board_specific_script() {
   local file=$1 overlay
   [[ $# -ne 1 ]] && die "load_board_specific_script requires exactly 1 param"
