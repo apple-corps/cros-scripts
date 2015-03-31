@@ -72,186 +72,6 @@ DEFINE_string brick "" "Brick to set up."
 DEFINE_boolean reuse_pkgs_from_local_boards $FLAGS_FALSE \
   "Bootstrap from local packages instead of remote packages."
 
-
-install_toolchain() {
-  "${GCLIENT_ROOT}/src/scripts/install_toolchain" --sysroot="${BOARD_ROOT}"
-}
-
-# Print contents of $BOARD_ETC/make.conf.board. This file sources make.conf
-# from each overlay, and then calculates the prebuilt URLs based on the
-# various binhost configuration files.
-print_board_make_conf() {
-  echo "# AUTO-GENERATED FILE. DO NOT EDIT."
-  echo
-  echo "# Source make.conf from each overlay."
-  local boto_config=""
-  local overlay_list="$(get_sysroot_config "${BOARD_ROOT}" "BOARD_OVERLAY")"
-  for overlay in ${overlay_list[@]}; do
-    if [[ -f "$overlay/make.conf" ]]; then
-      echo source "$overlay/make.conf"
-    fi
-    if [[ -f "$overlay/googlestorage_account.boto" ]]; then
-      boto_config="$overlay/googlestorage_account.boto"
-    fi
-  done
-  local chromeos_overlay="$SRC_ROOT/private-overlays/chromeos-overlay"
-  if [[ -f "$chromeos_overlay/googlestorage_account.boto" ]]; then
-    boto_config="$chromeos_overlay/googlestorage_account.boto"
-  fi
-  local gs_fetch_binpkg='/mnt/host/source/chromite/bin/gs_fetch_binpkg'
-  local gsutil_cmd=${gs_fetch_binpkg}' \"${URI}\" \"${DISTDIR}/${FILE}\"'
-  echo
-  echo "# Export boto_config as a variable so that we can easily look it up"
-  echo "# with portageq."
-  echo BOTO_CONFIG=\"$boto_config\"
-  echo
-  echo FETCHCOMMAND_GS="\"bash -c 'BOTO_CONFIG=$boto_config $gsutil_cmd'\""
-  echo RESUMECOMMAND_GS='"$FETCHCOMMAND_GS"'
-  echo
-  if [[ -n ${FLAGS_accept_licenses} ]]; then
-    echo "ACCEPT_LICENSE='${FLAGS_accept_licenses}'"
-    echo
-  fi
-}
-
-# Print the PORTAGE_BINHOST variable, suitable for inclusion in make.conf.board.
-print_board_binhost_config() {
-  if [ "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]; then
-    cros_generate_local_binhosts --board "${BOARD_VARIANT}"
-    echo 'PORTAGE_BINHOST="$LOCAL_BINHOST"'
-    return 0
-  fi
-
-  local binhost_dir="$CHROMIUMOS_OVERLAY/chromeos/binhost/target"
-  local chrome_binhost_suffix="LATEST_RELEASE_CHROME_BINHOST.conf"
-  local partner_overlay="$SRC_ROOT/private-overlays/chromeos-partner-overlay"
-  local internal_binhost_dir="$partner_overlay/chromeos/binhost/target"
-  local arch="$(get_sysroot_config "${BOARD_ROOT}" "ARCH")"
-  # i_arch_map / e_arch_map: maps architectures to internal / external boards.
-  # i_kernel_map / e_kernel_map: maps kernels to internal / external boards.
-  declare -A i_arch_map e_arch_map e_kernel_map i_kernel_map \
-             e_chrome_arch_map i_chrome_arch_map
-  local chrome_binhost_base kernel
-  kernel=$(portageq-${BOARD_VARIANT} envvar CHROMEOS_KERNEL_SPLITCONFIG)
-  e_kernel_map=(['chromeos-exynos5']='daisy'
-                ['chromiumos-tegra124']='daisy')
-  i_kernel_map=(['chromeos-exynos5']='daisy_skate'
-                ['chromiumos-tegra124']='daisy_skate')
-  e_arch_map=(
-    ['amd64']='amd64-generic'
-    ['mips']='mipsel-o32-generic'
-    ['x86']='x86-generic'
-    ['arm']='arm-generic'
-  )
-  i_arch_map=(
-    ['amd64']='lumpy'
-    ['x86']='x86-alex'
-    ['arm']='daisy_skate'
-  )
-  declare -A chrome_blacklist
-  chrome_blacklist=(
-    ['falco']=yes
-  )
-  if has chrome_internal $(portageq-${BOARD_VARIANT} envvar USE); then
-    chrome_binhost_base=${internal_binhost_dir}
-  else
-    chrome_binhost_base=${binhost_dir}
-  fi
-  # External generic boards have no firmware or drivers, so their binhosts can
-  # be shared everywhere. The same isn't true for internal "generic" boards.
-  # For that reason, the internal "generic" boards can only be used for the
-  # Chrome binhost.
-  local e_generic="${e_kernel_map[${kernel:-none}]:-${e_arch_map[${arch}]:-}}"
-  local i_generic="${i_kernel_map[${kernel:-none}]:-${i_arch_map[${arch}]:-}}"
-  local e_chrome="" i_chrome=""
-  if has ozone $(portageq-${BOARD_VARIANT} envvar USE); then
-    # If ozone use flag is present, the grab Chrome prebuilts from a builder
-    # that uses the ozone use flags. (This use flag only affects Chrome.)
-    e_chrome_arch_map=(
-      ['amd64']='amd64-generic_freon'
-      ['arm']='arm-generic_freon'
-    )
-    i_chrome_arch_map=(
-      ['amd64']='peppy'
-      ['arm']='daisy_freon'
-    )
-    if has ozone_platform_default_dri $(portageq-${BOARD_VARIANT} envvar USE); then
-      i_chrome_arch_map['arm']='rush_ryu'
-    fi
-    e_chrome="${e_chrome_arch_map[${arch}]:-}"
-    i_chrome="${i_chrome_arch_map[${arch}]:-}"
-  fi
-  if [[ "${BOARD}" == "veyron" ]]; then
-    i_chrome="veyron_pinky"
-  fi
-  local board chrome_binhost internal_binhost preflight_binhost
-  for board in ${BOARD_VARIANT} ${i_chrome} ${e_chrome} \
-               ${BOARD} ${i_generic} ${e_generic}; do
-    if [[ -n "${chrome_blacklist[${board}]}" ]]; then
-      continue
-    fi
-    if [[ -z ${chrome_binhost} || ! -f ${chrome_binhost} ||
-          -z $(source "${chrome_binhost}";
-               echo -n ${LATEST_RELEASE_CHROME_BINHOST}) ]]; then
-      chrome_binhost="${chrome_binhost_base}/${board}-${chrome_binhost_suffix}"
-    fi
-  done
-  for board in ${BOARD_VARIANT} ${BOARD} ${e_generic}; do
-    if [[ -z ${preflight_binhost} || ! -f ${preflight_binhost} ||
-          -z $(source "${preflight_binhost}";
-               echo -n ${PREFLIGHT_BINHOST}) ]]; then
-      preflight_binhost="${binhost_dir}/${board}-PREFLIGHT_BINHOST.conf"
-    fi
-    if [[ -z ${internal_binhost} || ! -f ${internal_binhost} ||
-          -z $(source "${internal_binhost}";
-               echo -n ${PREFLIGHT_BINHOST}) ]]; then
-      internal_binhost="${internal_binhost_dir}/${board}-PREFLIGHT_BINHOST.conf"
-    fi
-  done
-
-  if [ "${FLAGS_chrome_binhost_only}" -eq "${FLAGS_TRUE}" ]; then
-    echo source "$chrome_binhost"
-    echo 'PORTAGE_BINHOST="$LATEST_RELEASE_CHROME_BINHOST"'
-  else
-    cat <<'EOF'
-# FULL_BINHOST is populated by the full builders. It is listed first because it
-# is the lowest priority binhost. It is better to download packages from the
-# preflight binhost because they are fresher packages.
-PORTAGE_BINHOST="$FULL_BINHOST"
-
-EOF
-
-    if [[ -f "$preflight_binhost" && -z "$IGNORE_PREFLIGHT_BINHOST" ]]; then
-      cat <<'EOF'
-# PREFLIGHT_BINHOST is populated by the preflight builders. If the same
-# package is provided by both the preflight and full binhosts, the package is
-# downloaded from the preflight binhost.
-EOF
-      echo source "$preflight_binhost"
-      echo 'PORTAGE_BINHOST="$PORTAGE_BINHOST $PREFLIGHT_BINHOST"'
-      echo
-    fi
-
-    if [[ -f "$internal_binhost"  && -z "$IGNORE_PREFLIGHT_BINHOST" ]]; then
-      cat <<'EOF'
-# The internal PREFLIGHT_BINHOST is populated by the internal preflight
-# builders. It takes priority over the public preflight binhost.
-EOF
-      echo source "$internal_binhost"
-      echo 'PORTAGE_BINHOST="$PORTAGE_BINHOST $PREFLIGHT_BINHOST"'
-      echo
-    fi
-
-    if [[ -f "$chrome_binhost" ]]; then
-      cat <<'EOF'
-# LATEST_RELEASE_CHROME_BINHOST provides prebuilts for chromeos-chrome only.
-EOF
-      echo source "$chrome_binhost"
-      echo 'PORTAGE_BINHOST="$PORTAGE_BINHOST $LATEST_RELEASE_CHROME_BINHOST"'
-    fi
-  fi
-}
-
 # Parse command line flags
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
@@ -435,17 +255,31 @@ else
       break
     fi
   done
-  print_board_make_conf | sudo_clobber $BOARD_ETC/make.conf.board
+  EXTRA_ARGS=()
+  if [[ -n "${FLAGS_accept_licenses}" ]]; then
+    EXTRA_ARGS+=( --accepted-licenses="${FLAGS_accept_licenses}" )
+  fi
+  sudo "${GCLIENT_ROOT}/chromite/bin/cros_sysroot_utils" generate-make-conf \
+    --sysroot="${BOARD_ROOT}" --out-file="${BOARD_ETC}/make.conf.board" \
+    "${EXTRA_ARGS[@]}"
 
   # We need to create make.conf.board in two steps as we need make.conf.board to
   # exist before we can generate the binhost list.
-  print_board_binhost_config | sudo_append $BOARD_ETC/make.conf.board
+  EXTRA_ARGS=()
+  if [[ ${FLAGS_chrome_binhost_only} -eq ${FLAGS_TRUE} ]]; then
+    EXTRA_ARGS+=( --chrome-only )
+  fi
+  if [[ ${FLAGS_reuse_pkgs_from_local_boards} -eq ${FLAGS_TRUE} ]]; then
+    EXTRA_ARGS+=( --local-only )
+  fi
+  cros_sysroot_utils generate-binhosts --sysroot="${BOARD_ROOT}" \
+    "${EXTRA_ARGS[@]}" | sudo_append $BOARD_ETC/make.conf.board
 
   # We install the toolchain related bits after the BOARD_ROOT, BOARD_PROFILE
   # and BOARD_ETC directories have been created.
   if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
     if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
-      install_toolchain
+      "${GCLIENT_ROOT}/src/scripts/install_toolchain" --sysroot="${BOARD_ROOT}"
     fi
 
     # If the sysroot already existed and we are not regenerating configuration,
