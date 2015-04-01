@@ -404,6 +404,7 @@ CHROMEOS_RECOVERY_IMAGE_NAME="recovery_image.bin"
 CHROMEOS_TEST_IMAGE_NAME="chromiumos_test_image.bin"
 CHROMEOS_FACTORY_TEST_IMAGE_NAME="chromiumos_factory_image.bin"
 CHROMEOS_FACTORY_INSTALL_SHIM_NAME="factory_install_shim.bin"
+SYSROOT_SETTINGS_FILE="/var/cache/edb/chromeos"
 
 # Install make for portage ebuilds.  Used by build_image and gmergefs.
 # TODO: Is /usr/local/autotest-chrome still used by anyone?
@@ -1064,14 +1065,61 @@ get_sysroot_config() {
   local variable=$2
   local config_file="${sysroot%/}/etc/make.conf.board_setup"
 
-  if [[ -e "${config_file}" ]]; then
+  get_variable "${config_file}" "${variable}"
+}
+
+# Load a single variable from a bash file.
+# $1 - Path to the file.
+# $2 - Variable to get.
+get_variable() {
+  local filepath=$1
+  local variable=$2
+  local lockfile="${filepath}.lock"
+
+  if [[ -e "${filepath}" ]]; then
+    userowned_file "${lockfile}"
     (
-      . ${config_file}
+      flock 201
+      . "${filepath}"
       if [[ "${!variable+set}" == "set" ]]; then
         echo "${!variable}"
-        return
       fi
+    ) 201>"${lockfile}"
+  fi
+}
+
+# Set a single variable in a KEY=VALUE file.
+# Note: the file is assumed to be owned by root.
+# $1 - Path to the file.
+# $2 - Variable to set.
+# $3 - Value to set.
+set_variable() {
+  local filepath=$1
+  local variable=$2
+  local value=$3
+  local lockfile="${filepath}.lock"
+
+  userowned_file "${lockfile}"
+  (
+    flock 201
+    sudo touch "${filepath}"
+    sudo sed -i -e "/^${variable}=/d" "${filepath}"
+    printf '\n%s="%s"\n' "${variable}" "${value}" | sudo_append "${filepath}"
+  ) 201>"${lockfile}"
+}
+
+# Creates a user owned file.
+# $1 - Path to the file.
+userowned_file() {
+  local filepath=$1
+
+  if [[ ! -w "${filepath}" ]]; then
+    cmds=(
+      "mkdir -p '$(dirname "${filepath}")'"
+      "touch '${filepath}'"
+      "chown ${USER} '${filepath}'"
     )
+    sudo_multi "${cmds[@]}"
   fi
 }
 
