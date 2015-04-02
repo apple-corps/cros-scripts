@@ -75,11 +75,7 @@ cross_get_version() {
 # Checks whether the libc version installed in the board
 # matches the one installed by the toolchain.
 board_needs_libc_update() {
-  if [[ ! -e "${BOARD_SETUP}" ]]; then
-    return 0
-  fi
-
-  local board_version=$(get_sysroot_config "${FLAGS_sysroot}" "LIBC_VERSION")
+  local board_version=$(get_variable "${SYSROOT_CACHE}" "LIBC_VERSION")
   local toolchain_version=$(cross_get_version glibc)
   if [[ "${board_version}" = "${toolchain_version}" ]]; then
     return 1
@@ -152,11 +148,7 @@ install_toolchain_in_board() {
   if [[ ${FLAGS_configure} -eq ${FLAGS_TRUE} ]]; then
     install_toolchain_in_provided "$gcc_ver" "$libc_ver"
 
-    # Configure new libc version in make.conf.board_setup.
-    if [[ -e ${BOARD_SETUP} ]]; then
-      sudo sed -i -e "/^LIBC_VERSION=/d" "${BOARD_SETUP}"
-    fi
-    echo "LIBC_VERSION=\"$libc_ver\"" | sudo_append "$BOARD_SETUP"
+    set_variable "${SYSROOT_CACHE}" "LIBC_VERSION" "${libc_ver}"
   fi
 }
 
@@ -168,8 +160,8 @@ fi
 
 BOARD_ROOT="${FLAGS_sysroot}"
 BOARD_ETC="${BOARD_ROOT}/etc"
-BOARD_SETUP="${BOARD_ETC}/make.conf.board_setup"
 BOARD_PROFILE="${BOARD_ETC}/portage/profile"
+SYSROOT_CACHE="${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}"
 
 sysroot_toolchain="$(get_sysroot_config "${FLAGS_sysroot}" "CHOST")"
 : ${FLAGS_toolchain:=${sysroot_toolchain}}

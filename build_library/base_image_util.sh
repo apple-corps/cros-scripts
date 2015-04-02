@@ -86,8 +86,10 @@ create_base_image() {
 
   # We need to install libc manually from the cross toolchain.
   # TODO: Improve this? It would be ideal to use emerge to do this.
+  libc_version="$(get_variable "${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}" \
+    "LIBC_VERSION")"
   PKGDIR="/var/lib/portage/pkgs"
-  local libc_atom="cross-${CHOST}/glibc-${LIBC_VERSION}"
+  local libc_atom="cross-${CHOST}/glibc-${libc_version}"
   LIBC_PATH="${PKGDIR}/${libc_atom}.tbz2"
 
   if [[ ! -e ${LIBC_PATH} ]]; then
