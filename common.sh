@@ -787,7 +787,16 @@ loopback_partscan() {
 # $1 - The loop device to detach.
 # $2-$N - Additional arguments to pass to losetup.
 loopback_detach() {
-  au_generator_sudo partx -d "$1"
+  # Retry the deletes before we detach.  crbug.com/469259
+  local i
+  for (( i = 0; i < 10; i++ )); do
+    if au_generator_sudo partx -d "$1"; then
+      break
+    fi
+    warn "Sleeping & retrying ..."
+    sync
+    sleep 1
+  done
   au_generator_sudo losetup --detach "$@"
 }
 
