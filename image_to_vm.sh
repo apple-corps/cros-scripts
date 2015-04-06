@@ -76,7 +76,7 @@ cleanup() {
   fi
   rm -rf "${TEMP_DIR}"
 }
-trap cleanup INT TERM EXIT
+trap 'ret=$?; cleanup; die_err_trap ${ret}' INT TERM EXIT
 
 BOARD="$FLAGS_board"
 
@@ -181,7 +181,7 @@ mkdir -p "${TEMP_ESP_MNT}"
 sudo mount "${DST_ESP}" "${TEMP_ESP_MNT}"
 
 # Unmount everything prior to building a final image
-trap - INT TERM EXIT
+trap 'die_err_trap' INT TERM EXIT
 cleanup
 
 # Make the built-image bootable.
@@ -197,14 +197,15 @@ detach_loopback() {
     loopback_detach "${IMAGE_DEV}"
   fi
 }
-trap detach_loopback INT TERM EXIT
+trap 'ret=$?; detach_loopback; die_err_trap ${ret}' INT TERM EXIT
 
 # cros_make_image_bootable made the kernel in slot A recovery signed. We want
 # it to be normally signed like the one in slot B, so copy B into A.
 IMAGE_DEV=$(loopback_partscan "${TEMP_IMG}")
 sudo cp ${IMAGE_DEV}p4 ${IMAGE_DEV}p2
 
-trap - INT TERM EXIT
+trap 'die_err_trap' INT TERM EXIT
+switch_to_strict_mode
 loopback_detach "${IMAGE_DEV}"
 
 echo Creating final image

@@ -144,8 +144,14 @@ error() {
 # no reason to have them cause their own crash if we're in the middle
 # of reporting an error condition then exiting.
 die_err_trap() {
-  local command=$1 result=$2
+  local result=${1:-$?}
+  local command=${2:-${BASH_COMMAND:-command unknown}}
   set +e +u
+
+  if [[ ${result} == "0" ]]; then
+    # Let callers simplify by setting us as an EXIT trap handler.
+    return 0
+  fi
 
   # Per the message, bash misreports 127 as 1 during err trap sometimes.
   # Note this fact to ensure users don't place too much faith in the
@@ -1371,7 +1377,7 @@ switch_to_strict_mode() {
   # Set up strict execution mode; note that the trap
   # must follow switch_to_strict_mode, else it will have no effect.
   set -e
-  trap 'die_err_trap "${BASH_COMMAND:-command unknown}" "$?"' ERR
+  trap 'die_err_trap' ERR
   if [[ $# -ne 0 ]]; then
     set "$@"
   fi
