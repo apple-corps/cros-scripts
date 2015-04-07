@@ -204,7 +204,11 @@ main() {
     fi
 
     echo "copying modules"
-    remote_send_to /build/"${FLAGS_board}"/lib/modules/ /lib/modules/
+    if [ -d /build/"${FLAGS_board}"/lib/modules/ ]; then
+      remote_send_to /build/"${FLAGS_board}"/lib/modules/ /lib/modules/
+    else
+      info "No modules.  Skipping."
+    fi
 
     echo "copying firmware"
     remote_send_to /build/"${FLAGS_board}"/lib/firmware/ /lib/firmware/
