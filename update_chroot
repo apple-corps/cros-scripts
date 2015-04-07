@@ -46,6 +46,8 @@ switch_to_strict_mode
 # Run version hooks as pre-update
 ${SCRIPTS_DIR}/run_chroot_version_hooks
 
+info "Updating chroot"
+
 # Create /etc/make.conf.host_setup.  The file content is regenerated
 # from scratch every update.  There are various reasons to do this:
 #  + It's cheap, so this is an easy way to guarantee correct content
@@ -57,29 +59,7 @@ ${SCRIPTS_DIR}/run_chroot_version_hooks
 #    overlay, the file may need to be regenerated.
 create_host_setup
 
-info "Updating chroot"
-
 sudo_clear_shadow_locks /
-
-EMERGE_FLAGS="-uNv --with-bdeps=y --select"
-if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
-  EMERGE_FLAGS="${EMERGE_FLAGS} --getbinpkg"
-
-  # Only update toolchain when binpkgs are available. Toolchain rollout
-  # process only takes place when the chromiumos sdk builder finishes
-  # a successful build.
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/binutils"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/gcc"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-libs/glibc"
-fi
-
-if [[ "${FLAGS_jobs}" -ne -1 ]]; then
-  EMERGE_FLAGS+=" --jobs=${FLAGS_jobs}"
-fi
-
-# Perform an update of all the sdk packages in the chroot.
-CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
-EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
 # First make sure the cross-compilers have the right config settings.
 # We don't actually build them yet though as we want to wait for the
@@ -104,6 +84,26 @@ if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_FALSE}" ]; then
 fi
 
 info "Updating the SDK"
+
+# Perform an update of all the sdk packages in the chroot.
+CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
+EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
+
+EMERGE_FLAGS="-uNv --with-bdeps=y --select"
+if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
+  EMERGE_FLAGS="${EMERGE_FLAGS} --getbinpkg"
+
+  # Only update toolchain when binpkgs are available. Toolchain rollout
+  # process only takes place when the chromiumos sdk builder finishes
+  # a successful build.
+  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/binutils"
+  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/gcc"
+  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-libs/glibc"
+fi
+
+if [[ "${FLAGS_jobs}" -ne -1 ]]; then
+  EMERGE_FLAGS+=" --jobs=${FLAGS_jobs}"
+fi
 
 # Build cros_workon packages when they are changed.
 for pkg in $("${CHROMITE_BIN}/cros_list_modified_packages" --host); do
