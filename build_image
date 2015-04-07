@@ -211,19 +211,29 @@ fi
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
 ln -sfT $(basename ${BUILD_DIR}) ${LINK_NAME}
 
-info "Done. Image(s) created in ${BUILD_DIR}"
+WORKSPACE_PREFIX="//"
+OUTPUT_DIR_NAME="${BUILD_DIR/"${_WORKSPACE_DIRS[1]}/"/${WORKSPACE_PREFIX}}"
+
+info "Done. Image(s) created in ${OUTPUT_DIR_NAME}"
 echo
 
 # Print out the images we generated.
 summarize() {
   local name="$1" img="$2"
+  local dir_path
+
+  if [[ "${FLAGS_output_root}" == "${__flags_output_root_default}" ]]; then
+    dir_path=${OUTSIDE_OUTPUT_DIR}
+  else
+    dir_path="${FLAGS_output_root}/${BOARD}/${IMAGE_SUBDIR}"
+  fi
 
   info "${name} image created as ${img}"
   info "To copy the image to a USB key, use:"
-  info "  cros flash usb:// ${OUTSIDE_OUTPUT_DIR}/${img}"
+  info "  cros flash usb:// ${dir_path}/${img}"
   if [[ $# -ge 3 ]]; then
     info "To convert it to a VM image, use:"
-    info "  ./image_to_vm.sh --from=${OUTSIDE_OUTPUT_DIR} --board=${BOARD} $3"
+    info "  ./image_to_vm.sh --from=${dir_path} --board=${BOARD} $3"
   fi
   echo
 }
