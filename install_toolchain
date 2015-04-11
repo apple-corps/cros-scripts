@@ -135,16 +135,6 @@ install_toolchain_in_board() {
     sudo_multi "${cmds[@]}"
   fi
 
-  # Some header files are needed also for rpcbind (NFS support)
-  # TODO: Figure out a better way of doing this too?
-  cmds=(
-    "cp -a /usr/include/rpcsvc/mount.h '${BOARD_ROOT}/usr/include/rpcsvc'"
-    "cp -a /usr/include/rpcsvc/rquota.h '${BOARD_ROOT}/usr/include/rpcsvc'"
-    "cp -a /usr/include/rpcsvc/nfs_prot.h '${BOARD_ROOT}/usr/include/rpcsvc'"
-    "cp -a /usr/include/rpcsvc/yppasswd.h '${BOARD_ROOT}/usr/include/rpcsvc'"
-  )
-  sudo_multi "${cmds[@]}"
-
   if [[ ${FLAGS_configure} -eq ${FLAGS_TRUE} ]]; then
     install_toolchain_in_provided "$gcc_ver" "$libc_ver"
 
