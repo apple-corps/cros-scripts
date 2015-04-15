@@ -154,7 +154,7 @@ fi
 
 DEVKEYSDIR="/usr/share/vboot/devkeys"
 
-eclean-$BOARD -d packages
+"/build/${BOARD}/build/bin/eclean" -d packages
 
 if [[ ${skip_blacklist_check} -ne 1 ]]; then
   check_blacklist
