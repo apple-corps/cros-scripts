@@ -182,7 +182,6 @@ sudo_multi "${cmds[@]}"
 
 # Generating the standard configuration file (make.conf.board_setup) for the
 # sysroot.
-SAVED_VERSION="$(get_sysroot_config "${BOARD_SETUP}" "LIBC_VERSION")"
 if [[ -n "${FLAGS_brick}" ]]; then
   cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
     --brick="${FLAGS_brick}" --out-file="${BOARD_SETUP}"
@@ -190,7 +189,6 @@ else
   cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
     --board="${FLAGS_board}" --out-file="${BOARD_SETUP}"
 fi
-printf "\n%s\n" "${SAVED_VERSION}" | sudo_append "${BOARD_SETUP}"
 
 # Generate wrappers for portage helpers (equery, portageq, emerge, etc...).
 # Those are used to generate make.conf.board.
