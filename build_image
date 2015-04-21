@@ -70,6 +70,8 @@ DEFINE_string extra_packages "" \
   "Space-delimited list of additional packages to add to the image."
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
+DEFINE_boolean progress_bar ${FLAGS_FALSE} \
+  "Display helper messages to allow progress to be easily measured."
 DEFINE_boolean replace ${FLAGS_FALSE} \
   "Overwrite existing output, if any."
 DEFINE_string symlink "latest" \
@@ -94,7 +96,7 @@ esac
 
 eval set -- "${FLAGS_ARGV}"
 
-# Only now can we die on error.  shflags functions leak non-zero error codes,
+# Only now can we die on error. shflags functions leak non-zero error codes,
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode
 
@@ -180,13 +182,25 @@ fi
 # Create the output directory and temporary mount points.
 mkdir -p "${BUILD_DIR}"
 
+if [ $FLAGS_progress_bar -eq 0 ]; then
+  echo 'operation: creating base image'
+fi
+
 # Create the base image.
 create_base_image ${PRISTINE_IMAGE_NAME} ${FLAGS_enable_rootfs_verification} \
   ${FLAGS_enable_bootcache}
 
+if [ $FLAGS_progress_bar -eq 0 ]; then
+  echo 'operation: done creating base image'
+fi
+
 # Running board-specific setup if any exists.
 if type board_setup &>/dev/null; then
   board_setup "${BUILD_DIR}/${PRISTINE_IMAGE_NAME}"
+fi
+
+if [ $FLAGS_progress_bar -eq 0 ]; then
+  echo 'operation: creating developer image'
 fi
 
 # Create a developer image if an image that is based on it is requested.
@@ -194,6 +208,11 @@ if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
     ${CHROMEOS_TEST_IMAGE_NAME} ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
   copy_image ${CHROMEOS_BASE_IMAGE_NAME} ${CHROMEOS_DEVELOPER_IMAGE_NAME}
   install_dev_packages ${CHROMEOS_DEVELOPER_IMAGE_NAME}
+fi
+
+if [ $FLAGS_progress_bar -eq 0 ]; then
+  echo 'operation: done creating developer image'
+  echo 'operation: creating test image'
 fi
 
 # From a developer image create a test|factory_test image.
@@ -205,6 +224,10 @@ if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
   copy_image  ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
     ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
   mod_image_for_test  ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
+fi
+
+if [ $FLAGS_progress_bar -eq 0 ]; then
+  echo 'operation: done creating test image'
 fi
 
 # Create a named symlink.
