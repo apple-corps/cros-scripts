@@ -15,6 +15,7 @@ test_devices="${testif},${wlanifs},${modemif}"
 ORIG_CONF=${ROOT_FS_DIR}/etc/init/shill.conf
 TEMP_CONF=${ORIG_CONF}.tmp
 sed -e "s@SHILL_TEST_DEVICES=\"\"@SHILL_TEST_DEVICES=\"${test_devices}\"@" \
+    -e "s@SHILL_ACCEPT_HOSTNAME_FROM=@SHILL_ACCEPT_HOSTNAME_FROM=\"pseudoethernet0\"@" \
     ${ORIG_CONF} > ${TEMP_CONF}
 mv -f ${TEMP_CONF} ${ORIG_CONF}
 
