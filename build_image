@@ -182,7 +182,7 @@ fi
 # Create the output directory and temporary mount points.
 mkdir -p "${BUILD_DIR}"
 
-if [ $FLAGS_progress_bar -eq 0 ]; then
+if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: creating base image'
 fi
 
@@ -190,7 +190,7 @@ fi
 create_base_image ${PRISTINE_IMAGE_NAME} ${FLAGS_enable_rootfs_verification} \
   ${FLAGS_enable_bootcache}
 
-if [ $FLAGS_progress_bar -eq 0 ]; then
+if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: done creating base image'
 fi
 
@@ -199,7 +199,7 @@ if type board_setup &>/dev/null; then
   board_setup "${BUILD_DIR}/${PRISTINE_IMAGE_NAME}"
 fi
 
-if [ $FLAGS_progress_bar -eq 0 ]; then
+if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: creating developer image'
 fi
 
@@ -210,7 +210,7 @@ if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
   install_dev_packages ${CHROMEOS_DEVELOPER_IMAGE_NAME}
 fi
 
-if [ $FLAGS_progress_bar -eq 0 ]; then
+if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: done creating developer image'
   echo 'operation: creating test image'
 fi
@@ -226,7 +226,7 @@ if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
   mod_image_for_test  ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
 fi
 
-if [ $FLAGS_progress_bar -eq 0 ]; then
+if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: done creating test image'
 fi
 
