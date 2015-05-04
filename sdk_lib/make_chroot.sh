@@ -43,6 +43,8 @@ DEFINE_string stage3_date "2010.03.09" \
   "Use the stage3 with the given date."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
+DEFINE_string workspace_root "" \
+  "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to store caches within."
 
 # Parse command line flags.
@@ -52,7 +54,7 @@ eval set -- "${FLAGS_ARGV}"
 check_flags_only_and_allow_null_arg "$@" && set --
 
 CROS_LOG_PREFIX=cros_sdk:make_chroot
-SUDO_HOME=$(eval echo ~${SUDO_USER})
+SUDO_HOME=$(eval echo ~"${SUDO_USER}")
 
 # Set the right umask for chroot creation.
 umask 022
@@ -68,8 +70,19 @@ switch_to_strict_mode
 
 . "${SCRIPT_ROOT}"/sdk_lib/make_conf_util.sh
 
+PRIMARY_GROUP=$(id -g -n "${SUDO_USER}")
+PRIMARY_GROUP_ID=$(id -g "${SUDO_USER}")
+
 FULLNAME="ChromeOS Developer"
-DEFGROUPS="eng,adm,cdrom,floppy,audio,video,portage"
+DEFGROUPS="${PRIMARY_GROUP},adm,cdrom,floppy,audio,video,portage"
+
+# If a workspace was specified we want to make sure the user is in its group.
+if [[ -n "${FLAGS_workspace_root}" ]]; then
+  WORKSPACE_GROUP=$(stat -c "%G" "${FLAGS_workspace_root}")
+  WORKSPACE_GROUP_ID=$(getent group "${WORKSPACE_GROUP}" | cut -d: -f3)
+  # Duplicates in DEFGROUPS are fine, the useradd call handles them properly.
+  DEFGROUPS+=",${WORKSPACE_GROUP}"
+fi
 
 USEPKG=""
 if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
@@ -109,7 +122,7 @@ early_enter_chroot() {
 # found inside of the chroot since the environment outside of the chroot
 # might be insufficient (like distros with merged /bin /sbin and /usr).
 bare_chroot() {
-  PATH=/bin:/sbin:/usr/bin:/usr/sbin:${PATH} \
+  PATH="/bin:/sbin:/usr/bin:/usr/sbin:${PATH}" \
     chroot "${FLAGS_chroot}" "$@"
 }
 
@@ -140,15 +153,26 @@ init_users () {
      ln -sf /usr/share/zoneinfo/PST8PDT "${FLAGS_chroot}/etc/localtime"
    fi
    info "Adding user/group..."
+   # Add the necessary groups to the chroot.
+   # Duplicate GIDs are allowed here in order to ensure that the required
+   # groups are the same inside and outside the chroot.
+   # TODO(dpursell): Handle when PRIMARY_GROUP exists in the chroot already
+   # with a different GID; groupadd will not create the new GID in that case.
+   bare_chroot groupadd -f -o -g "${PRIMARY_GROUP_ID}" "${PRIMARY_GROUP}"
+   if [[ -n "${WORKSPACE_GROUP}" ]]; then
+     # groupadd -f is fine (has no effect) if this group+ID already exists.
+     # TODO(dpursell): Handle when WORKSPACE_GROUP exists in the chroot already
+     # with a different GID; groupadd will not create the new GID in that case.
+     bare_chroot groupadd -f -o -g "${WORKSPACE_GROUP_ID}" "${WORKSPACE_GROUP}"
+   fi
    # Add ourselves as a user inside the chroot.
-   bare_chroot groupadd -g 5000 eng
    # We need the UID to match the host user's. This can conflict with
    # a particular chroot UID. At the same time, the added user has to
    # be a primary user for the given UID for sudo to work, which is
    # determined by the order in /etc/passwd. Let's put ourselves on top
    # of the file.
-   bare_chroot useradd -o -G ${DEFGROUPS} -g eng -u ${SUDO_UID} -s \
-     /bin/bash -m -c "${FULLNAME}" ${SUDO_USER}
+   bare_chroot useradd -o -G "${DEFGROUPS}" -g "${PRIMARY_GROUP}" \
+     -u "${SUDO_UID}" -s /bin/bash -m -c "${FULLNAME}" "${SUDO_USER}"
    # Because passwd generally isn't sorted and the entry ended up at the
    # bottom, it is safe to just take it and move it to top instead.
    sed -e '1{h;d};$!{H;d};$G' -i "${FLAGS_chroot}/etc/passwd"
@@ -242,9 +266,9 @@ EOF
    # We rely on 'env-update' getting called below.
    target="${FLAGS_chroot}/etc/env.d/99chromiumos"
    cat <<EOF > "${target}"
-PATH=${CHROOT_TRUNK_DIR}/chromite/bin:${DEPOT_TOOLS_DIR}
+PATH="${CHROOT_TRUNK_DIR}/chromite/bin:${DEPOT_TOOLS_DIR}"
 CROS_WORKON_SRCROOT="${CHROOT_TRUNK_DIR}"
-PORTAGE_USERNAME=${SUDO_USER}
+PORTAGE_USERNAME="${SUDO_USER}"
 EOF
 
    # TODO(zbehan): Configure stuff that is usually configured in postinst's,
@@ -286,19 +310,19 @@ EOF
 
    # Automatically change to scripts directory.
    echo 'cd ${CHROOT_CWD:-~/trunk/src/scripts}' \
-       | user_append "$FLAGS_chroot/home/${SUDO_USER}/.bash_profile"
+       | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bash_profile"
 
    # Enable bash completion for build scripts.
    echo ". ~/trunk/src/scripts/bash_completion" \
-       | user_append "$FLAGS_chroot/home/${SUDO_USER}/.bashrc"
+       | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
 
    if [[ "${SUDO_USER}" = "chrome-bot" && -d "${SUDO_HOME}/.ssh" ]]; then
      # Copy ssh keys, so chroot'd chrome-bot can scp files from chrome-web.
      user_cp -rp "${SUDO_HOME}/.ssh" "$FLAGS_chroot/home/${SUDO_USER}/"
    fi
 
-   if [[ -f ${SUDO_HOME}/.cros_chroot_init ]]; then
-     sudo -u ${SUDO_USER} -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
+   if [[ -f "${SUDO_HOME}/.cros_chroot_init" ]]; then
+     sudo -u "${SUDO_USER}" -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
        "${FLAGS_chroot}"
    fi
 }
@@ -325,7 +349,7 @@ CHROOT_VERSION="${FLAGS_chroot}/etc/cros_chroot_version"
 
 # Pass proxy variables into the environment.
 for type in http ftp all; do
-   value=$(env | grep ${type}_proxy || true)
+   value=$(env | grep "${type}_proxy" || true)
    if [ -n "${value}" ]; then
       CHROOT_PASSTHRU+=("$value")
    fi
@@ -335,13 +359,13 @@ done
 mkdir -p "$FLAGS_chroot"
 
 echo
-if [[ -f ${CHROOT_STATE} ]]; then
+if [[ -f "${CHROOT_STATE}" ]]; then
   info "stage3 already set up.  Skipping..."
-elif [[ -z ${FLAGS_stage3_path} ]]; then
+elif [[ -z "${FLAGS_stage3_path}" ]]; then
   die_notrace "Please use --stage3_path when bootstrapping"
 else
   info "Unpacking stage3..."
-  case ${FLAGS_stage3_path} in
+  case "${FLAGS_stage3_path}" in
     *.tbz2|*.tar.bz2) DECOMPRESS=$(type -p pbzip2 || echo bzip2) ;;
     *.tar.xz) DECOMPRESS="xz" ;;
     *) die "Unknown tarball compression: ${FLAGS_stage3_path}" ;;
@@ -353,7 +377,7 @@ fi
 
 # Ensure that we properly detect when we are inside the chroot.
 # We'll force this to the latest version at the end as needed.
-if [[ ! -e ${CHROOT_VERSION} ]]; then
+if [[ ! -e "${CHROOT_VERSION}" ]]; then
   echo "0" > "${CHROOT_VERSION}"
 fi
 
@@ -402,7 +426,7 @@ info "Updating portage"
 early_enter_chroot emerge -uNv --quiet portage
 
 # Clear out openrc if it's installed as we don't want it.
-if [[ -e ${FLAGS_chroot}/usr/share/openrc ]]; then
+if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
   info "Uninstalling openrc"
   early_enter_chroot env CLEAN_DELAY=0 emerge -qC sys-apps/openrc
   # Now update baselayout to get our functions.sh.  The unmerge
@@ -430,11 +454,11 @@ for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
 done
 
 info "Updating host toolchain"
-if [[ ! -e ${FLAGS_chroot}/usr/bin/crossdev ]]; then
+if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
   early_enter_chroot $EMERGE_CMD -uNv crossdev
 fi
 TOOLCHAIN_ARGS=( --deleteold )
-if [[ ${FLAGS_usepkg} -eq ${FLAGS_FALSE} ]]; then
+if [[ "${FLAGS_usepkg}" == "${FLAGS_FALSE}" ]]; then
   TOOLCHAIN_ARGS+=( --nousepkg )
 fi
 # Note: early_enter_chroot executes as root.
@@ -456,13 +480,13 @@ fi
 # Skip toolchain update because it already happened above, and the chroot is
 # not ready to emerge all cross toolchains.
 UPDATE_ARGS=( --skip_toolchain_update )
-if [[ ${FLAGS_usepkg} -eq ${FLAGS_TRUE} ]]; then
+if [[ "${FLAGS_usepkg}" == "${FLAGS_TRUE}" ]]; then
   UPDATE_ARGS+=( --usepkg )
 else
   UPDATE_ARGS+=( --nousepkg )
 fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
-  UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )
+  UPDATE_ARGS+=( --jobs="${FLAGS_jobs}" )
 fi
 enter_chroot "${CHROOT_TRUNK_DIR}/src/scripts/update_chroot" "${UPDATE_ARGS[@]}"
 
