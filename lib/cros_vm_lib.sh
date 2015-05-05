@@ -115,7 +115,18 @@ get_decompressor() {
 }
 
 # $1: Path to the virtual image to start.
+# $2: Name of the board to virtualize.
 start_kvm() {
+  # Determine appropriate qemu CPU for board.
+  # TODO(spang): Let the overlay provide appropriate options.
+  local board="$2"
+  local cpu_option=""
+  case "${board}" in
+    x86-alex*|x86-mario*|x86-zgb*)
+      cpu_option="-cpu n270"
+      ;;
+  esac
+
   # Override default pid file.
   local start_vm=0
   [ -n "${FLAGS_kvm_pid}" ] && KVM_PID_FILE=${FLAGS_kvm_pid}
@@ -206,6 +217,7 @@ start_kvm() {
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}" \
       -mon chardev=control_pipe \
       -daemonize \
+      ${cpu_option} \
       ${net_option} \
       ${nographics} \
       ${snapshot} \
