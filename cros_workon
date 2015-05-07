@@ -6,5 +6,8 @@
 
 # TODO(wiley) Remove this on July 20 2015.
 echo 'The logic in this script has moved.'
-echo 'Please run `/mnt/host/source/src/scripts/update_chroot`'
+echo 'Please sync your repos and run:'
+echo ''
+echo '    /mnt/host/source/src/scripts/update_chroot; hash -r'
+echo ''
 exit 1
