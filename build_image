@@ -66,6 +66,8 @@ show_help_if_requested "$@"
 # not needed for the typical developer workflow.
 DEFINE_integer build_attempt 1 \
   "The build attempt for this image build."
+DEFINE_string build_root "${DEFAULT_BUILD_ROOT}/images" \
+  "Directory in which to compose the image, before copying it to output_root."
 DEFINE_string extra_packages "" \
   "Space-delimited list of additional packages to add to the image."
 DEFINE_integer jobs -1 \
@@ -230,12 +232,21 @@ if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: done creating test image'
 fi
 
+# If the output_root isn't the same as the build_root, move the resulting
+# image to the correct place in output_root.
+if [[ "${FLAGS_output_root}" != "${FLAGS_build_root}" ]]; then
+  info "Moving completed image to output_root: ${FLAGS_output_root}."
+  mkdir -p "${OUTPUT_DIR}"
+  mv "${BUILD_DIR}"/* "${OUTPUT_DIR}"
+  rmdir "${BUILD_DIR}"
+fi
+
 # Create a named symlink.
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
-ln -sfT $(basename ${BUILD_DIR}) ${LINK_NAME}
+ln -sfT $(basename ${OUTPUT_DIR}) ${LINK_NAME}
 
 WORKSPACE_PREFIX="//"
-OUTPUT_DIR_NAME="${BUILD_DIR/"${_WORKSPACE_DIRS[1]}/"/${WORKSPACE_PREFIX}}"
+OUTPUT_DIR_NAME="${OUTPUT_DIR/"${_WORKSPACE_DIRS[1]}/"/${WORKSPACE_PREFIX}}"
 
 info "Done. Image(s) created in ${OUTPUT_DIR_NAME}"
 echo
@@ -248,7 +259,7 @@ summarize() {
   if [[ "${FLAGS_output_root}" == "${__flags_output_root_default}" ]]; then
     dir_path=${OUTSIDE_OUTPUT_DIR}
   else
-    dir_path="${FLAGS_output_root}/${BOARD}/${IMAGE_SUBDIR}"
+    dir_path="${OUTPUT_DIR}"
   fi
 
   info "${name} image created as ${img}"

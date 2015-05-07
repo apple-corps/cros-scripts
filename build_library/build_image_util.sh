@@ -18,7 +18,8 @@ ${FLAGS_build_attempt}"
 else
   IMAGE_SUBDIR="${IMAGE_SUBDIR}-${FLAGS_version}"
 fi
-BUILD_DIR="${FLAGS_output_root}/${BOARD}/${IMAGE_SUBDIR}"
+BUILD_DIR="${FLAGS_build_root}/${BOARD}/${IMAGE_SUBDIR}"
+OUTPUT_DIR="${FLAGS_output_root}/${BOARD}/${IMAGE_SUBDIR}"
 OUTSIDE_OUTPUT_DIR="../build/images/${BOARD}/${IMAGE_SUBDIR}"
 IMAGES_TO_BUILD=
 
