@@ -318,13 +318,3 @@ if [[ -n ${FLAGS_board_root} ]]; then
   # cros_workon do not support board_root.
   exit 0
 fi
-
-# NOTE: Printing the working-on ebuilds does not only serve the informative
-# purpose. It also causes the ${BOARD_ROOT}/etc/portage/package.* files to be
-# regenerated.
-WORKING_ON=$(cros_workon --board=${BOARD_VARIANT} list)
-if [ -n "${WORKING_ON}" ]; then
-  echo
-  echo "Currently working on the following ebuilds for this board:"
-  echo "${WORKING_ON}"
-fi
