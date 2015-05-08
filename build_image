@@ -232,14 +232,8 @@ if [[ ${FLAGS_progress_bar} -eq 0 ]]; then
   echo 'operation: done creating test image'
 fi
 
-# If the output_root isn't the same as the build_root, move the resulting
-# image to the correct place in output_root.
-if [[ "${FLAGS_output_root}" != "${FLAGS_build_root}" ]]; then
-  info "Moving completed image to output_root: ${FLAGS_output_root}."
-  mkdir -p "${OUTPUT_DIR}"
-  mv "${BUILD_DIR}"/* "${OUTPUT_DIR}"
-  rmdir "${BUILD_DIR}"
-fi
+# Move the completed image to the output_root.
+move_image "${BUILD_DIR}" "${OUTPUT_DIR}"
 
 # Create a named symlink.
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"

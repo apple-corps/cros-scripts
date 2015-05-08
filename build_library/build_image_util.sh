@@ -175,6 +175,20 @@ get_boot_desc() {
   done <"${boot_desc_file}"
 }
 
+# Utility function for moving the build directory to the output root.
+move_image() {
+  local source="$1"
+  local destination="$2"
+  # If the output_root isn't the same as the build_root, move the resulting
+  # image to the correct place in output_root.
+  if [[ "${source}" != "${destination}" ]]; then
+    info "Moving the image to: ${destination}."
+    mkdir -p "${destination}"
+    mv "${source}"/* "${destination}"
+    rmdir "${source}"
+  fi
+}
+
 delete_prompt() {
   echo "An error occurred in your build so your latest output directory" \
     "is invalid."
@@ -192,7 +206,8 @@ delete_prompt() {
     sudo rm -rf "${BUILD_DIR}"
     echo "Deleted ${BUILD_DIR}"
   else
-    echo "Not deleting ${BUILD_DIR}."
+    move_image "${BUILD_DIR}" "${OUTPUT_DIR}"
+    echo "Not deleting ${OUTPUT_DIR}."
   fi
 }
 
