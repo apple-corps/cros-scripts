@@ -412,12 +412,13 @@ CHROMEOS_FACTORY_TEST_IMAGE_NAME="chromiumos_factory_image.bin"
 CHROMEOS_FACTORY_INSTALL_SHIM_NAME="factory_install_shim.bin"
 SYSROOT_SETTINGS_FILE="/var/cache/edb/chromeos"
 
-# Install make for portage ebuilds.  Used by build_image and gmergefs.
+# Install mask for portage ebuilds.  Used by build_image and gmergefs.
 # TODO: Is /usr/local/autotest-chrome still used by anyone?
 COMMON_INSTALL_MASK="
   *.a
   *.c
   *.cc
+  *.go
   *.la
   *.h
   *.hpp
@@ -434,6 +435,7 @@ COMMON_INSTALL_MASK="
   /usr/include/nspr/*
   /usr/include/X11/*
   /usr/lib/debug
+  /usr/lib/gopath
   /usr/lib*/pkgconfig
   /usr/lib/systemd
   /usr/local/autotest-chrome
