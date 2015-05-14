@@ -56,21 +56,30 @@ _make_conf_private() {
   if [ "$1" = "wget" ] ; then
     return
   fi
+
+  # If the private overlay dir exists, make sure each sub-piece also exists
+  # before we try using it.  Otherwise, simply creating an empty dir will
+  # lead to weird build errors.
   local chromeos_overlay="src/private-overlays/chromeos-overlay"
-  chromeos_overlay="$CHROOT_TRUNK_DIR/$chromeos_overlay"
-  if [ -d "$chromeos_overlay" ]; then
-    local boto_config="$chromeos_overlay/googlestorage_account.boto"
+  chromeos_overlay="${CHROOT_TRUNK_DIR}/${chromeos_overlay}"
+
+  local make_conf="${chromeos_overlay}/make.conf"
+  if [[ -e "${make_conf}" ]]; then
+    echo "source ${make_conf}"
+  fi
+
+  local boto_config="${chromeos_overlay}/googlestorage_account.boto"
+  if [[ -e "${boto_config}" ]]; then
     local gs_fetch_binpkg='/mnt/host/source/chromite/bin/gs_fetch_binpkg'
-    local gsutil_cmd=${gs_fetch_binpkg}' \"${URI}\" \"${DISTDIR}/${FILE}\"'
+    local gsutil_cmd="${gs_fetch_binpkg}"' \"${URI}\" \"${DISTDIR}/${FILE}\"'
     cat <<EOF
-source $chromeos_overlay/make.conf
-
 FETCHCOMMAND_GS="bash -c 'BOTO_CONFIG=$boto_config $gsutil_cmd'"
-RESUMECOMMAND_GS="$FETCHCOMMAND_GS"
-
-PORTDIR_OVERLAY="\$PORTDIR_OVERLAY $chromeos_overlay"
-
+RESUMECOMMAND_GS="\$FETCHCOMMAND_GS"
 EOF
+  fi
+
+  if [[ -d "${chromeos_overlay}" ]]; then
+    echo "PORTDIR_OVERLAY=\"\$PORTDIR_OVERLAY ${chromeos_overlay}\""
   fi
 }
 
