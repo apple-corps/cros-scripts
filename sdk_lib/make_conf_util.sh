@@ -71,11 +71,10 @@ _make_conf_private() {
   local boto_config="${chromeos_overlay}/googlestorage_account.boto"
   if [[ -e "${boto_config}" ]]; then
     local gs_fetch_binpkg='/mnt/host/source/chromite/bin/gs_fetch_binpkg'
-    local gsutil_cmd="${gs_fetch_binpkg}"' \"${URI}\" \"${DISTDIR}/${FILE}\"'
-    cat <<EOF
-FETCHCOMMAND_GS="bash -c 'BOTO_CONFIG=$boto_config $gsutil_cmd'"
-RESUMECOMMAND_GS="\$FETCHCOMMAND_GS"
-EOF
+    printf 'FETCHCOMMAND_GS="%s --boto \\"%s\\" \\"%s\\" \\"%s\\""\n' \
+      "${gs_fetch_binpkg}" "${boto_config}" \
+      '\${URI}' '\${DISTDIR}/\${FILE}'
+    echo 'RESUMECOMMAND_GS="${FETCHCOMMAND_GS}"'
   fi
 
   if [[ -d "${chromeos_overlay}" ]]; then
