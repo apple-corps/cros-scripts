@@ -421,6 +421,7 @@ COMMON_INSTALL_MASK="
   *.la
   *.h
   *.hpp
+  *.hxx
   */.keep*
   /etc/init.d
   /etc/runlevels
