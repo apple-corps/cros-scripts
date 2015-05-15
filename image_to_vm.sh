@@ -9,7 +9,6 @@
 # Helper scripts should be run from the same location as this script.
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/common.sh" || exit 1
-. "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
 
 # Need to be inside the chroot to load chromeos-common.sh
@@ -49,9 +48,8 @@ eval set -- "${FLAGS_ARGV}"
 # Die on any errors.
 switch_to_strict_mode
 
-if [ -z "${FLAGS_board}" ] ; then
-  die_notrace "--board is required."
-fi
+. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+. "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
 
 TEMP_DIR=$(mktemp -d)
 TEMP_MNT=""
