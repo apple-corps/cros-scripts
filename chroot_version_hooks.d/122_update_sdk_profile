@@ -1,0 +1,27 @@
+# Copyright 2015 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Make sure the sdk profile is in the new location.
+
+src='/etc/make.profile'
+dst='/etc/portage/make.profile'
+
+# If the system has already been upgraded, nothing to do.
+if [[ ! -e ${src} ]]; then
+  exit 0
+fi
+
+# In case it exists (who knows why!), clear it out.
+if [[ -L ${dst} ]]; then
+  sudo rm -f "${dst}"
+fi
+if [[ -e ${dst} ]]; then
+  sudo rm -rf ${dst}
+fi
+
+# Move old path to new one if it exists (initial sdk setup might already
+# have migrated it for us).
+if [[ -e ${src} ]]; then
+  sudo mv "${src}" "${dst}"
+fi

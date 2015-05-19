@@ -232,7 +232,7 @@ EOF
    ln -sf "${CHROOT_CONFIG}/make.conf.amd64-host" \
      "${FLAGS_chroot}/etc/make.conf"
    ln -sf "${CHROOT_OVERLAY}/profiles/default/linux/amd64/10.0/sdk" \
-     "${FLAGS_chroot}/etc/make.profile"
+     "${FLAGS_chroot}/etc/portage/make.profile"
 
    # Create make.conf.user .
    touch "${FLAGS_chroot}"/etc/make.conf.user
@@ -280,7 +280,7 @@ EOF
    # don't exist, then either bind mounts have failed, an invocation
    # from above is broke, or some assumption about the stage3 is no longer
    # true.
-   early_enter_chroot ls -l /etc/make.{conf,profile} \
+   early_enter_chroot ls -l /etc/make.conf /etc/portage/make.profile \
      /usr/local/portage/chromiumos/profiles/default/linux/amd64/10.0
 
    target="${FLAGS_chroot}/etc/profile.d"
