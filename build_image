@@ -39,7 +39,7 @@ different forms.  This scripts can be used to build the following:
 base - Pristine Chromium OS image. As similar to Chrome OS as possible.
 dev [default] - Developer image. Like base but with additional dev packages.
 test - Like dev, but with additional test specific packages and can be easily
-  used for automated testing using scripts like run_remote_tests, etc.
+  used for automated testing using scripts like test_that, etc.
 factory_test - Like test but with extra packages and modifications used to
   test images in a factory setting.  Cannot be built along with a test image.
 factory_install - Install shim for bootstrapping the factory test process.
