@@ -57,8 +57,6 @@ install_dev_packages() {
   sudo sed -i s,/usr/bin/wget,wget, \
     ${root_fs_dir}/${portage_make_globals_path}
 
-  sudo mkdir -p ${root_fs_dir}/etc/make.profile
-
   # Re-run ldconfig to fix /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 
