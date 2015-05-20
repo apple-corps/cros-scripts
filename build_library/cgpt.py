@@ -1197,9 +1197,6 @@ def GetReservedEraseBlocks(options, image_type, layout_filename, num):
 def DoDebugOutput(options, image_type, layout_filename):
   """Prints out a human readable disk layout in on-disk order.
 
-  This will round values larger than 1MB, it's exists to quickly
-  visually verify a layout looks correct.
-
   Args:
     options: Flags passed to the script
     image_type: Type of image eg base/test/dev/factory_install
@@ -1224,16 +1221,10 @@ def DoDebugOutput(options, image_type, layout_filename):
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
-    if partition['bytes'] < 1024 * 1024:
-      size = '%d B' % partition['bytes']
-    else:
-      size = '%d MiB' % (partition['bytes'] / 1024 / 1024)
 
-    if 'fs_bytes' in partition:
-      if partition['fs_bytes'] < 1024 * 1024:
-        fs_size = '%d B' % partition['fs_bytes']
-      else:
-        fs_size = '%d MiB' % (partition['fs_bytes'] / 1024 / 1024)
+    size = ProduceHumanNumber(partition['bytes'])
+    if 'fs_bytes' in partition.iterkeys():
+      fs_size = ProduceHumanNumber(partition['fs_bytes'])
     else:
       fs_size = 'auto'
 
