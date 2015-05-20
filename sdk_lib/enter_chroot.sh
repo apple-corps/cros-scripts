@@ -491,8 +491,14 @@ setup_env() {
     if [[ ! -d ${ccache_dir} ]]; then
       mkdir -p -m 2775 "${ccache_dir}"
     fi
-    find -H "${ccache_dir}" -type d -exec chmod 2775 {} + &
-    find -H "${ccache_dir}" -gid 0 -exec chgrp 250 {} + &
+    (
+      find -H "${ccache_dir}" '(' -type d -a '!' -perm 2775 ')' \
+        -exec chmod 2775 {} +
+      find -H "${ccache_dir}" -gid 0 -exec chgrp 250 {} +
+      # These settings are kept in sync with the gcc ebuild.
+      chroot "${FLAGS_chroot}" env CCACHE_DIR=/var/cache/distfiles/ccache \
+        CCACHE_UMASK=002 ccache -F 0 -M 11G >/dev/null
+    ) &
 
     # Certain files get copied into the chroot when entering.
     for fn in "${FILES_TO_COPY_TO_CHROOT[@]}"; do
