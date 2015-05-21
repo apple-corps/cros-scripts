@@ -155,9 +155,24 @@ create_base_image() {
   run_ldconfig "${root_fs_dir}"
 
   # Set /etc/lsb-release on the image.
-  "${OVERLAY_CHROMEOS_DIR}/scripts/cros_set_lsb_release" \
-  --root="${root_fs_dir}" \
-  --board="${BOARD}"
+  local official_flag=
+  if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
+    official_flag="--official"
+  fi
+
+  "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
+    --sysroot="${root_fs_dir}" \
+    --board="${BOARD}" \
+    --version_string="${CHROMEOS_VERSION_STRING}" \
+    --auserver="${CHROMEOS_VERSION_AUSERVER}" \
+    --devserver="${CHROMEOS_VERSION_DEVSERVER}" \
+    ${official_flag} \
+    --buildbot_build="${BUILDBOT_BUILD:-"N/A"}" \
+    --track="${CHROMEOS_VERSION_TRACK:-"developer-build"}" \
+    --branch_number="${CHROMEOS_BRANCH}" \
+    --build_number="${CHROMEOS_BUILD}" \
+    --chrome_milestone="${CHROME_BRANCH}" \
+    --patch_number="${CHROMEOS_PATCH}"
 
   # Create the boot.desc file which stores the build-time configuration
   # information needed for making the image bootable after creation with
