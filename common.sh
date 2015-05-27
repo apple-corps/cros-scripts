@@ -430,6 +430,7 @@ COMMON_INSTALL_MASK="
   /lib/modules/*/vdso
   /lib/rc
   /lib/systemd
+  /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
   /usr/include/nspr/*
