@@ -43,6 +43,8 @@ DEFINE_string stage3_date "2010.03.09" \
   "Use the stage3 with the given date."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
+DEFINE_string board_overlay_path "" \
+  "Use the board overlay located on this path."
 DEFINE_string workspace_root "" \
   "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to store caches within."
@@ -327,6 +329,18 @@ EOF
    fi
 }
 
+unpack_tarball() {
+  local tarball_path="$1"
+  local dest_dir="$2"
+  local decompress
+  case "${tarball_path}" in
+    *.tbz2|*.tar.bz2) decompress=$(type -p pbzip2 || echo bzip2) ;;
+    *.tar.xz) decompress="xz" ;;
+    *) die "Unknown tarball compression: ${tarball_path}" ;;
+  esac
+  ${decompress} -dc "${tarball_path}" | tar -xp -C "${dest_dir}"
+}
+
 # Handle deleting an existing environment.
 if [[ $FLAGS_delete  -eq $FLAGS_TRUE || \
   $FLAGS_replace -eq $FLAGS_TRUE ]]; then
@@ -365,13 +379,11 @@ elif [[ -z "${FLAGS_stage3_path}" ]]; then
   die_notrace "Please use --stage3_path when bootstrapping"
 else
   info "Unpacking stage3..."
-  case "${FLAGS_stage3_path}" in
-    *.tbz2|*.tar.bz2) DECOMPRESS=$(type -p pbzip2 || echo bzip2) ;;
-    *.tar.xz) DECOMPRESS="xz" ;;
-    *) die "Unknown tarball compression: ${FLAGS_stage3_path}" ;;
-  esac
-  ${DECOMPRESS} -dc "${FLAGS_stage3_path}" | \
-    tar -xp -C "${FLAGS_chroot}"
+  unpack_tarball "${FLAGS_stage3_path}" "${FLAGS_chroot}"
+  if [[ -n "${FLAGS_board_overlay_path}" ]]; then
+    info "Unpacking board overlay..."
+    unpack_tarball "${FLAGS_board_overlay_path}" "${FLAGS_chroot}"
+  fi
   rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
 fi
 
