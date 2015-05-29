@@ -82,6 +82,7 @@ FILES_TO_COPY_TO_CHROOT=(
   .gdata_token                # Auth token for Google Docs on chromium.org
   .disable_build_stats_upload # Presence of file disables command stats upload
   .netrc                      # May contain required source fetching credentials
+  .inputrc                    # Preserve command line customizations
 )
 
 INNER_CHROME_ROOT=$FLAGS_chrome_root_mount  # inside chroot
