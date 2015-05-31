@@ -246,13 +246,8 @@ if ${HOST_BOARD}; then
   sudo find $BOARD_ROOT -type f -name '*.la' | xargs sudo \
       sed -i -e "s|$BOARD_ROOT/|/|g"
 else
-  for a in $(get_sysroot_config "${BOARD_ROOT}" "ARCH") generic; do
-    conf="${CHROMIUMOS_CONFIG}/make.conf.${a}-target"
-    if [[ -e ${conf} ]]; then
-      sudo ln -sf "${conf}" "${BOARD_ETC}/make.conf"
-      break
-    fi
-  done
+  conf="${CHROMIUMOS_CONFIG}/make.conf.generic-target"
+  sudo ln -sf "${conf}" "${BOARD_ETC}/make.conf"
   EXTRA_ARGS=()
   if [[ -n "${FLAGS_accept_licenses}" ]]; then
     EXTRA_ARGS+=( --accepted-licenses="${FLAGS_accept_licenses}" )
