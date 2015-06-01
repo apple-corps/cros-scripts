@@ -28,7 +28,6 @@ get_disk_layout_path() {
     return 0
   fi
   DISK_LAYOUT_PATH="${BUILD_LIBRARY_DIR}/legacy_disk_layout.json"
-  local partition_script_path=$(tempfile)
   for overlay in ${BOARD_OVERLAY}; do
     local disk_layout="${overlay}/scripts/disk_layout.json"
     if [[ -e ${disk_layout} ]]; then
