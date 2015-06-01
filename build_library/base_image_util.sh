@@ -159,8 +159,13 @@ create_base_image() {
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
     official_flag="--official"
   fi
+  local app_id_flag=
+  if [[ -n "${FLAGS_app_id}" ]]; then
+    app_id_flag="--app_id=${FLAGS_app_id}"
+  fi
 
   "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
+    ${app_id_flag} \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
     --version_string="${CHROMEOS_VERSION_STRING}" \
