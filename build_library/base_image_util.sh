@@ -205,7 +205,6 @@ create_base_image() {
 
   ${BUILD_LIBRARY_DIR}/create_legacy_bootloader_templates.sh \
     --arch=${ARCH} \
-    --board=${BOARD} \
     --to="${root_fs_dir}"/boot \
     --boot_args="${FLAGS_boot_args}" \
     --enable_serial="${FLAGS_enable_serial}" \

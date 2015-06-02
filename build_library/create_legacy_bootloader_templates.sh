@@ -16,8 +16,6 @@ assert_inside_chroot
 # Flags.
 DEFINE_string arch "x86" \
   "The boot architecture: arm or x86. (Default: x86)"
-DEFINE_string board "" \
-  "Board we're building for."
 DEFINE_string to "/tmp/boot" \
   "Path to populate with bootloader templates (Default: /tmp/boot)"
 DEFINE_string boot_args "" \
@@ -61,20 +59,6 @@ if [[ -n "${FLAGS_enable_serial}" ]]; then
 else
   common_args="${common_args} console=tty2 quiet"
 fi
-
-# Support optional, board-specific kernel parameters.
-
-# Intended to be overridden by boards that wish to add to the command
-# line. Same code in build_kernel_image.sh; this one here is for grub
-# and syslinux.
-# $1 - output file containing boot args.
-modify_kernel_command_line() {
-  :
-}
-. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
-load_board_specific_script  "build_kernel_image.sh"
-board_kernel_params=$(modify_kernel_command_line /dev/stdout)
-common_args="${common_args} ${board_kernel_params}"
 
 # Common verified boot command-line args
 verity_common="dm_verity.error_behavior=${FLAGS_verity_error_behavior}"
