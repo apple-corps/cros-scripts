@@ -85,3 +85,19 @@ unmount_image() {
 
   MOUNT_GPT_OPTIONS=( )
 }
+
+# Usage: get_board_from_image [image]
+#
+# Echoes the board name specified in the image.
+get_board_from_image() {
+  local image=$1
+  local dir="$(mktemp -d)"
+  local rootfs="${dir}/rootfs"
+  local stateful="${dir}/stateful"
+  (
+    trap "unmount_image > /dev/null; rm -rf ${dir}" EXIT
+    mount_image "${image}" "${rootfs}" "${stateful}" > /dev/null
+    echo "$(sed -n '/^CHROMEOS_RELEASE_BOARD=/s:^[^=]*=::p' \
+      "${rootfs}/etc/lsb-release")"
+  )
+}

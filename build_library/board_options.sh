@@ -2,9 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-if [ -z "${FLAGS_board}" ]; then
-  error "--board is required."
-  exit 1
+if [[ -z "${FLAGS_board}" ]]; then
+  if [[ -z "${SRC_IMAGE}" ]]; then
+    die "--board or SRC_IMAGE are required."
+  fi
+
+  # If --board is not set, get the board name from the image.
+  FLAGS_board="$(
+    . "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh"
+    get_board_from_image "${SRC_IMAGE}"
+  )"
 fi
 
 BOARD="${FLAGS_board}"

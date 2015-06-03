@@ -48,9 +48,6 @@ eval set -- "${FLAGS_ARGV}"
 # Die on any errors.
 switch_to_strict_mode
 
-. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
-. "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
-
 TEMP_DIR=$(mktemp -d)
 TEMP_MNT=""
 TEMP_ESP_MNT=""
@@ -76,9 +73,6 @@ cleanup() {
 }
 trap 'ret=$?; cleanup; die_err_trap ${ret}' INT TERM EXIT
 
-BOARD="$FLAGS_board"
-
-IMAGES_DIR="${DEFAULT_BUILD_ROOT}/images/${FLAGS_board}"
 # Default to the most recent image
 if [ -z "${FLAGS_from}" ] ; then
   FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board=${FLAGS_board})"
@@ -115,6 +109,9 @@ if [[ ! -e ${SRC_IMAGE} ]]; then
     "Please verify you have selected the right input." \
     "Note: only dev/test/factory images can be used as inputs."
 fi
+
+. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+. "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
 
 # Memory units are in MBs
 TEMP_IMG="$(dirname "${SRC_IMAGE}")/vm_temp_image.bin"
