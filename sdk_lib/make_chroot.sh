@@ -43,8 +43,8 @@ DEFINE_string stage3_date "2010.03.09" \
   "Use the stage3 with the given date."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
-DEFINE_string board_overlay_path "" \
-  "Use the board overlay located on this path."
+DEFINE_string toolchains_overlay_path "" \
+  "Use the toolchains overlay located on this path."
 DEFINE_string workspace_root "" \
   "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to store caches within."
@@ -380,9 +380,9 @@ elif [[ -z "${FLAGS_stage3_path}" ]]; then
 else
   info "Unpacking stage3..."
   unpack_tarball "${FLAGS_stage3_path}" "${FLAGS_chroot}"
-  if [[ -n "${FLAGS_board_overlay_path}" ]]; then
-    info "Unpacking board overlay..."
-    unpack_tarball "${FLAGS_board_overlay_path}" "${FLAGS_chroot}"
+  if [[ -n "${FLAGS_toolchains_overlay_path}" ]]; then
+    info "Unpacking toolchains overlay..."
+    unpack_tarball "${FLAGS_toolchains_overlay_path}" "${FLAGS_chroot}"
   fi
   rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
 fi
