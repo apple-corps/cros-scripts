@@ -221,7 +221,7 @@ start_kvm() {
       ${net_option} \
       ${nographics} \
       ${snapshot} \
-      -net user,hostfwd=tcp::${FLAGS_ssh_port}-:22 \
+      -net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22 \
       ${incoming} ${incoming_option:+"$incoming_option"} \
       ${drive}
 
