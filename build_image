@@ -184,7 +184,7 @@ fi
 mkdir -p "${BUILD_DIR}"
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  echo 'operation: creating base image'
+  info 'operation: creating base image'
 fi
 
 # Create the base image.
@@ -192,7 +192,7 @@ create_base_image ${PRISTINE_IMAGE_NAME} ${FLAGS_enable_rootfs_verification} \
   ${FLAGS_enable_bootcache}
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  echo 'operation: done creating base image'
+  info 'operation: done creating base image'
 fi
 
 # Running board-specific setup if any exists.
@@ -201,7 +201,7 @@ if type board_setup &>/dev/null; then
 fi
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  echo 'operation: creating developer image'
+  info 'operation: creating developer image'
 fi
 
 # Create a developer image if an image that is based on it is requested.
@@ -212,8 +212,8 @@ if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
 fi
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  echo 'operation: done creating developer image'
-  echo 'operation: creating test image'
+  info 'operation: done creating developer image'
+  info 'operation: creating test image'
 fi
 
 # From a developer image create a test|factory_test image.
@@ -228,7 +228,7 @@ if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
 fi
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  echo 'operation: done creating test image'
+  info 'operation: done creating test image'
 fi
 
 # Move the completed image to the output_root.
@@ -248,7 +248,7 @@ echo
 summarize() {
 
   if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-    echo 'operation: summarize'
+    info 'operation: summarize'
   fi
 
   local name="$1" img="$2"
@@ -270,7 +270,7 @@ summarize() {
   echo
 
   if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-    echo 'operation: done summarize'
+    info 'operation: done summarize'
   fi
 }
 if should_build_image ${CHROMEOS_BASE_IMAGE_NAME}; then
