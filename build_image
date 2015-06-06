@@ -82,6 +82,8 @@ DEFINE_boolean replace ${FLAGS_FALSE} \
   "Overwrite existing output, if any."
 DEFINE_string symlink "latest" \
   "Symlink name to use for this image."
+DEFINE_string toolset "cros" \
+  "Toolset that this script is being used with."
 DEFINE_string version "" \
   "Overrides version number in name to this version."
 
@@ -262,10 +264,14 @@ summarize() {
 
   info "${name} image created as ${img}"
   info "To copy the image to a USB key, use:"
-  info "  cros flash usb:// ${dir_path}/${img}"
-  if [[ $# -ge 3 ]]; then
-    info "To convert it to a VM image, use:"
-    info "  ./image_to_vm.sh --from=${dir_path} --board=${BOARD} $3"
+  if [[ "${FLAGS_toolset}" == "brillo" ]]; then
+    info "  brillo flash usb:// ${OUTPUT_DIR_NAME}/${img}"
+  else
+    info "  cros flash usb:// ${dir_path}/${img}"
+    if [[ $# -ge 3 ]]; then
+      info "To convert it to a VM image, use:"
+      info "  ./image_to_vm.sh --from=${dir_path} --board=${BOARD} $3"
+    fi
   fi
   echo
 
