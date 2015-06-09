@@ -228,22 +228,15 @@ build_img() {
 make_image_bootable() {
   local image="$1"
 
-  # Mount the image in safe mode (rootfs is read-only) unless we need to modify
-  # the rootfs.
-  local mode_flags=( --safe )
-  if [[ ${FLAGS_force_developer_mode} -eq ${FLAGS_TRUE} ]]; then
-    mode_flags=()
-  fi
-
-  trap "unmount_image ; die 'cros_make_image_bootable failed.'" EXIT
-  mount_image "${image}" "${FLAGS_rootfs_mountpoint}" \
-    "${FLAGS_statefulfs_mountpoint}" "" "${mode_flags[@]:+${mode_flags[@]}}"
-
   # Update legacy boot config templates (in rootfs) before rootfs is locked.
   # This is required because postinst will copy new legacy boot configurations
   # from rootfs partition instead of modifying existing entries in partition 12
   # (EFI partition).
   if [ ${FLAGS_force_developer_mode} -eq ${FLAGS_TRUE} ]; then
+    trap "unmount_image ; die 'cros_make_image_bootable failed.'" EXIT
+    mount_image "${image}" "${FLAGS_rootfs_mountpoint}" \
+      "${FLAGS_statefulfs_mountpoint}" "" ""
+
     append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/syslinux/root.A.cfg" \
       "cros_debug" "cros_legacy"
     append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/syslinux/root.B.cfg" \
@@ -253,12 +246,23 @@ make_image_bootable() {
     append_boot_flag "${FLAGS_rootfs_mountpoint}/boot/efi/boot/grub.cfg" \
       "cros_debug" "cros_efi"
 
-    # No more modifications required after this point.
-    remount_image --safe
+    unmount_image
+    trap - EXIT
   fi
 
-  # The rootfs should never be mounted rw again after this point without
-  # re-calling make_image_bootable.
+  # Make the filesystem un-mountable as read-write.
+  # mount_gpt_image.sh will undo this as needed.
+  # TODO(wad) make sure there is parity in the signing scripts.
+  if [ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]; then
+    # TODO(wad) this would be a good place to reset any other ext2 metadata.
+    warn "Disabling r/w mount of the root filesystem"
+    local rootfs_offset="$(partoffset ${image} 3)"
+    disable_rw_mount "${image}" "$(( rootfs_offset * 512 ))"
+  fi
+
+  trap "unmount_image ; die 'cros_make_image_bootable failed.'" EXIT
+  mount_image "${image}" "${FLAGS_rootfs_mountpoint}" \
+    "${FLAGS_statefulfs_mountpoint}" "" "--safe"
 
   # Newer `mount` will decode the filename backing the loop device,
   # so we need to dig deeper and find the answer ourselves.
@@ -270,15 +274,6 @@ make_image_bootable() {
     # use in the rootfs can be mounted read-only by the kernel (including
     # squashfs) so we just exit if that's the case.
     die "Didn't find the rootfs block device device after mounting it."
-  fi
-
-  # Make the filesystem un-mountable as read-write.
-  # mount_gpt_image.sh will undo this as needed.
-  # TODO(wad) make sure there is parity in the signing scripts.
-  if [ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]; then
-    # TODO(wad) this would be a good place to reset any other ext2 metadata.
-    warn "Disabling r/w mount of the root filesystem"
-    disable_rw_mount "${root_dev}"
   fi
 
   # We sign the image with the recovery_key, because this is what goes onto the
