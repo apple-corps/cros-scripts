@@ -17,6 +17,23 @@ DEFINE_integer ssh_connect_timeout 30 \
 DEFINE_integer ssh_connection_attempts 4 \
   "SSH connection attempts"
 
+# Returns true if $1 has at least two colons.
+has_two_colons_or_more() {
+  # IPv6 addresses have at least two colons while IPv4 addresses and
+  # hostnames have none.
+  [[ "$1" == *:*:* ]]
+}
+
+# Prints $1 enclosed with brackets if it looks like an IPv6 address
+# and unchanged otherwise.
+brackets_enclosed_if_ipv6() {
+  local rem="$1"
+  if has_two_colons_or_more "${rem}"; then
+    rem="[${rem}]"
+  fi
+  echo "${rem}"
+}
+
 ssh_connect_settings() {
   if [[ -n "$SSH_CONNECT_SETTINGS" ]]; then
     # If connection settings were fixed in an environment variable, just return
@@ -55,7 +72,10 @@ remote_rsync_raw() {
 # Copies a list of remote files specified in file $1 to local location
 # $2.  Directory paths in $1 are collapsed into $2.
 remote_rsync_from() {
-  remote_rsync_raw --no-R --files-from="$1" root@${FLAGS_remote}:/ "$2"
+  local rsync_rem
+  rsync_rem="$(brackets_enclosed_if_ipv6 "${FLAGS_remote}")"
+  remote_rsync_raw --no-R --files-from="$1" \
+    root@"${rsync_rem}:/" "$2"
 }
 
 # Send a directory from $1 to $2 on remote host
@@ -65,12 +85,14 @@ remote_rsync_from() {
 #
 # Use like: remote_send_to /build/board/lib/modules/ /lib/modules/
 remote_send_to() {
+  local rsync_rem
   if [ ! -d "$1" ]; then
     die "$1 must be a directory"
   fi
 
   if remote_sh rsync --version >/dev/null 2>&1; then
-    remote_rsync_raw -a "$1/" root@${FLAGS_remote}:"$2/"
+    rsync_rem="$(brackets_enclosed_if_ipv6 "${FLAGS_remote}")"
+    remote_rsync_raw -a "$1/" root@"${rsync_rem}:$2/"
   else
     tar -C "$1" -cz . | remote_sh tar -C "$2" -xz
   fi
