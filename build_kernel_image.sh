@@ -299,6 +299,12 @@ else
   error "Unknown arch: ${FLAGS_arch}"
 fi
 
+# Save the kernel as a .bin to allow it to be automatically extracted as
+# an artifact by cbuildbot.  Non .bin's need to be explicitly specified
+# and would require the entire set of artifacts to be specified.
+info "Saving kernel as ${FLAGS_working_dir}/vmlinuz.bin"
+cp ${kernel_image} ${FLAGS_working_dir}/vmlinuz.bin
+
 for image_type in $(get_image_types); do
   already_seen_rootfs=0
   for partition in $(get_partitions ${image_type}); do
