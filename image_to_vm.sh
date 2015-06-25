@@ -139,8 +139,7 @@ else
   # Extend the original file size to the new size.
   TEMP_STATE="${TEMP_DIR}"/stateful
   # Create TEMP_STATE as a regular user so a regular user can delete it.
-  sudo chmod a+r "${SRC_STATE}"
-  cp "${SRC_STATE}" "${TEMP_STATE}"
+  sudo dd if="${SRC_STATE}" bs=16M status=none > "${TEMP_STATE}"
   sudo e2fsck -pf "${TEMP_STATE}"
   sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
 fi
