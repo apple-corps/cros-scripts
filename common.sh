@@ -422,6 +422,7 @@ COMMON_INSTALL_MASK="
   *.la
   *.h
   *.hpp
+  *.h++
   *.hxx
   */.keep*
   /etc/init.d
