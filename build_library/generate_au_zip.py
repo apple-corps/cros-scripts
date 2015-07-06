@@ -18,10 +18,12 @@ import tempfile
 # GLOBALS
 BINARY_EXECUTABLES = [
     # These are present to add support for auto-allocating loopback devices,
-    # and scanning for loopback device partitions.
+    # scanning for loopback device partitions and extracting files from ext2
+    # partitions.
     '/bin/mount',
     '/bin/umount',
     '/sbin/losetup',
+    '/usr/bin/e2cp',
     '/usr/sbin/partx',
     # These are specific to our build.
     '/usr/bin/cgpt',
@@ -75,10 +77,10 @@ def CopyExecutableFiles(elf_binaries, zip_base):
 def CopyShellLibraries(shell_libraries, zip_base):
   """Copy shell library directories into the zip_base.
 
-    Args:
-      shell_libraries: A dictionary mapping directory_to_copy ->
-                                            directory_relative_zip_base.
-      zip_base: Target directory to copy into.
+  Args:
+    shell_libraries: A dictionary mapping directory_to_copy ->
+                                          directory_relative_zip_base.
+    zip_base: Target directory to copy into.
   """
 
   for source_dir, target_dir in shell_libraries.iteritems():
