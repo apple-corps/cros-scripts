@@ -45,8 +45,6 @@ DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
 DEFINE_string toolchains_overlay_path "" \
   "Use the toolchains overlay located on this path."
-DEFINE_string workspace_root "" \
-  "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to store caches within."
 
 # Parse command line flags.
@@ -77,14 +75,6 @@ PRIMARY_GROUP_ID=$(id -g "${SUDO_USER}")
 
 FULLNAME="ChromeOS Developer"
 DEFGROUPS="${PRIMARY_GROUP},adm,cdrom,floppy,audio,video,portage"
-
-# If a workspace was specified we want to make sure the user is in its group.
-if [[ -n "${FLAGS_workspace_root}" ]]; then
-  WORKSPACE_GROUP=$(stat -c "%G" "${FLAGS_workspace_root}")
-  WORKSPACE_GROUP_ID=$(getent group "${WORKSPACE_GROUP}" | cut -d: -f3)
-  # Duplicates in DEFGROUPS are fine, the useradd call handles them properly.
-  DEFGROUPS+=",${WORKSPACE_GROUP}"
-fi
 
 USEPKG=""
 if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
@@ -161,12 +151,6 @@ init_users () {
    # TODO(dpursell): Handle when PRIMARY_GROUP exists in the chroot already
    # with a different GID; groupadd will not create the new GID in that case.
    bare_chroot groupadd -f -o -g "${PRIMARY_GROUP_ID}" "${PRIMARY_GROUP}"
-   if [[ -n "${WORKSPACE_GROUP}" ]]; then
-     # groupadd -f is fine (has no effect) if this group+ID already exists.
-     # TODO(dpursell): Handle when WORKSPACE_GROUP exists in the chroot already
-     # with a different GID; groupadd will not create the new GID in that case.
-     bare_chroot groupadd -f -o -g "${WORKSPACE_GROUP_ID}" "${WORKSPACE_GROUP}"
-   fi
    # Add ourselves as a user inside the chroot.
    # We need the UID to match the host user's. This can conflict with
    # a particular chroot UID. At the same time, the added user has to
