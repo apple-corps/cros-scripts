@@ -20,6 +20,7 @@ BINARY_EXECUTABLES = [
     # These are present to add support for auto-allocating loopback devices,
     # scanning for loopback device partitions and extracting files from ext2
     # partitions.
+    '/bin/dd',
     '/bin/mount',
     '/bin/umount',
     '/sbin/losetup',
