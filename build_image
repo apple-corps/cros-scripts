@@ -64,16 +64,10 @@ show_help_if_requested "$@"
 # The following options are advanced options, only available to those willing
 # to read the source code. They are not shown in help output, since they are
 # not needed for the typical developer workflow.
-DEFINE_string app_id "" \
-  "The application ID to install into the image's /etc/lsb-release
-  file.  It is a UUID in the canonical {8-4-4-4-12} format, e.g.
-  {01234567-89AB-CDEF-0123-456789ABCDEF}"
 DEFINE_integer build_attempt 1 \
   "The build attempt for this image build."
 DEFINE_string build_root "${DEFAULT_BUILD_ROOT}/images" \
   "Directory in which to compose the image, before copying it to output_root."
-DEFINE_string extra_packages "" \
-  "Space-delimited list of additional packages to add to the image."
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
 DEFINE_boolean progress_bar ${FLAGS_FALSE} \

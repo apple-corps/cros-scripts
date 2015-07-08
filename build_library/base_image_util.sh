@@ -124,10 +124,8 @@ create_base_image() {
   # We "emerge --root=${root_fs_dir} --root-deps=rdeps --usepkgonly" all of the
   # runtime packages for chrome os. This builds up a chrome os image from
   # binary packages with runtime dependencies only.  We use INSTALL_MASK to
-  # trim the image size as much as possible.  Extra pachages specified through
-  # the command line arguments are also installed.
-  emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE} \
-      ${FLAGS_extra_packages}
+  # trim the image size as much as possible.
+  emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE}
 
   #
   # Take a somewhat arbitrary number of post-emerge tasks and run them
@@ -159,13 +157,8 @@ create_base_image() {
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
     official_flag="--official"
   fi
-  local app_id_flag=
-  if [[ -n "${FLAGS_app_id}" ]]; then
-    app_id_flag="--app_id=${FLAGS_app_id}"
-  fi
 
   "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
-    ${app_id_flag} \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
     --version_string="${CHROMEOS_VERSION_STRING}" \
