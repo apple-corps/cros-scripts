@@ -36,7 +36,6 @@ BINARY_EXECUTABLES = [
 EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/cros_generate_update_payload',
-    '/usr/share/misc/chromeos-common.sh',
     '/usr/share/vboot/bin/convert_recovery_to_ssd.sh',
     '/usr/share/vboot/bin/common_minimal.sh',
     ]
