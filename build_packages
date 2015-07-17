@@ -188,6 +188,7 @@ fi
 
 # Figure out which packages we should be building.
 PACKAGES=( "$@" )
+FORCE_LOCAL_BUILD_PKGS=()
 if [[ $# -eq 0 ]]; then
   PACKAGES=( virtual/target-os )
   if [[ "${FLAGS_withdev}" -eq "${FLAGS_TRUE}" ]]; then
@@ -201,6 +202,10 @@ if [[ $# -eq 0 ]]; then
   fi
   if [[ "${FLAGS_withtest}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( virtual/target-os-test )
+    # chromeos-ssh-testkeys may generate ssh keys if the right USE flag is set.
+    # We force rebuilding this package from source every time, so that
+    # consecutive builds don't share ssh keys.
+    FORCE_LOCAL_BUILD_PKGS+=( chromeos-base/chromeos-ssh-testkeys )
   fi
   if [[ "${FLAGS_withautotest}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( chromeos-base/autotest-all )
@@ -228,10 +233,13 @@ if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
   fi
 fi
 
-if [[ ${#CROS_WORKON_PKGS[@]} -gt 0 ]]; then
+# cros_workon packages always have to be rebuilt.
+FORCE_LOCAL_BUILD_PKGS+="${CROS_WORKON_PKGS}"
+
+if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
   EMERGE_FLAGS+=(
-    --reinstall-atoms="${CROS_WORKON_PKGS[*]}"
-    --usepkg-exclude="${CROS_WORKON_PKGS[*]}"
+    --reinstall-atoms="${FORCE_LOCAL_BUILD_PKGS[*]}"
+    --usepkg-exclude="${FORCE_LOCAL_BUILD_PKGS[*]}"
   )
 fi
 

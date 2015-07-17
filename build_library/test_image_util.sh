@@ -31,7 +31,7 @@ mod_image_for_test () {
   # Run test setup script to modify the image
   sudo -E GCLIENT_ROOT="${GCLIENT_ROOT}" ROOT_FS_DIR="${root_fs_dir}" \
     STATEFUL_DIR="${stateful_fs_dir}" ARCH="${ARCH}" \
-    BOARD_ROOT="${BOARD_ROOT}" \
+    BOARD_ROOT="${BOARD_ROOT}" BUILD_DIR="${BUILD_DIR}" \
     "${mod_test_script}"
 
   # Legacy parameter (used by mod_image_for_test.sh --factory)
