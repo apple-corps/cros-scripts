@@ -100,6 +100,13 @@ veritysize() {
 # Munge the kernel command line.
 # Intended to be overridden by boards that wish to add to the command line.
 # $1 - Configuration file containing boot args.
+#
+# All kernel command line changes must update the security base lines in
+# the signer.  It rejects any settings it does not recognize and breaks the
+# build.  So any modify_kernel_command_line() function change here or in a
+# board specific build_kernel_image.sh needs to be reflected in
+# ensure_secure_kernelparams.config.
+# See https://chrome-internal-review.googlesource.com/#/c/216896 as an example.
 modify_kernel_command_line() {
   :
 }
