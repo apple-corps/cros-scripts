@@ -45,6 +45,69 @@ zero_free_space() {
   sudo rm "${fs_mount_point}/filler"
 }
 
+# create_dev_install_lists updates package lists used by
+# chromeos-base/dev-install
+create_dev_install_lists() {
+  local root_fs_dir=$1
+
+  info "Building dev-install package lists"
+
+  local pkgs=(
+    portage
+    virtual/target-os
+    virtual/target-os-dev
+    virtual/target-os-test
+  )
+
+  local pkgs_out=$(mktemp -d)
+
+  for pkg in "${pkgs[@]}" ; do
+    emerge-${BOARD} --pretend --quiet --emptytree \
+      --root-deps=rdeps ${pkg} | \
+      egrep -o ' [[:alnum:]-]+/[^[:space:]/]+\b' | \
+      tr -d ' ' | \
+      sort > "${pkgs_out}/${pkg##*/}.packages"
+    local _pipestatus=${PIPESTATUS[*]}
+    [[ ${_pipestatus// } -eq 0 ]] || error "\`emerge-${BOARD} ${pkg}\` failed"
+  done
+
+  # bootstrap = portage - target-os
+  comm -13 "${pkgs_out}/target-os.packages" \
+    "${pkgs_out}/portage.packages" > "${pkgs_out}/bootstrap.packages"
+
+  # chromeos-base = target-os + portage - virtuals
+  sort -u "${pkgs_out}/target-os.packages" "${pkgs_out}/portage.packages" \
+    | grep -v "virtual/" \
+     > "${pkgs_out}/chromeos-base.packages"
+
+  # package.installable = target-os-dev + target-os-test - target-os + virtuals
+  comm -23 <(cat "${pkgs_out}/target-os-dev.packages" \
+                 "${pkgs_out}/target-os-test.packages" | sort) \
+    "${pkgs_out}/target-os.packages" \
+    > "${pkgs_out}/package.installable"
+  grep "virtual/" "${pkgs_out}/target-os.packages" \
+    >> "${pkgs_out}/package.installable"
+
+  # Add dhcp to the list of packages installed since its installation will not
+  # complete (can not add dhcp group since /etc is not writeable). Bootstrap it
+  # instead.
+  grep "net-misc/dhcp-" "${pkgs_out}/target-os-dev.packages" \
+    >> "${pkgs_out}/chromeos-base.packages" || true
+  grep "net-misc/dhcp-" "${pkgs_out}/target-os-dev.packages" \
+    >> "${pkgs_out}/bootstrap.packages" || true
+
+  sudo mkdir -p \
+    "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
+  sudo cp "${pkgs_out}/bootstrap.packages" \
+    "${root_fs_dir}/usr/share/dev-install/portage"
+  sudo cp "${pkgs_out}/package.installable" \
+    "${root_fs_dir}/usr/share/dev-install/portage/make.profile"
+  sudo cp "${pkgs_out}/chromeos-base.packages" \
+    "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
+
+  rm -r "${pkgs_out}"
+}
+
 create_base_image() {
   local image_name=$1
   local rootfs_verification_enabled=$2
@@ -231,17 +294,21 @@ create_base_image() {
 
   setup_etc_shadow "${root_fs_dir}"
 
-  # Create a package for the dev-only files installed in /usr/local of a base
-  # image. This package can later be downloaded with dev_install running from
-  # a base image.
-  # Files installed in /usr/local/var were already installed in stateful since
-  # we created a symlink for those. We ignore the symlink in this package since
-  # the directory /usr/local/var exists in the target image when dev_install
-  # runs.
-  # TODO(deymo): Move dev-only-extras.tbz2 outside packages. See
-  # crbug.com/448178 for details.
-  sudo tar -cf "${BOARD_ROOT}/packages/dev-only-extras.tbz2" -I pbzip2 \
-    --exclude=var -C "${root_fs_dir}/usr/local" .
+  if [[ -d "${root_fs_dir}/usr/share/dev-install" ]]; then
+    # Create a package for the dev-only files installed in /usr/local
+    # of a base image. This package can later be downloaded with
+    # dev_install running from a base image.
+    # Files installed in /usr/local/var were already installed in
+    # stateful since we created a symlink for those. We ignore the
+    # symlink in this package since the directory /usr/local/var
+    # exists in the target image when dev_install runs.
+    # TODO(deymo): Move dev-only-extras.tbz2 outside packages. See
+    # crbug.com/448178 for details.
+    sudo tar -cf "${BOARD_ROOT}/packages/dev-only-extras.tbz2" -I pbzip2 \
+      --exclude=var -C "${root_fs_dir}/usr/local" .
+
+    create_dev_install_lists "${root_fs_dir}"
+  fi
 
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller
