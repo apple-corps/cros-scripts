@@ -96,6 +96,7 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   # Only update toolchain when binpkgs are available. Toolchain rollout
   # process only takes place when the chromiumos sdk builder finishes
   # a successful build.
+  EMERGE_FLAGS+=" --useoldpkg-atoms=dev-lang/go"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/binutils"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/gcc"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-libs/glibc"
