@@ -234,7 +234,7 @@ if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
 fi
 
 # cros_workon packages always have to be rebuilt.
-FORCE_LOCAL_BUILD_PKGS+="${CROS_WORKON_PKGS}"
+FORCE_LOCAL_BUILD_PKGS+=( "${CROS_WORKON_PKGS[@]}" )
 
 if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
   EMERGE_FLAGS+=(
