@@ -68,6 +68,7 @@ def CopyExecutableFiles(elf_binaries, zip_base):
          '--copy-non-elfs',
          '--bindir', '/',
          '--libdir', '/lib',
+         '--elf-subdir', '.elf',
          '--generate-wrappers']
   cmd += elf_binaries
 
