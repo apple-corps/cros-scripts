@@ -4,6 +4,9 @@
 #
 # Common vm functions for use in crosutils.
 
+DEFAULT_PRIVATE_KEY="${GCLIENT_ROOT}/src/scripts/mod_for_test_scripts/\
+ssh_keys/testing_rsa"
+
 DEFINE_string kvm_pid "" \
   "Use this pid file.  If it exists and is set, use the vm specified by pid."
 DEFINE_boolean copy ${FLAGS_FALSE} "Copy the image file before starting the VM."
@@ -14,6 +17,8 @@ DEFINE_boolean scsi ${FLAGS_FALSE} "Loads disk as a virtio-scsi-disk. "\
 "This option is used for testing Google Compute Engine-compatible images."
 DEFINE_boolean snapshot ${FLAGS_FALSE} "Don't commit changes to image."
 DEFINE_integer ssh_port 9222 "Port to tunnel ssh traffic over."
+DEFINE_string ssh_private_key "${DEFAULT_PRIVATE_KEY}" \
+    "Path to the private key to use to ssh into test image as the root user."
 DEFINE_string vnc "" "VNC Server to display to instead of SDL "\
 "(e.g. pass ':1' to listen on 0.0.0.0:5901)."
 
@@ -241,9 +246,9 @@ ssh_ping() {
   fi
   "${cmd}" \
     --ssh_port=${FLAGS_ssh_port} \
+    --private_key=${FLAGS_ssh_private_key} \
     --remote=127.0.0.1 >&2
 }
-
 # Tries to ssh into live image $1 times.  After first failure, a try involves
 # shutting down and restarting kvm.
 retry_until_ssh() {
@@ -265,6 +270,7 @@ retry_until_ssh() {
 stop_kvm() {
   if [ "${FLAGS_persist}" -eq "${FLAGS_TRUE}" ]; then
     echo "Persist requested.  Use --ssh_port ${FLAGS_ssh_port} " \
+      "--ssh_private_key ${FLAGS_ssh_private_key} " \
       "--kvm_pid ${KVM_PID_FILE} to re-connect to it." >&2
   else
     echo "Stopping the KVM instance" >&2
