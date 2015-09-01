@@ -9,12 +9,16 @@
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
+DEFAULT_PRIVATE_KEY="${SCRIPTS_DIR}/mod_for_test_scripts/ssh_keys/testing_rsa"
+
 # Flags
 DEFINE_string from "" "Directory with autotest tarball"
 DEFINE_string to "" "Directory to receive packaged hwqual"
 DEFINE_string output_tag "chromeos-hwqual" "Name used in tar"
 DEFINE_string image_dir "" "Directory containing test image."
 DEFINE_string image "${CHROMEOS_TEST_IMAGE_NAME}" "Name of image file to use."
+DEFINE_string ssh_private_key "${DEFAULT_PRIVATE_KEY}" \
+  "Path to the private ssh key to use for testing"
 
 TMP=$(mktemp -d "/tmp/image.XXXX")
 
@@ -77,8 +81,8 @@ main() {
     tarball
   ln -s autotest/client/site_tests/suite_HWQual/manual \
     "tarball/${FLAGS_output_tag}"
-  cp "${script_dir}/mod_for_test_scripts/ssh_keys/testing_rsa" \
-    "tarball/${FLAGS_output_tag}"
+  cp $(readlink -f "${FLAGS_ssh_private_key}") \
+    "tarball/${FLAGS_output_tag}/testing_rsa"
   chmod 0400 "tarball/${FLAGS_output_tag}/testing_rsa"
   mv autotest "tarball/${FLAGS_output_tag}"
   # Copy call_autoserv.py to tarball.
