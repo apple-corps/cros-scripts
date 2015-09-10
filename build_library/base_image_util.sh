@@ -197,8 +197,9 @@ create_base_image() {
 
   # Generate the license credits page for the packages installed on this
   # image in a location that will be used by Chrome.
+  info "Generating license credits page. Time:"
   sudo mkdir -p "${root_fs_dir}/opt/google/chrome/resources"
-  sudo "${GCLIENT_ROOT}/chromite/licensing/licenses" \
+  time sudo "${GCLIENT_ROOT}/chromite/licensing/licenses" \
     --board="${BOARD}" \
     --log-level error \
     --generate-licenses \
