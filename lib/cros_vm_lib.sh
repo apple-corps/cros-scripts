@@ -197,6 +197,23 @@ start_kvm() {
       incoming_option="exec: ${decompressor} ${FLAGS_mem_path}"
     fi
 
+    local usb_passthrough=""
+    if [ -n "${FLAGS_usb_devices}" ]; then
+      usb_devices=(${FLAGS_usb_devices//,/ })
+      for bus_id in "${usb_devices[@]}"; do
+        device=(${bus_id//:/ })
+        if [ ${#device[@]} -ne 2 ]; then
+          continue
+        fi
+        passthrough="-device usb-host,hostbus=${device[0]},hostaddr=${device[1]}"
+        usb_passthrough="${usb_passthrough} ${passthrough}"
+      done
+
+      if [ -n "${usb_passthrough}" ]; then
+        usb_passthrough="-usb ${usb_passthrough}"
+      fi
+    fi
+
     set_kvm_pipes
     for pipe in "${KVM_PIPE_IN}" "${KVM_PIPE_OUT}"; do
       sudo rm -f "${pipe}"  # assumed safe because, the PID is not running
@@ -228,6 +245,7 @@ start_kvm() {
       ${snapshot} \
       -net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22 \
       ${incoming} ${incoming_option:+"$incoming_option"} \
+      ${usb_passthrough} \
       ${drive}
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
