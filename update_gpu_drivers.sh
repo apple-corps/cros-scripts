@@ -3,11 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This script builds mali-drivers for a list of boards. It uploads the binaries
-# to Google storage and makes them available in the public repository.
+# This script builds gpu drivers (mali-drivers, img-ddk) for a list of boards.
+# It uploads the binaries to Google storage and makes them available in the
+# public repository.
 
 . "$(dirname "$0")/common.sh" || exit 1
 
+DEFINE_string package "" \
+  "selects which gpu drivers package to build"
 DEFINE_boolean dryrun ${FLAGS_FALSE} \
   "dry run, don't upload anything and don't delete temporary dirs" n
 
@@ -15,35 +18,25 @@ DEFINE_boolean dryrun ${FLAGS_FALSE} \
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 
-PN=mali-drivers
-PNBIN=${PN}-bin
+# List of supported drivers
+DRIVERS="mali-drivers img-ddk"
 
-# Build board names.
-BOARDS=(
-  daisy
-  peach_pit
-  veyron_jerry
+# List of parameters to pass to build_board, for a given package $pn:
+#  - Build board names.
+#  - Suffixes for tarball name.
+#  - Board names for overlay with mali-drivers-bin.ebuild.
+#  - Overlay paths for each board.
+#
+# Variable name: "PARAMS_${pn//-/_}"
+
+PARAMS_mali_drivers=(
+  "daisy daisy daisy overlay-daisy"
+  "peach_pit peach peach overlay-peach"
+  "veyron_jerry veyron veyron overlay-veyron"
 )
 
-# Suffixes for tarball name.
-SUFFIXES=(
-  daisy
-  peach
-  veyron
-)
-
-# Board names for overlay with mali-drivers-bin.ebuild.
-OBOARDS=(
-  daisy
-  peach
-  veyron
-)
-
-# Overlay paths for each board.
-OPATHS=(
-  overlay-daisy
-  overlay-peach
-  overlay-veyron
+PARAMS_img_ddk=(
+  "oak oak oak overlay-oak"
 )
 
 # Script must run inside the chroot
@@ -119,7 +112,7 @@ __BODYEOF__
 # $3 overlay board name
 # $4 overlay path
 
-build_mali_board() {
+build_board() {
   local board=$1
   local suffix=$2
   local oboard=$3
@@ -136,24 +129,24 @@ build_mali_board() {
 
   # Make sure we are not building -9999 ebuild.
   # This could fail if cros_workon is already stopped so ignore return code.
-  cros_workon --board="${board}" stop ${PN}
+  cros_workon --board="${board}" stop ${pn}
 
   if [[ "$oboard" == "X11" ]]; then
     echo "Building special X11 package"
-    USE=X emerge-${board} ${PN}
+    USE=X emerge-${board} ${pn}
   else
-    emerge-${board} ${PN}
+    emerge-${board} ${pn}
   fi
 
   if [[ $? != 0 ]]; then
-    die_notrace "Emerging ${PN} for ${board} failed."
+    die_notrace "Emerging ${pn} for ${board} failed."
   fi
 
-  local pv=$("equery-${board}" -q list -p -o --format="\$fullversion" ${PN} | sort | head -n 1)
-  local category=$("equery-${board}" -q list -p -o --format="\$category" ${PN} | sort | head -n 1)
-  local inputtarball="/build/${board}/packages/${category}/${PN}-${pv}.tbz2"
-  local outputtarball="${PN}-${suffix}-${pv}.tbz2"
-  local script="${PN}-${suffix}-${pv}.run"
+  local pv=$("equery-${board}" -q list -p -o --format="\$fullversion" ${pn} | sort | head -n 1)
+  local category=$("equery-${board}" -q list -p -o --format="\$category" ${pn} | sort | head -n 1)
+  local inputtarball="/build/${board}/packages/${category}/${pn}-${pv}.tbz2"
+  local outputtarball="${pn}-${suffix}-${pv}.tbz2"
+  local script="${pn}-${suffix}-${pv}.run"
   local gspath="gs://chromeos-localmirror/distfiles"
 
   echo "Current version is ${pv}"
@@ -194,17 +187,17 @@ build_mali_board() {
   fi
 
   if [[ "${oboard}" != "X11" ]]; then
-    local pvbin=$("equery-${board}" -q list -p -o --format="\$fullversion" ${PNBIN} | sort | head -n 1)
+    local pvbin=$("equery-${board}" -q list -p -o --format="\$fullversion" ${pnbin} | sort | head -n 1)
     echo "Current version is ${pv} current binary version is ${pvbin}"
     # Uprev ebuild in git if it exists.
-    if [[ -d "${SRC_ROOT}/overlays/${opath}/${category}/${PNBIN}" ]]; then
-      cd "${SRC_ROOT}/overlays/${opath}/${category}/${PNBIN}"
+    if [[ -d "${SRC_ROOT}/overlays/${opath}/${category}/${pnbin}" ]]; then
+      cd "${SRC_ROOT}/overlays/${opath}/${category}/${pnbin}"
 
       # following git commands may fail if they have been issued previously
-      git checkout -b malidriverbinupdate m/master
-      git mv "${PNBIN}-${pvbin}.ebuild" "${PNBIN}-${pv}.ebuild"
+      git checkout -b gpudriverbinupdate m/master
+      git mv "${pnbin}-${pvbin}.ebuild" "${pnbin}-${pv}.ebuild"
 
-      "ebuild-${oboard}" "${PNBIN}-${pv}.ebuild" manifest
+      "ebuild-${oboard}" "${pnbin}-${pv}.ebuild" manifest
     fi
   fi
 
@@ -212,11 +205,17 @@ build_mali_board() {
 }
 
 main() {
-  local idx
+  if [[ -z ${FLAGS_package} ]]; then
+    die_notrace "Please select a package using --package [${DRIVERS// /|}]"
+  fi
+
+  local params
   local typed
-  echo 'This script builds mali-drivers for a list of boards. It uploads the'
+  echo 'This script builds gpu drivers for a list of boards. It uploads the'
   echo 'binaries to Google storage and makes them available in the public'
   echo 'repository. It expects you have configured gsutil.'
+  echo
+
   printf 'Type "y" if you know what you are doing and want to go ahead: '
   read typed
 
@@ -230,8 +229,20 @@ main() {
     die_notrace "You did not configure gsutil after all."
   fi
 
-  for (( idx = 0; idx < ${#BOARDS[@]}; ++idx )); do
-    build_mali_board ${BOARDS[${idx}]} ${SUFFIXES[${idx}]} ${OBOARDS[${idx}]} ${OPATHS[${idx}]}
+  local pn="${FLAGS_package}"
+  local pnbin="${pn}-bin"
+
+  local array="PARAMS_${pn//-/_}[@]"
+
+  if [[ -z "${!array}" ]]; then
+    echo
+    echo "Nothing to do for ${pn}, you probably chose an incorrect package name."
+    echo "Supported packages: ${DRIVERS}"
+    exit 1
+  fi
+
+  for params in "${!array}"; do
+    build_board ${params}
   done
 }
 
