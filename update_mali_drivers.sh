@@ -21,41 +21,29 @@ PNBIN=${PN}-bin
 # Build board names.
 BOARDS=(
   daisy
-  daisy_freon
   peach_pit
-  peach_pit-freon
   veyron_jerry
-  veyron_jaq
 )
 
 # Suffixes for tarball name.
 SUFFIXES=(
   daisy
-  daisy-freon
   peach
-  peach-freon
   veyron
-  veyron-x11
 )
 
 # Board names for overlay with mali-drivers-bin.ebuild.
 OBOARDS=(
   daisy
-  daisy_freon
   peach
-  peach_pit-freon
   veyron
-  X11
 )
 
 # Overlay paths for each board.
 OPATHS=(
   overlay-daisy
-  overlay-variant-daisy-freon
   overlay-peach
-  overlay-variant-peach-pit-freon
   overlay-veyron
-  X11
 )
 
 # Script must run inside the chroot
