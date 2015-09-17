@@ -139,9 +139,9 @@ build_mali_board() {
   echo "Board is ${board}"
 
   if [[ "$oboard" != "X11" ]]; then
-    setup_board --board="${oboard}"
+    ./setup_board --board="${oboard}"
   fi
-  setup_board --board="${board}"
+  ./setup_board --board="${board}"
   if [[ $? != 0 ]]; then
     die_notrace "Setting up board ${board} failed."
   fi
