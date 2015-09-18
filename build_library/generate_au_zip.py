@@ -29,6 +29,7 @@ BINARY_EXECUTABLES = [
     # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
+    '/usr/bin/simg2img',
     # These versions include custom patches with bug fixes.
     '/usr/bin/bsdiff',
     '/usr/bin/bspatch',
