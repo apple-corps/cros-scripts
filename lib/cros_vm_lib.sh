@@ -38,9 +38,11 @@ get_pid() {
 # Configure paths to KVM pipes. Must not be called until after KVM_PID_FILE
 # has been updated. (See, e.g., start_kvm.)
 set_kvm_pipes() {
-  KVM_PIPE_PREFIX="${KVM_PID_FILE/pid/monitor}"
+  local base="${KVM_PID_FILE%.pid}"
+  KVM_PIPE_PREFIX="${base}.monitor"
   KVM_PIPE_IN="${KVM_PIPE_PREFIX}.in"  # to KVM
   KVM_PIPE_OUT="${KVM_PIPE_PREFIX}.out"  # from KVM
+  KVM_SERIAL_FILE="${base}.serial"
 }
 
 # General purpose blocking kill on a pid.
@@ -154,9 +156,9 @@ start_kvm() {
     local usesnapshot=""
     if [ ${FLAGS_no_graphics} -eq ${FLAGS_TRUE} ]; then
       if kvm_version_greater_equal "1.4.0"; then
-        nographics="-display none -serial null"
+        nographics="-display none"
       else
-        nographics="-nographic -serial null"
+        nographics="-nographic"
       fi
     fi
     if [ -n "${FLAGS_vnc}" ]; then
@@ -221,6 +223,9 @@ start_kvm() {
       sudo chmod 600 "${pipe}"
     done
 
+    sudo touch "${KVM_SERIAL_FILE}"
+    sudo chmod a+r "${KVM_SERIAL_FILE}"
+
     local drive
     drive="-drive file=${vm_image},index=0,media=disk,cache=${cache_type}"
     if [ ${FLAGS_scsi} -eq ${FLAGS_TRUE} ]; then
@@ -237,6 +242,7 @@ start_kvm() {
       -vga cirrus \
       -pidfile "${KVM_PID_FILE}" \
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}" \
+      -serial "file:${KVM_SERIAL_FILE}" \
       -mon chardev=control_pipe \
       -daemonize \
       ${cpu_option} \
@@ -249,6 +255,7 @@ start_kvm() {
       ${drive}
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
+    info "Serial output, if available, can be found here in ${KVM_SERIAL_FILE}"
     LIVE_VM_IMAGE="${vm_image}"
   fi
 }
@@ -322,9 +329,8 @@ stop_kvm() {
         send_monitor_command "system_powerdown"
       fi
       blocking_kill ${pid} 0 16 || blocking_kill ${pid} 9 3
-      sudo rm "${KVM_PID_FILE}"
-      sudo rm "${KVM_PIPE_IN}"
-      sudo rm "${KVM_PIPE_OUT}"
+      sudo rm -f "${KVM_PID_FILE}" "${KVM_PIPE_IN}" "${KVM_PIPE_OUT}" \
+        "${KVM_SERIAL_FILE}"
     else
       echo "No kvm pid found to stop." >&2
       return 1
