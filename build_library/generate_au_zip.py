@@ -17,15 +17,11 @@ import tempfile
 
 # GLOBALS
 BINARY_EXECUTABLES = [
-    # These are present to add support for auto-allocating loopback devices,
-    # scanning for loopback device partitions and extracting files from ext2
-    # partitions.
+    # These are standard tools not necessarily installed outside the chroot at
+    # the versions we need.
     '/bin/dd',
-    '/bin/mount',
-    '/bin/umount',
-    '/sbin/losetup',
     '/usr/bin/e2cp',
-    '/usr/sbin/partx',
+    '/usr/bin/truncate',
     # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
@@ -38,7 +34,6 @@ EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
     '/usr/bin/brillo_update_payload',
     '/usr/bin/cros_generate_update_payload',
-    '/usr/share/vboot/bin/convert_recovery_to_ssd.sh',
     '/usr/share/vboot/bin/common_minimal.sh',
     ]
 # We need directories to be copied recursively to a dest within tempdir
