@@ -22,6 +22,7 @@ BINARY_EXECUTABLES = [
     '/bin/dd',
     '/usr/bin/e2cp',
     '/usr/bin/truncate',
+    '/sbin/dumpe2fs',
     # These are specific to our build.
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
