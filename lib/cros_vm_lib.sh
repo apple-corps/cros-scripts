@@ -181,6 +181,7 @@ start_kvm() {
     fi
 
     local net_option="-net nic,model=virtio"
+    local net_user="-net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22"
     if [ -f "$(dirname "${vm_image}")/.use_e1000" ]; then
       info "Detected older image, using e1000 instead of virtio."
       net_option="-net nic,model=e1000"
@@ -216,6 +217,33 @@ start_kvm() {
       fi
     fi
 
+    local moblab_env=""
+    if [ ${FLAGS_moblab} -eq ${FLAGS_TRUE} ]; then
+      # Increase moblab memory size.
+      moblab_env="-m 4G"
+
+      # Set up an external USB storage device.
+      qemu-img create -f raw usb_disk 35g
+      mkfs.ext4 -F usb_disk
+      e2label usb_disk MOBLAB-STORAGE
+
+      moblab_env+=" -usb -drive id=usb_disk,if=none,file=usb_disk"
+      moblab_env+=" -device usb-storage,drive=usb_disk"
+
+      # Add hostforwarding for important moblab pages to the SLIRP connection.
+      MOB_MONITOR_PORT=9991
+      AFE_PORT=8888
+      DEVSERVER_PORT=7777
+
+      net_user+=",hostfwd=tcp:127.0.0.1:${MOB_MONITOR_PORT}-:9991"
+      net_user+=",hostfwd=tcp:127.0.0.1:${AFE_PORT}-:80"
+      net_user+=",hostfwd=tcp:127.0.0.1:${DEVSERVER_PORT}-:8080"
+
+      info "Mob* Monitor: 127.0.0.1:${MOB_MONITOR_PORT}"
+      info "Autotest: 127.0.0.1:${AFE_PORT}"
+      info "Devserver: 127.0.0.1:${DEVSERVER_PORT}"
+    fi
+
     set_kvm_pipes
     for pipe in "${KVM_PIPE_IN}" "${KVM_PIPE_OUT}"; do
       sudo rm -f "${pipe}"  # assumed safe because, the PID is not running
@@ -249,9 +277,10 @@ start_kvm() {
       ${net_option} \
       ${nographics} \
       ${snapshot} \
-      -net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22 \
+      ${net_user} \
       ${incoming} ${incoming_option:+"$incoming_option"} \
       ${usb_passthrough} \
+      ${moblab_env} \
       ${drive}
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
