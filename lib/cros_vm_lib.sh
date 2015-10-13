@@ -202,14 +202,15 @@ start_kvm() {
 
     local usb_passthrough=""
     if [ -n "${FLAGS_usb_devices}" ]; then
-      usb_devices=(${FLAGS_usb_devices//,/ })
+      local bus_id
+      local usb_devices=(${FLAGS_usb_devices//,/ })
       for bus_id in "${usb_devices[@]}"; do
-        device=(${bus_id//:/ })
+        local device=(${bus_id//:/ })
         if [ ${#device[@]} -ne 2 ]; then
           continue
         fi
-        passthrough="-device usb-host,hostbus=${device[0]},hostaddr=${device[1]}"
-        usb_passthrough="${usb_passthrough} ${passthrough}"
+        usb_passthrough+="-device usb-host,vendorid=$((0x${device[0]}))"
+        usb_passthrough+=",productid=$((0x${device[1]}))"
       done
 
       if [ -n "${usb_passthrough}" ]; then
