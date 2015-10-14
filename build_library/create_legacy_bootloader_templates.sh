@@ -16,6 +16,8 @@ assert_inside_chroot
 # Flags.
 DEFINE_string arch "x86" \
   "The boot architecture: arm or x86. (Default: x86)"
+DEFINE_string board "" \
+  "Board we're building for."
 DEFINE_string to "/tmp/boot" \
   "Path to populate with bootloader templates (Default: /tmp/boot)"
 DEFINE_string boot_args "" \
@@ -24,8 +26,8 @@ DEFINE_boolean enable_bootcache ${FLAGS_FALSE} \
   "Default all bootloaders to NOT use boot cache."
 DEFINE_boolean enable_rootfs_verification ${FLAGS_FALSE} \
   "Controls if verity is used for root filesystem checking (Default: false)"
-DEFINE_string enable_serial "" \
-  "Enable serial port for printks. Example values: ttyS0"
+DEFINE_string enable_serial "tty2" \
+  "Enable serial port for printks. Example values: ttyS0 (Default: tty2)"
 DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
 DEFINE_integer verity_error_behavior 3 \
@@ -50,15 +52,46 @@ if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
   fi
 fi
 
-# Common kernel command-line args
-common_args="init=/sbin/init boot=local rootwait ro noresume noswap"
-common_args="${common_args} loglevel=${FLAGS_loglevel} ${FLAGS_boot_args}"
+# Common kernel command-line args. Write them to a temporary config_file so that
+# boards can modify them if needed.
+# TODO: This code to support modifying kernel command line by boards is very
+# similar to the one in build_kernel_image.sh. This could be refactored into a
+# common place. Until then it needs to be kept consistent.
+config_file="$(mktemp legacy_config_XXXXXXXXXX.txt)"
+cleanup() {
+  rm -f "${config_file}"
+}
+trap cleanup EXIT
 
-if [[ -n "${FLAGS_enable_serial}" ]]; then
-  common_args="${common_args} console=${FLAGS_enable_serial} debug"
-else
-  common_args="${common_args} console=tty2 quiet"
-fi
+cat <<EOF > "${config_file}"
+init=/sbin/init
+boot=local
+rootwait
+ro
+noresume
+noswap
+loglevel=${FLAGS_loglevel}
+${FLAGS_boot_args}
+console=${FLAGS_enable_serial}
+EOF
+
+# Support optional, board-specific kernel parameters.
+
+# Intended to be overridden by boards that wish to add to the command
+# line. Same code in build_kernel_image.sh; this one here is for grub
+# and syslinux.
+# $1 - output file containing boot args.
+modify_kernel_command_line() {
+  :
+}
+
+. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+load_board_specific_script "build_kernel_image.sh"
+modify_kernel_command_line "${config_file}"
+# Read back the config_file; translate newlines to space
+common_args="$(tr "\n" " " < "${config_file}")"
+cleanup
+trap - EXIT
 
 # Common verified boot command-line args
 verity_common="dm_verity.error_behavior=${FLAGS_verity_error_behavior}"
