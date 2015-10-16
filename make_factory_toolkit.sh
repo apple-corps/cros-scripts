@@ -60,7 +60,8 @@ main() {
 
   export INSTALL_MASK="${FACTORY_TEST_INSTALL_MASK}"
   emerge-${FLAGS_board} --root="${temp_pack_root}" --nodeps --usepkgonly -v \
-    chromeos-factory chromeos-factory-board autotest-factory-install
+    chromeos-factory chromeos-factory-board autotest-factory-install \
+    memento_softwareupdate
 
   sudo USE="static" INSTALL_MASK="/usr/bin/ghost" \
     emerge --root="${temp_pack_root}" --nodeps -v chromeos-factory-overlord
