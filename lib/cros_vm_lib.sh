@@ -209,7 +209,7 @@ start_kvm() {
         if [ ${#device[@]} -ne 2 ]; then
           continue
         fi
-        usb_passthrough+="-device usb-host,vendorid=$((0x${device[0]}))"
+        usb_passthrough+=" -device usb-host,vendorid=$((0x${device[0]}))"
         usb_passthrough+=",productid=$((0x${device[1]}))"
       done
 
