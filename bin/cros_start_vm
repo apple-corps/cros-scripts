@@ -16,11 +16,6 @@ assert_outside_chroot
 DEFINE_string board "${DEFAULT_BOARD}" \
     "Board for VM image (unnecessary if path given)"
 DEFINE_string image_path "" "Full path of the VM image"
-DEFINE_string usb_devices "" \
-    "Usb devices for passthrough. Specified in a comma-separated list
-     where each item is of the form <vendor_id>:<product_id>
-     (eg. --usb_devices=1050:0211,0409:005a)"
-DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
 
 set -e
 

@@ -21,6 +21,11 @@ DEFINE_string ssh_private_key "${DEFAULT_PRIVATE_KEY}" \
     "Path to the private key to use to ssh into test image as the root user."
 DEFINE_string vnc "" "VNC Server to display to instead of SDL "\
 "(e.g. pass ':1' to listen on 0.0.0.0:5901)."
+DEFINE_string usb_devices "" \
+    "Usb devices for passthrough. Specified in a comma-separated list
+     where each item is of the form <vendor_id>:<product_id>
+     (eg. --usb_devices=1050:0211,0409:005a)"
+DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
 
 KVM_PID_FILE=/tmp/kvm.$$.pid
 LIVE_VM_IMAGE=
