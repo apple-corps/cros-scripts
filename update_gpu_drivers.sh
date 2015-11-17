@@ -194,7 +194,7 @@ build_board() {
       cd "${SRC_ROOT}/overlays/${opath}/${category}/${pnbin}"
 
       # following git commands may fail if they have been issued previously
-      git checkout -b gpudriverbinupdate m/master
+      git checkout -b "gpudriverbinupdate-${pv}" m/master
       git mv "${pnbin}-${pvbin}.ebuild" "${pnbin}-${pv}.ebuild"
 
       "ebuild-${oboard}" "${pnbin}-${pv}.ebuild" manifest
