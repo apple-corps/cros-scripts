@@ -210,7 +210,7 @@ rm -rf "${TEMP_IMG}"
 echo "Created image at ${FLAGS_to}"
 
 echo "If you have qemu-kvm installed, you can start the image by:"
-echo "sudo kvm -m ${FLAGS_mem} -vga cirrus -pidfile /tmp/kvm.pid" \
+echo "sudo kvm -m ${DEFAULT_MEM} -vga cirrus -pidfile /tmp/kvm.pid" \
   "-net nic,model=virtio -net user,hostfwd=tcp::9222-:22 \\"
 echo "-hda ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
 
