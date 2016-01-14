@@ -42,9 +42,7 @@ mod_image_for_test () {
     # Install the factory tests and their dependencies into the autotest client
     # library.
     INSTALL_MASK="${FACTORY_TEST_INSTALL_MASK}"
-    emerge_to_image --root="${root_fs_dir}/usr/local" \
-      chromeos-base/autotest-factory-install \
-      chromeos-base/chromeos-factory
+    emerge_to_image --root="${root_fs_dir}/usr/local" virtual/target-os-factory
 
     echo "Modifying Release Description for Factory."
     sudo sed -i 's/Test/Factory/' "${root_fs_dir}/etc/lsb-release"

@@ -134,7 +134,7 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
   # Add the cros_factory_install boot arg.
   FLAGS_boot_args="${FLAGS_boot_args} cros_factory_install"
 
-  BASE_PACKAGE="chromeos-base/chromeos-installshim"
+  BASE_PACKAGE="virtual/target-os-factory-shim"
 
   export USE="${USE} fbconsole vtconsole factory_shim_ramfs tpm i2cdev vfat"
 fi

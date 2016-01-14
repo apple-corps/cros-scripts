@@ -195,10 +195,8 @@ if [[ $# -eq 0 ]]; then
     PACKAGES+=( virtual/target-os-dev )
   fi
   if [[ "${FLAGS_withfactory}" -eq "${FLAGS_TRUE}" ]]; then
-    PACKAGES+=( chromeos-base/chromeos-installshim )
-    PACKAGES+=( chromeos-base/chromeos-factory )
-    PACKAGES+=( chromeos-base/chromeos-hwid )
-    PACKAGES+=( chromeos-base/autotest-factory-install )
+    PACKAGES+=( virtual/target-os-factory )
+    PACKAGES+=( virtual/target-os-factory-shim )
   fi
   if [[ "${FLAGS_withtest}" -eq "${FLAGS_TRUE}" ]]; then
     PACKAGES+=( virtual/target-os-test )
