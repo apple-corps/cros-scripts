@@ -483,6 +483,7 @@ FACTORY_SHIM_INSTALL_MASK="
   ${DEFAULT_INSTALL_MASK}
   /opt/[^g]*
   /opt/google/chrome
+  /opt/google/containers
   /opt/google/o3d
   /opt/google/talkplugin
   /usr/lib/dri
