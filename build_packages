@@ -78,6 +78,8 @@ DEFINE_boolean withtest "${FLAGS_TRUE}" \
   "Build packages required for testing."
 DEFINE_boolean chrome_binhost_only $FLAGS_FALSE \
   "Only fetch packages from the Chrome binhost."
+DEFINE_boolean buildretry "${FLAGS_TRUE}" \
+  "Retry failed packages."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -151,8 +153,11 @@ EMERGE_CMD=(
 if [[ "${FLAGS_fetchonly}" -eq "${FLAGS_TRUE}" ]]; then
   EMERGE_CMD+=( --fetchonly )
 fi
-if [[ ${FLAGS_unpackonly} -eq ${FLAGS_TRUE} ]]; then
+if [[ "${FLAGS_unpackonly}" -eq "${FLAGS_TRUE}" ]]; then
   EMERGE_CMD+=( --unpackonly )
+fi
+if [[ "${FLAGS_buildretry}" -eq "${FLAGS_FALSE}" ]]; then
+  EMERGE_CMD+=( --retries=0 )
 fi
 
 EMERGE_CMD+=( ${EXTRA_BOARD_FLAGS} )
