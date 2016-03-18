@@ -14,7 +14,7 @@ check_full_disk() {
   if [[ ${prev_ret} -ne 0 ]]; then
     local df=$(df -B 1M "${root_fs_dir}")
     if [[ ${df} == *100%* ]]; then
-      error "Here are the biggest files (by disk usage):"
+      error "Here are the biggest [partially-]extracted files (by disk usage):"
       # Send final output to stderr to match `error` behavior.
       sudo find "${root_fs_dir}" -xdev -type f -printf '%b %P\n' | \
         awk '$1 > 16 { $1 = $1 * 512; print }' | sort -n | tail -100 1>&2
