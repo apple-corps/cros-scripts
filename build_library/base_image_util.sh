@@ -222,6 +222,15 @@ create_base_image() {
     official_flag="--official"
   fi
 
+  # Get the version of ARC if available
+  if type set_arc_version &>/dev/null; then
+    set_arc_version
+  fi
+  local arc_version=
+  if [[ -n "${CHROMEOS_ARC_VERSION}" ]]; then
+    arc_version="--arc_version=${CHROMEOS_ARC_VERSION}"
+  fi
+
   "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
@@ -234,7 +243,8 @@ create_base_image() {
     --branch_number="${CHROMEOS_BRANCH}" \
     --build_number="${CHROMEOS_BUILD}" \
     --chrome_milestone="${CHROME_BRANCH}" \
-    --patch_number="${CHROMEOS_PATCH}"
+    --patch_number="${CHROMEOS_PATCH}" \
+    ${arc_version}
 
   # Create the boot.desc file which stores the build-time configuration
   # information needed for making the image bootable after creation with
