@@ -322,6 +322,11 @@ create_base_image() {
     create_dev_install_lists "${root_fs_dir}"
   fi
 
+  # Run board-specific build image function, if available.
+  if type board_finalize_base_image &>/dev/null; then
+    board_finalize_base_image
+  fi
+
   # Restore the extended attributes of necessary files.
   local selinux_config="${BOARD_ROOT}/etc/selinux/config"
   if [[ -e "${selinux_config}" ]]; then
