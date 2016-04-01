@@ -146,7 +146,10 @@ FLAGS "${@}" || exit 1
 
 [ -z "${FLAGS_verity_salt}" ] && FLAGS_verity_salt=$(make_salt)
 
+# board_options.sh relies on ${SRC_IMAGE} environment variable.
+SRC_IMAGE="${IMAGE}"
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+load_board_specific_script "board_specific_setup.sh"
 
 # Only now can we die on error.  shflags functions leak non-zero error codes,
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
@@ -425,6 +428,9 @@ mkdir -p ${FLAGS_statefulfs_mountpoint}
 mkdir -p ${FLAGS_espfs_mountpoint}
 
 make_image_bootable "${IMAGE}"
+if type -p board_make_image_bootable; then
+  board_make_image_bootable "${IMAGE}"
+fi
 if [ ${FLAGS_fsck_rootfs} -eq ${FLAGS_TRUE} ]; then
   verify_image_rootfs "${IMAGE}"
 fi
