@@ -502,8 +502,9 @@ setup_env() {
     promote_api_keys
 
     # Fix permissions on shared memory to allow non-root users access to POSIX
-    # semaphores.
-    chmod -R 777 "${FLAGS_chroot}/dev/shm"
+    # semaphores. Take special care to only change the permissions on the
+    # directory and not all of its contents.
+    chmod 1777 "${FLAGS_chroot}/dev/shm"
 
     # gsutil uses boto config to store settings and credentials. Copy
     # user's own boto file into the chroot if it exists. Also copy it
