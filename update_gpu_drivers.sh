@@ -36,7 +36,7 @@ PARAMS_mali_drivers=(
 )
 
 PARAMS_img_ddk=(
-  "oak oak oak overlay-oak"
+  "oak oak oak chipset-mt8173"
 )
 
 # Script must run inside the chroot
