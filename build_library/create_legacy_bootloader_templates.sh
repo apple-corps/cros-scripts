@@ -238,12 +238,12 @@ menuentry "local image B" {
 
 menuentry "verified image A" {
   linux /syslinux/vmlinuz.A ${common_args} ${verity_common} \
-      i915.modeset=1 cros_efi root=${ROOTDEV} dm=\\"DMTABLEA\\"
+      i915.modeset=1 cros_efi root=${ROOTDEV} dm="DMTABLEA"
 }
 
 menuentry "verified image B" {
   linux /syslinux/vmlinuz.B ${common_args} ${verity_common} \
-      i915.modeset=1 cros_efi root=${ROOTDEV} dm=\\"DMTABLEB\\"
+      i915.modeset=1 cros_efi root=${ROOTDEV} dm="DMTABLEB"
 }
 
 # FIXME: usb doesn't support verified boot for now
