@@ -31,6 +31,7 @@ DRIVERS="mali-drivers img-ddk"
 
 PARAMS_mali_drivers=(
   "daisy daisy daisy overlay-daisy"
+  "gru gru gru baseboard-gru"
   "peach_pit peach peach overlay-peach"
   "veyron_jerry veyron veyron overlay-veyron"
 )
