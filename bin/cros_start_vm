@@ -7,8 +7,6 @@
 # Simple wrapper script to start a vm using the vm lib.
 . "$(dirname "$0")/../common.sh" || exit 1
 
-assert_outside_chroot
-
 . "${SCRIPTS_DIR}/lib/cros_vm_lib.sh" || die "Unable to load cros_vm_lib.sh"
 . "${SCRIPTS_DIR}/lib/cros_vm_constants.sh" || \
   die "Unable to load cros_vm_constants.sh"

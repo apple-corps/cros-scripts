@@ -32,9 +32,21 @@ LIVE_VM_IMAGE=
 
 if ! KVM_BINARY=$(which kvm 2> /dev/null); then
   if ! KVM_BINARY=$(which qemu-kvm 2> /dev/null); then
-    die "no kvm binary found"
+    if ! KVM_BINARY=$(which qemu-system-x86_64 2> /dev/null); then
+      die "no kvm binary found"
+    fi
   fi
 fi
+
+# Return the version number of the QEMU/KVM binary used.
+get_kvm_version() {
+  # The version string typically looks like this:
+  #"QEMU emulator version 2.5.0, Copyright (c) 2003-2008 Fabrice Bellard"
+  # but in Debian/ubuntu distributions, some QEMU or KVM binaries has a
+  # space and a package version rather the comma just after the version number:
+  #"QEMU emulator version 2.0.0 (Debian 2.0.0+dfsg-2ubuntu1.22), Copyright[...]"
+  ${KVM_BINARY} --version | sed -E 's/^.*version ([0-9.]*).*$/\1/'
+}
 
 get_pid() {
   sudo cat "${KVM_PID_FILE}"
@@ -70,7 +82,7 @@ blocking_kill() {
 
 kvm_version_greater_equal() {
   local test_version="${1}"
-  local kvm_version=$(kvm --version | sed -E 's/^.*version ([0-9\.]*) .*$/\1/')
+  local kvm_version="$(get_kvm_version)"
 
   [ $(echo -e "${test_version}\n${kvm_version}" | sort -r -V | head -n 1) = \
     $kvm_version ]
@@ -129,6 +141,8 @@ get_decompressor() {
 # $1: Path to the virtual image to start.
 # $2: Name of the board to virtualize.
 start_kvm() {
+  echo "QEMU/KVM binary: ${KVM_BINARY} version: $(get_kvm_version)"
+
   # Determine appropriate qemu CPU for board.
   # TODO(spang): Let the overlay provide appropriate options.
   local board="$2"
@@ -157,6 +171,7 @@ start_kvm() {
   # No kvm specified by pid file found, start a new one.
   if [ ${start_vm} -eq 0 ]; then
     echo "Starting a KVM instance" >&2
+    local kvm_flag=""
     local nographics=""
     local usesnapshot=""
     if [ ${FLAGS_no_graphics} -eq ${FLAGS_TRUE} ]; then
@@ -173,6 +188,13 @@ start_kvm() {
     if [ ${FLAGS_snapshot} -eq ${FLAGS_TRUE} ]; then
       snapshot="-snapshot"
     fi
+
+    # When using the regular qemu system binary, force KVM.
+    case "${KVM_BINARY}" in
+      */qemu-system-x86_64)
+        kvm_flag="-enable-kvm"
+        ;;
+    esac
 
     local vm_image="$1"
     if [ ${FLAGS_copy} -eq ${FLAGS_TRUE} ]; then
@@ -271,7 +293,7 @@ start_kvm() {
     # Note: the goofiness around the expansion of |incoming_option| is
     # to ensure that it is quoted if set, but _not_ quoted if
     # unset. (QEMU chokes on empty arguments).
-    sudo "${KVM_BINARY}" -m 2G \
+    sudo "${KVM_BINARY}" ${kvm_flag} -m 2G \
       -smp 4 \
       -vga cirrus \
       -pidfile "${KVM_PID_FILE}" \

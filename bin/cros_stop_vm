@@ -7,8 +7,6 @@
 # Simple wrapper script to stop a vm specified from a pid file.
 . "$(dirname "$0")/../common.sh" || exit 1
 
-assert_outside_chroot
-
 . "${SCRIPTS_DIR}/lib/cros_vm_lib.sh" || die "Unable to load cros_vm_lib.sh"
 
 set -e
