@@ -62,7 +62,10 @@ test_image_content() {
 
   # Check that all .so files, plus the binaries, have the appropriate
   # dependencies.  Need to use sudo as some files are set*id.
-  libs=( $(sudo find "${root}" -type f -name '*.so*') )
+  # Exclude Chrome components, which are the only files in the lib directory.
+  local components="${root}/opt/google/chrome/lib/*"
+  libs=( $(sudo \
+      find "${root}" -type f -name '*.so*' -not -path "${components}") )
   if ! test_elf_deps "${root}" "${binaries[@]}" "${libs[@]}"; then
     returncode=1
   fi
