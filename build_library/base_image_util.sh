@@ -292,6 +292,11 @@ create_base_image() {
       ${enable_rootfs_verification} \
       ${enable_bootcache}
 
+  # Run board-specific build image function, if available.
+  if type board_finalize_base_image &>/dev/null; then
+    board_finalize_base_image
+  fi
+
   # Don't test the factory install shim
   if ! should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
     if [[ ${skip_test_image_content} -ne 1 ]]; then
@@ -327,11 +332,6 @@ create_base_image() {
       --exclude=var -C "${root_fs_dir}/usr/local" .
 
     create_dev_install_lists "${root_fs_dir}"
-  fi
-
-  # Run board-specific build image function, if available.
-  if type board_finalize_base_image &>/dev/null; then
-    board_finalize_base_image
   fi
 
   # Restore the extended attributes of necessary files.
