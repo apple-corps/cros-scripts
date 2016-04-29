@@ -93,8 +93,8 @@ main() {
 
   # create factory-mini.par
   local temp_factory_root="$(readlink -f "${temp_pack_root}")/usr/local/factory"
-  sudo "${temp_factory_root}/bin/make_par" --mini --output \
-    "${temp_factory_root}/factory-mini.par"
+  sudo "${temp_factory_root}/bin/make_par" --output \
+    "${temp_factory_root}/factory.par"
 
   local version_tag="usr/local/factory/TOOLKIT_VERSION"
   echo "${id_str}" | sudo_clobber "${temp_pack_root}/${version_tag}"
