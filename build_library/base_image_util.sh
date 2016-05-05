@@ -251,7 +251,9 @@ create_base_image() {
   # * /etc/os-release itself with docrashid
   # * /etc/os-release.d for fields created with do_osrelease_field
   sudo "${GCLIENT_ROOT}/chromite/bin/cros_generate_os_release" \
-    --root="${root_fs_dir}"
+    --root="${root_fs_dir}" \
+    --version="${CHROME_BRANCH}" \
+    --build_id="${CHROMEOS_VERSION_STRING}"
 
   # Create the boot.desc file which stores the build-time configuration
   # information needed for making the image bootable after creation with
