@@ -285,6 +285,9 @@ setup_env() {
     if grep -q binfmt_misc /proc/filesystems; then
       setup_mount binfmt_misc "-t binfmt_misc" /proc/sys/fs/binfmt_misc
     fi
+    if grep -q configfs /proc/filesystems; then
+      setup_mount none "-t configfs" /sys/kernel/config
+    fi
     setup_mount /dev "--bind" /dev
     setup_mount /dev/pts "--bind" /dev/pts
     if [[ -d /run ]]; then
