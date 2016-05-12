@@ -328,7 +328,7 @@ def LoadPartitionConfig(filename):
       'uuid', 'label', 'format', 'fs_format', 'type', 'features',
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
       'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
-      'page_size'))
+      'page_size', 'size_min', 'fs_size_min'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -371,6 +371,10 @@ def LoadPartitionConfig(filename):
                 'Found section sets both \'blocks\' and \'size\'.' %
                 part['label'])
           part['bytes'] = ParseHumanNumber(part['size'])
+          if 'size_min' in part:
+            size_min = ParseHumanNumber(part['size_min'])
+            if part['bytes'] < size_min:
+              part['bytes'] = size_min
           part['blocks'] = part['bytes'] / metadata['block_size']
 
           if part['bytes'] % metadata['block_size'] != 0:
@@ -380,6 +384,10 @@ def LoadPartitionConfig(filename):
 
         if 'fs_size' in part:
           part['fs_bytes'] = ParseHumanNumber(part['fs_size'])
+          if 'fs_size_min' in part:
+            fs_size_min = ParseHumanNumber(part['fs_size_min'])
+            if part['fs_bytes'] < fs_size_min:
+              part['fs_bytes'] = fs_size_min
           if part['fs_bytes'] <= 0:
             raise InvalidSize(
                 'File system size "%s" must be positive' %
