@@ -80,6 +80,8 @@ DEFINE_string toolset "cros" \
   "Toolset that this script is being used with."
 DEFINE_string version "" \
   "Overrides version number in name to this version."
+DEFINE_boolean eclean ${FLAGS_TRUE} \
+  "Do NOT call eclean before building the image (default is to call eclean)."
 
 # Parse command line.
 FLAGS "$@" || exit 1
@@ -158,7 +160,9 @@ fi
 
 DEVKEYSDIR="/usr/share/vboot/devkeys"
 
-"${BOARD_ROOT}/build/bin/eclean" -d packages
+if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
+  "${BOARD_ROOT}/build/bin/eclean" -d packages
+fi
 
 if [[ ${skip_blacklist_check} -ne ${FLAGS_FALSE} ]]; then
   check_blacklist
