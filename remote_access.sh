@@ -48,6 +48,9 @@ ssh_connect_settings() {
       "ServerAliveInterval=10"
       "ServerAliveCountMax=3"
       "StrictHostKeyChecking=no"
+      "IdentitiesOnly=yes"
+      "IdentityFile=${TMP_PRIVATE_KEY}"
+      "UserKnownHostsFile=${TMP_KNOWN_HOSTS}"
     )
     printf -- '-o %s ' "${settings[@]}"
   fi
@@ -56,17 +59,14 @@ ssh_connect_settings() {
 # Copies $1 to $2 on remote host
 remote_cp_to() {
   REMOTE_OUT=$(scp -P ${FLAGS_ssh_port} $(ssh_connect_settings) \
-    -o UserKnownHostsFile=$TMP_KNOWN_HOSTS -i $TMP_PRIVATE_KEY $1 \
-    root@$FLAGS_remote:$2)
+    $1 root@$FLAGS_remote:$2)
   return ${PIPESTATUS[0]}
 }
 
 # Raw rsync access to the remote
 # Use like: remote_rsync_raw -a /path/from/ root@${FLAGS_remote}:/path/to/
 remote_rsync_raw() {
-  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
-               -o UserKnownHostsFile=$TMP_KNOWN_HOSTS -i $TMP_PRIVATE_KEY" \
-               "$@"
+  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings)" "$@"
 }
 
 # Copies a list of remote files specified in file $1 to local location
@@ -100,7 +100,6 @@ remote_send_to() {
 
 _remote_sh() {
   REMOTE_OUT=$(ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
-    -o UserKnownHostsFile=$TMP_KNOWN_HOSTS -i $TMP_PRIVATE_KEY \
     root@$FLAGS_remote "$@")
   return ${PIPESTATUS[0]}
 }
@@ -120,7 +119,6 @@ remote_sh() {
 
 remote_sh_raw() {
   ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
-    -o UserKnownHostsFile=$TMP_KNOWN_HOSTS -i $TMP_PRIVATE_KEY \
     $EXTRA_REMOTE_SH_ARGS root@$FLAGS_remote "$@"
   return $?
 }
