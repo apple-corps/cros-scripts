@@ -422,6 +422,7 @@ COMMON_INSTALL_MASK="
   *.go
   *.la
   *.h
+  *.hh
   *.hpp
   *.h++
   *.hxx
