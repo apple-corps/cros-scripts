@@ -40,8 +40,6 @@ base - Pristine Chromium OS image. As similar to Chrome OS as possible.
 dev [default] - Developer image. Like base but with additional dev packages.
 test - Like dev, but with additional test specific packages and can be easily
   used for automated testing using scripts like test_that, etc.
-factory_test - Like test but with extra packages and modifications used to
-  test images in a factory setting.  Cannot be built along with a test image.
 factory_install - Install shim for bootstrapping the factory test process.
   Cannot be built along with any other image.
 
@@ -141,12 +139,6 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
   export USE="${USE} fbconsole vtconsole factory_shim_ramfs tpm i2cdev vfat"
 fi
 
-if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
-  # Disable module restrictions on factory test image to allow for
-  # external third party drivers in /usr/local.
-  FLAGS_boot_args="${FLAGS_boot_args} lsm.module_locking=0"
-fi
-
 # TODO: </prebuild hook>
 
 # If we are creating a developer image, also create a pristine image with a
@@ -206,7 +198,7 @@ fi
 
 # Create a developer image if an image that is based on it is requested.
 if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
-    ${CHROMEOS_TEST_IMAGE_NAME} ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
+    ${CHROMEOS_TEST_IMAGE_NAME}; then
   copy_image ${CHROMEOS_BASE_IMAGE_NAME} ${CHROMEOS_DEVELOPER_IMAGE_NAME}
   install_dev_packages ${CHROMEOS_DEVELOPER_IMAGE_NAME}
 fi
@@ -216,15 +208,10 @@ if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
   info 'operation: creating test image'
 fi
 
-# From a developer image create a test|factory_test image.
+# From a developer image create a test image.
 if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
   copy_image  ${CHROMEOS_DEVELOPER_IMAGE_NAME} ${CHROMEOS_TEST_IMAGE_NAME}
   mod_image_for_test  ${CHROMEOS_TEST_IMAGE_NAME}
-fi
-if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
-  copy_image  ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
-    ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
-  mod_image_for_test  ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}
 fi
 
 if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
@@ -285,9 +272,6 @@ if should_build_image ${CHROMEOS_FACTORY_SHIM_NAME}; then
 fi
 if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME}; then
   summarize "Developer" "${CHROMEOS_DEVELOPER_IMAGE_NAME}" ""
-fi
-if should_build_image ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}; then
-  summarize "Factory test" "${CHROMEOS_FACTORY_TEST_IMAGE_NAME}" "--factory"
 fi
 if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
   summarize "Test" "${CHROMEOS_TEST_IMAGE_NAME}" "--test"

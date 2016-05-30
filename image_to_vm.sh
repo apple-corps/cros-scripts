@@ -96,9 +96,7 @@ if ! resolved=$(readlink -f "$(echo ${FLAGS_to})"); then
 fi
 FLAGS_to=${resolved}
 
-if [ ${FLAGS_factory} -eq ${FLAGS_TRUE} ]; then
-  SRC_IMAGE="${FLAGS_from}/${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"
-elif [ ${FLAGS_test_image} -eq ${FLAGS_TRUE} ]; then
+if [ ${FLAGS_test_image} -eq ${FLAGS_TRUE} ]; then
   SRC_IMAGE="${FLAGS_from}/${CHROMEOS_TEST_IMAGE_NAME}"
 else
   # Use the standard image

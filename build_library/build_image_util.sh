@@ -48,9 +48,6 @@ get_images_to_build() {
       \'test\' )
         IMAGES_TO_BUILD="${IMAGES_TO_BUILD} ${CHROMEOS_TEST_IMAGE_NAME}"
         ;;
-      \'factory_test\' )
-        IMAGES_TO_BUILD="${IMAGES_TO_BUILD} ${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"
-        ;;
       \'factory_install\' )
         IMAGES_TO_BUILD="${IMAGES_TO_BUILD} \
           ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}"
@@ -72,14 +69,8 @@ get_images_to_build() {
 # Look at flags to determine which image types we should build.
 parse_build_image_args() {
   get_images_to_build ${FLAGS_ARGV}
-  if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
-    if should_build_image "${CHROMEOS_FACTORY_TEST_IMAGE_NAME}"; then
-      die_notrace "Cannot build both the test and factory_test images."
-    fi
-  fi
   if should_build_image ${CHROMEOS_BASE_IMAGE_NAME} \
-      ${CHROMEOS_DEVELOPER_IMAGE_NAME} ${CHROMEOS_TEST_IMAGE_NAME} \
-      ${CHROMEOS_FACTORY_TEST_IMAGE_NAME} &&
+      ${CHROMEOS_DEVELOPER_IMAGE_NAME} ${CHROMEOS_TEST_IMAGE_NAME} && \
       should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
     die_notrace \
         "Can't build ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME} with any other" \

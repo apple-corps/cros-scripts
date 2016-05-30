@@ -409,7 +409,6 @@ CHROMEOS_IMAGE_NAME="chromiumos_image.bin"
 CHROMEOS_DEVELOPER_IMAGE_NAME="chromiumos_image.bin"
 CHROMEOS_RECOVERY_IMAGE_NAME="recovery_image.bin"
 CHROMEOS_TEST_IMAGE_NAME="chromiumos_test_image.bin"
-CHROMEOS_FACTORY_TEST_IMAGE_NAME="chromiumos_factory_image.bin"
 CHROMEOS_FACTORY_INSTALL_SHIM_NAME="factory_install_shim.bin"
 SYSROOT_SETTINGS_FILE="/var/cache/edb/chromeos"
 
@@ -469,7 +468,7 @@ DEFAULT_INSTALL_MASK="
   test_*.ko
   "
 
-# Mask for factory test image (build_image --factory)
+# Mask for factory test image (make_factory_toolkit.sh)
 FACTORY_TEST_INSTALL_MASK="
   ${COMMON_INSTALL_MASK}
   */.svn
