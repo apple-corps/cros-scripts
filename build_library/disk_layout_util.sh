@@ -6,6 +6,17 @@
 # is sourced as ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
 . "${BUILD_LIBRARY_DIR}/filesystem_util.sh" || exit 1
 
+PARTITION_NUM_STATE=1
+PARTITION_NUM_KERN_A=2
+PARTITION_NUM_ROOT_A=3
+PARTITION_NUM_KERN_B=4
+PARTITION_NUM_ROOT_B=5
+PARTITION_NUM_KERN_C=6
+PARTITION_NUM_ROOT_C=7
+PARTITION_NUM_OEM=8
+PARTITION_NUM_RWFW=11
+PARTITION_NUM_EFI_SYSTEM=12
+
 CGPT_PY="${BUILD_LIBRARY_DIR}/cgpt.py"
 PARTITION_SCRIPT_PATH="usr/sbin/write_gpt.sh"
 DISK_LAYOUT_PATH=
@@ -472,7 +483,7 @@ build_gpt_image() {
 
   # Pre-set "sucessful" bit in gpt, so we will never mark-for-death
   # a partition on an SDCard/USB stick.
-  cgpt add -i 2 -S 1 "${outdev}"
+  cgpt add -i ${PARTITION_NUM_KERN_A} -S 1 "${outdev}"
 }
 
 round_up_4096() {
@@ -503,7 +514,7 @@ update_partition_table() {
   # relocated partitions following it are not misaligned.
   dst_stateful_blocks=$(round_up_4096 $dst_stateful_blocks)
   # Calculate change in image size.
-  local src_stateful_blocks=$(cgpt show -i 1 -s ${src_img})
+  local src_stateful_blocks=$(cgpt show -i ${PARTITION_NUM_STATE} -s ${src_img})
   local delta_blocks=$(( dst_stateful_blocks - src_stateful_blocks ))
   local dst_stateful_bytes=$(( dst_stateful_blocks * 512 ))
   local src_stateful_bytes=$(( src_stateful_blocks * 512 ))
