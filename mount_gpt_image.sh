@@ -165,7 +165,8 @@ unmount_image() {
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
   local part_num part_offset part_size data_size
-  for part_num in 12 8 1 3; do
+  for part_num in ${PARTITION_NUM_EFI_SYSTEM} ${PARTITION_NUM_OEM} \
+                  ${PARTITION_NUM_STATE} ${PARTITION_NUM_ROOT_A}; do
     var_name="PART_${part_num}_MOUNTPOINT"
     mountpoint="${!var_name:-}"
     [[ -n "${mountpoint}" ]] || continue
@@ -203,7 +204,8 @@ unmount_image() {
   # We need to remove the mountpoints after we unmount all the partitions since
   # there could be nested mounts.
   if [[ ${FLAGS_delete_mountpts} -eq ${FLAGS_TRUE} ]]; then
-    for part_num in 12 8 1 3; do
+    for part_num in ${PARTITION_NUM_EFI_SYSTEM} ${PARTITION_NUM_OEM} \
+                    ${PARTITION_NUM_STATE} ${PARTITION_NUM_ROOT_A}; do
       var_name="PART_${part_num}_MOUNTPOINT"
       mountpoint="${!var_name:-}"
       # Check this is a directory.
@@ -231,14 +233,17 @@ mount_usb_partitions() {
     load_partition_vars
   fi
 
-  fs_mount "${FLAGS_from}3" "${PART_3_MOUNTPOINT}" "${FS_FORMAT_3}" \
-    "${rootfs_ro_rw}"
-  fs_mount "${FLAGS_from}1" "${PART_1_MOUNTPOINT}" "${FS_FORMAT_1}" "${ro_rw}"
-  fs_mount "${FLAGS_from}8" "${PART_8_MOUNTPOINT}" "${FS_FORMAT_8}" "${ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_ROOT_A}" "${PART_3_MOUNTPOINT}" \
+    "${FS_FORMAT_3}" "${rootfs_ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_STATE}" "${PART_1_MOUNTPOINT}" \
+    "${FS_FORMAT_1}" "${ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_OEM}" "${PART_8_MOUNTPOINT}" \
+    "${FS_FORMAT_8}" "${ro_rw}"
 
-  if [[ -n "${FLAGS_esp_mountpt}" && -e ${FLAGS_from}12 ]]; then
-    fs_mount "${FLAGS_from}12" "${PART_12_MOUNTPOINT}" "${FS_FORMAT_12}" \
-      "${ro_rw}"
+  if [[ -n "${FLAGS_esp_mountpt}" && \
+        -e ${FLAGS_from}${PARTITION_NUM_EFI_SYSTEM} ]]; then
+    fs_mount "${FLAGS_from}${PARTITION_NUM_EFI_SYSTEM}" \
+      "${PART_12_MOUNTPOINT}" "${FS_FORMAT_12}" "${ro_rw}"
   fi
 }
 
@@ -256,7 +261,7 @@ mount_gpt_partitions() {
 
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} && \
         ${FLAGS_safe} -eq ${FLAGS_FALSE} ]]; then
-    local rootfs_offset=$(partoffset "${filename}" 3)
+    local rootfs_offset=$(partoffset "${filename}" ${PARTITION_NUM_ROOT_A})
     # Make sure any callers can actually mount and modify the fs
     # if desired.
     # cros_make_image_bootable should restore the bit if needed.
@@ -271,11 +276,11 @@ mount_gpt_partitions() {
   # Mount in order: rootfs, stateful, OEM and EFI.
   local var_name mountpoint fs_format
   local part_num part_offset part_size part_ro_rw
-  for part_num in 3 1 8 12; do
+  for part_num in ${PARTITION_NUM_ROOT_A} ${PARTITION_NUM_STATE} \
+                  ${PARTITION_NUM_OEM} ${PARTITION_NUM_EFI_SYSTEM}; do
     var_name="PART_${part_num}_MOUNTPOINT"
     mountpoint="${!var_name:-}"
     [[ -n "${mountpoint}" ]] || continue
-
     part_size=$(get_partition_size "${filename}" ${part_num}) || continue
     part_offset=$(partoffset "${filename}" ${part_num}) ||
         die "Failed to get partition offset for partition ${part_num}"
@@ -285,7 +290,8 @@ mount_gpt_partitions() {
     # The "safe" flags tells if the rootfs should be mounted as read-only,
     # otherwise we use ${ro_rw}.
     part_ro_rw="${ro_rw}"
-    if [[ ${part_num} -eq 3 && ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
+    if [[ ${part_num} -eq ${PARTITION_NUM_ROOT_A} && \
+          ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
       part_ro_rw="ro"
     fi
     mount_options="offset=$(( part_offset * 512 ))"
@@ -346,7 +352,8 @@ remount_image() {
   # command with the proper flags.
   local var_name mountpoint
   local part_num part_ro_rw part_size
-  for part_num in 3 1 8 12; do
+  for part_num in ${PARTITION_NUM_ROOT_A} ${PARTITION_NUM_STATE} \
+                  ${PARTITION_NUM_OEM} ${PARTITION_NUM_EFI_SYSTEM}; do
     var_name="PART_${part_num}_MOUNTPOINT"
     mountpoint="${!var_name:-}"
     [[ -n "${mountpoint}" ]] || continue
@@ -364,7 +371,8 @@ remount_image() {
     # The "safe" flags tells if the rootfs should be mounted as read-only,
     # otherwise we use ${ro_rw}.
     part_ro_rw="${ro_rw}"
-    if [[ ${part_num} -eq 3 && ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
+    if [[ ${part_num} -eq ${PARTITION_NUM_ROOT_A} && \
+          ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
       part_ro_rw="ro"
     fi
 
