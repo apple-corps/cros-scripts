@@ -297,7 +297,8 @@ make_image_bootable() {
   fi
 
   # Builds the kernel partition image.
-  local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} 3)
+  local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} \
+      ${PARTITION_NUM_ROOT_A})
   build_img "vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" "${keyblock}" \
             "recovery_kernel_data_key.vbprivk" "recovery_key.vbpubk"
   build_img "hd_vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" \
@@ -310,11 +311,12 @@ make_image_bootable() {
   info "Kernel image A   size is ${kernel_image_size_A} bytes."
   local kernel_image_size_B=$(stat -c '%s' ${FLAGS_output_dir}/hd_vmlinuz.image)
   info "Kernel image B   size is ${kernel_image_size_B} bytes."
-  check_kernel_size ${kernel_image_size_A} 2 A
-  check_kernel_size ${kernel_image_size_B} 4 B
+  check_kernel_size ${kernel_image_size_A} ${PARTITION_NUM_KERN_A} A
+  check_kernel_size ${kernel_image_size_B} ${PARTITION_NUM_KERN_B} B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
-  local rootfs_partition_size=$(get_partition_size ${FLAGS_image_type} 3)
+  local rootfs_partition_size=$(get_partition_size ${FLAGS_image_type} \
+      ${PARTITION_NUM_ROOT_A})
   local rootfs_hash_pad=$(( rootfs_partition_size - rootfs_fs_size ))
   info "Appending rootfs.hash (${rootfs_hash_size} bytes) to the root fs"
   if [[ ${rootfs_hash_size} -gt ${rootfs_hash_pad} ]]
@@ -326,7 +328,7 @@ make_image_bootable() {
   # Unfortunately, mount_gpt_image uses mount and not losetup to create the
   # loop devices.  This means that they are not the correct size.  We have to
   # write directly to the image to append the hash tree data.
-  local hash_offset="$(partoffset ${image} 3)"
+  local hash_offset="$(partoffset ${image} ${PARTITION_NUM_ROOT_A})"
   hash_offset=$((hash_offset + (${rootfs_fs_size} / 512)))
   sudo dd bs=512 \
           seek=${hash_offset} \
@@ -349,10 +351,10 @@ make_image_bootable() {
 
   # Install the kernel to both slots A and B so there will always be a regular
   # kernel in slot B on recovery and non-recovery images.
-  local koffset="$(partoffset ${image} 2)"
+  local koffset="$(partoffset ${image} ${PARTITION_NUM_KERN_A})"
   sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
-  koffset="$(partoffset ${image} 4)"
+  koffset="$(partoffset ${image} ${PARTITION_NUM_KERN_B})"
   sudo dd if="${FLAGS_output_dir}/hd_vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
 
@@ -361,9 +363,9 @@ make_image_bootable() {
 
   # We should update the esp in place in the image.
   local bootloader_to="${image}"
-  local esp_offset="$(partoffset ${image} 12)"
+  local esp_offset="$(partoffset ${image} ${PARTITION_NUM_EFI_SYSTEM})"
   esp_offset=$((esp_offset * 512))  # sectors to bytes
-  local esp_size="$(partsize ${image} 12)"
+  local esp_size="$(partsize ${image} ${PARTITION_NUM_EFI_SYSTEM})"
   esp_size=$((esp_size * 512))  # sectors to bytes
   local bootloader_to_flags="--to_offset=${esp_offset} --to_size=${esp_size}"
 
@@ -399,7 +401,7 @@ make_image_bootable() {
 
 verify_image_rootfs() {
   local image=$1
-  local rootfs_offset="$(partoffset ${image} 3)"
+  local rootfs_offset="$(partoffset ${image} ${PARTITION_NUM_ROOT_A})"
 
   local rootfs_tmp_file=$(mktemp)
   trap "rm ${rootfs_tmp_file}" EXIT
