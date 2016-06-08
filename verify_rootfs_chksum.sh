@@ -8,6 +8,8 @@
 
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
+# for partition constants
+. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 # Script must be run inside the chroot.
 restart_in_chroot_if_needed "$@"
@@ -39,17 +41,17 @@ switch_to_strict_mode
 
 get_partitions() {
   if [ -b ${FLAGS_image} ] ; then
-    KERNEL_IMG=$(make_partition_dev "${FLAGS_image}" 2)
-    ROOTFS_IMG=$(make_partition_dev "${FLAGS_image}" 3)
+    KERNEL_IMG=$(make_partition_dev "${FLAGS_image}" ${PARTITION_NUM_KERN_A})
+    ROOTFS_IMG=$(make_partition_dev "${FLAGS_image}" ${PARTITION_NUM_ROOT_A})
     return
   fi
 
   KERNEL_IMG=$(mktemp)
   ROOTFS_IMG=$(mktemp)
-  local kernel_offset=$(partoffset "${FLAGS_image}" 2)
-  local kernel_count=$(partsize "${FLAGS_image}" 2)
-  local rootfs_offset=$(partoffset "${FLAGS_image}" 3)
-  local rootfs_count=$(partsize "${FLAGS_image}" 3)
+  local kernel_offset=$(partoffset "${FLAGS_image}" ${PARTITION_NUM_KERN_A})
+  local kernel_count=$(partsize "${FLAGS_image}" ${PARTITION_NUM_KERN_A})
+  local rootfs_offset=$(partoffset "${FLAGS_image}" ${PARTITION_NUM_ROOT_A})
+  local rootfs_count=$(partsize "${FLAGS_image}" ${PARTITION_NUM_ROOT_A})
 
   # TODO(tgao): use loop device to save 1GB in temp space
   dd if="${FLAGS_image}" of=${KERNEL_IMG} bs=512 skip=${kernel_offset} \
