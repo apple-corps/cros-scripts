@@ -9,6 +9,8 @@
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 . "${SCRIPT_ROOT}/remote_access.sh" || exit 1
+# This file is sourced for partition constants.
+. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 # Script must be run inside the chroot.
 restart_in_chroot_if_needed "$@"
@@ -58,10 +60,10 @@ learn_partition_and_ro() {
     info "System is not using verity: updating firmware and modules"
   fi
   [ -n "${FLAGS_partition}" ] && return
-  if [ "${REMOTE_OUT}" == "${FLAGS_device}3" ]; then
-    FLAGS_partition="${FLAGS_device}2"
+  if [ "${REMOTE_OUT}" == "${FLAGS_device}${PARTITION_NUM_ROOT_A}" ]; then
+    FLAGS_partition="${FLAGS_device}${PARTITION_NUM_KERN_A}"
   else
-    FLAGS_partition="${FLAGS_device}4"
+    FLAGS_partition="${FLAGS_device}${PARTITION_NUM_KERN_B}"
   fi
   if [ -z "${FLAGS_partition}" ]; then
     die "Partition required"
@@ -135,20 +137,20 @@ update_syslinux_kernel() {
   # ARM does not have the syslinux directory, so skip it when the
   # partition or the syslinux vmlinuz target is missing.
   echo "updating syslinux kernel"
-  remote_sh grep $(echo ${FLAGS_device}12 | cut -d/ -f3) /proc/partitions
+  remote_sh grep $(echo ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} | cut -d/ -f3) /proc/partitions
   if [ $(echo "$REMOTE_OUT" | wc -l) -eq 1 ]; then
-    remote_sh mkdir -p /tmp/12
-    remote_sh mount ${FLAGS_device}12 /tmp/12
+    remote_sh mkdir -p /tmp/${PARTITION_NUM_EFI_SYSTEM}
+    remote_sh mount ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} /tmp/${PARTITION_NUM_EFI_SYSTEM}
 
-    if [ "$FLAGS_partition" = "${FLAGS_device}2" ]; then
-      target="/tmp/12/syslinux/vmlinuz.A"
+    if [ "$FLAGS_partition" = "${FLAGS_device}${PARTITION_NUM_KERN_A}" ]; then
+      target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.A"
     else
-      target="/tmp/12/syslinux/vmlinuz.B"
+      target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.B"
     fi
     remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
 
-    remote_sh umount /tmp/12
-    remote_sh rmdir /tmp/12
+    remote_sh umount /tmp/${PARTITION_NUM_EFI_SYSTEM}
+    remote_sh rmdir /tmp/${PARTITION_NUM_EFI_SYSTEM}
   fi
 }
 
