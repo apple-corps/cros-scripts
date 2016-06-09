@@ -9,6 +9,7 @@
 
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
+. ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
 
 # Need to be inside the chroot to load chromeos-common.sh
 assert_inside_chroot
@@ -72,8 +73,8 @@ if ! type -p update_x86_bootloaders; then
       dm_table=$(echo "$kernel_cmdline" | sed -s 's/.*dm="\([^"]*\)".*/\1/')
     fi
 
-    root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" 3)"
-    root_b_uuid="PARTUUID=$(part_index_to_uuid "$to" 5)"
+    root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" ${PARTITION_NUM_ROOT_A})"
+    root_b_uuid="PARTUUID=$(part_index_to_uuid "$to" ${PARTITION_NUM_ROOT_B})"
 
     # Rewrite grub table
     grub_dm_table_a=${dm_table//${old_root}/${root_a_uuid}}
