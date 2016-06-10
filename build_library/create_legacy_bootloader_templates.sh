@@ -9,6 +9,7 @@
 
 SCRIPT_ROOT=$(readlink -f $(dirname "$0")/..)
 . "${SCRIPT_ROOT}/common.sh" || exit 1
+. ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
 
 # We're invoked only by build_image, which runs in the chroot
 assert_inside_chroot
@@ -213,8 +214,8 @@ EOF
   cat <<EOF | sudo dd of="${FLAGS_to}/efi/boot/grub.cfg" 2>/dev/null
 defaultA=0
 defaultB=1
-gptpriority \$grubdisk 2 prioA
-gptpriority \$grubdisk 4 prioB
+gptpriority \$grubdisk ${PARTITION_NUM_KERN_A} prioA
+gptpriority \$grubdisk ${PARTITION_NUM_KERN_B} prioB
 
 if [ \$prioA -lt \$prioB ]; then
   set default=\$defaultB
@@ -248,7 +249,7 @@ menuentry "verified image B" {
 
 # FIXME: usb doesn't support verified boot for now
 menuentry "Alternate USB Boot" {
-  linux (hd0,3)/boot/vmlinuz ${common_args} root=HDROOTUSB i915.modeset=1 cros_efi
+  linux (hd0,${PARTITION_NUM_ROOT_A})/boot/vmlinuz ${common_args} root=HDROOTUSB i915.modeset=1 cros_efi
 }
 EOF
   if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then
