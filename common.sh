@@ -444,12 +444,14 @@ COMMON_INSTALL_MASK="
   /usr/local/autotest-chrome
   /usr/man
   /usr/share/aclocal
+  /usr/share/cups/drv
   /usr/share/doc
   /usr/share/gettext
   /usr/share/gtk-2.0
   /usr/share/gtk-doc
   /usr/share/info
   /usr/share/man
+  /usr/share/ppd
   /usr/share/openrc
   /usr/share/pkgconfig
   /usr/share/profiling
