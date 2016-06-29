@@ -437,26 +437,6 @@ mk_fs() {
   fs_mount "${part_dev}" "${mount_dir}" "${fs_format}" "rw"
   sudo_multi "${cmds[@]}"
   fs_umount "${part_dev}" "${mount_dir}" "${fs_format}" "${fs_options}"
-
-  # We are getting a pseudo random error with util-linux 2.24,
-  # https://code.google.com/p/chromium/issues/detail?id=337490
-  # The umount system call works, but a clean up after unmount
-  # step fails if we use umount -d, so let's try cleaning the loopback device
-  # in a separate step -- merlin
-  for i in {1..5}; do
-    sudo losetup -d "${part_dev}" && break || true
-    warn "losetup -d ${part_dev} failed (try $i)"
-    set -x
-    sudo losetup -a
-    grep -H "${part_dev}" /proc/mounts || true
-    set +x
-    local proc
-    for proc in $(sudo fuser "${part_dev}" 2>/dev/null); do
-      warn "Tree for ${proc}:"
-      sudo pstree -asulp ${proc} || true
-    done
-    sleep 1
-  done
   fs_remove_mountpoint "${mount_dir}"
 }
 

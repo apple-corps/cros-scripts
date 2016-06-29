@@ -726,30 +726,8 @@ safe_umount_tree() {
   fi
 
   # First try to unmount in one shot to speed things up.
-  # Filter out the "filesystem was unmounted" messages to suppress failures to
-  # remove a loop device when the passed mount points are not loop devices. See
-  # crbug.com/458267 for details. Last "| cat" is to keep both exit codes.
-  LC_ALL=C safe_umount -d "${mounts[@]}" 2>&1 |
-    grep -v -F \
-      'filesystem was unmounted, but mount(8) failed: Invalid argument' |
-    cat
-  local umount_code="${PIPESTATUS[0]}"
-  local grep_code="${PIPESTATUS[1]}"
-  if [[ "${umount_code}" == "0" ]]; then
-    return 0
-  fi
-
-  # Check whether our mounts were successfully unmounted even if the umount
-  # command failed.
-  mounts=( $(sub_mounts "${mount_point}") )
-  if [[ ${#mounts[@]} -eq 0 ]]; then
-    # We only warn about the umount error code if there is there was an error
-    # printed in the output.
-    if [[ "${grep_code}" == "0" ]]; then
-      warn "umount failed (exit code ${umount_code}), but the tree was" \
-        "unmounted anyway. See umount errors above."
-    fi
-    return 0
+  if LC_ALL=C safe_umount -d "${mounts[@]}"; then
+      return 0
   fi
 
   # Well that didn't work, so lazy unmount remaining ones.
