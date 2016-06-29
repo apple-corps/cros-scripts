@@ -1,0 +1,85 @@
+#!/bin/bash
+
+# Copyright 2016 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
+. "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
+
+DEFINE_string board "${DEFAULT_BOARD}" \
+  "The board to build an image for."
+DEFINE_string package "" \
+  "Package whose bare minimum deps the final container should have."
+DEFINE_string extra "" \
+  "Comma separated extra packages to be included in the final image."
+
+FLAGS "$@" || exit 1
+eval set -- "${FLAGS_ARGV}"
+switch_to_strict_mode
+
+# Produce the container image.
+build_container_image() {
+  local pkg_name="$1"
+  local ROOTDIR="out"
+
+  info "Cleaning previously generated files ... "
+  sudo rm -rf "${ROOTDIR}"
+
+  install_with_root_deps "${pkg_name}" "${ROOTDIR}"
+
+  local pkg
+  for pkg in $(echo $FLAGS_extra | sed "s/,/ /g"); do
+    install_with_root_deps "${pkg}" "${ROOTDIR}"
+  done
+
+  info "Installing libc.so ... "
+  install_libc "${ROOTDIR}"
+
+  info "Installing libcontainer_overrides ... "
+  install_with_no_deps "libcontainer_overrides" "${ROOTDIR}"
+
+  info "Creating top level dirs and socket dirs ... "
+  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,run/broker_service,sys}
+
+  info "Generating squashfs file ... "
+  mksquashfs "${ROOTDIR}" "${pkg_name}.sqsh"
+
+  info "Cleaning up ... "
+  sudo rm -rf "${ROOTDIR}"
+}
+
+# Normal emerge.
+install_with_no_deps() {
+  local package_to_install="$1"
+  local root_dir="$2"
+  info "Installing '${package_to_install}' with no deps ... "
+  emerge-${BOARD} "${package_to_install}" --nodeps --usepkgonly \
+    --root="${root_dir}" --quiet
+}
+
+# Emerge with root deps.
+install_with_root_deps() {
+  local package_to_install="$1"
+  local root_dir="$2"
+  info "Installing '${package_to_install}' with root deps ... "
+  emerge-${BOARD} "${package_to_install}" --root-deps=rdeps --usepkgonly \
+    --root="${root_dir}" --quiet
+}
+
+main() {
+  . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+  . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
+
+  if [[ -n "${FLAGS_package}" ]]; then
+    if [[ -f "${FLAGS_package}.sqsh" ]]; then
+      die_notrace "File already exists : ${FLAGS_package}.sqsh"
+    fi
+    info "Building container for ${FLAGS_package} ..."
+    build_container_image "${FLAGS_package}"
+  else
+    die_notrace "--package is needed."
+  fi
+}
+
+main "$@"

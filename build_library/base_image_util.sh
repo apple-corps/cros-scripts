@@ -108,6 +108,40 @@ create_dev_install_lists() {
   rm -r "${pkgs_out}"
 }
 
+install_libc() {
+  root_fs_dir="$1"
+  # We need to install libc manually from the cross toolchain.
+  # TODO: Improve this? It would be ideal to use emerge to do this.
+  libc_version="$(get_variable "${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}" \
+    "LIBC_VERSION")"
+  PKGDIR="/var/lib/portage/pkgs"
+  local libc_atom="cross-${CHOST}/glibc-${libc_version}"
+  LIBC_PATH="${PKGDIR}/${libc_atom}.tbz2"
+
+  if [[ ! -e ${LIBC_PATH} ]]; then
+    sudo emerge --nodeps -gf "=${libc_atom}"
+  fi
+
+  # Strip out files we don't need in the final image at runtime.
+  local libc_excludes=(
+    # Compile-time headers.
+    'usr/include' 'sys-include'
+    # Link-time objects.
+    '*.[ao]'
+    # Debug commands not used by normal runtime code.
+    'usr/bin/'{getent,ldd}
+    # LD_PRELOAD objects for debugging.
+    'lib*/lib'{memusage,pcprofile,SegFault}.so 'usr/lib*/audit'
+    # We only use files & dns with nsswitch, so throw away the others.
+    'lib*/libnss_'{compat,db,hesiod,nis,nisplus}'*.so*'
+    # This is only for very old packages which we don't have.
+    'lib*/libBrokenLocale*.so*'
+  )
+  pbzip2 -dc --ignore-trailing-garbage=1 "${LIBC_PATH}" | \
+    sudo tar xpf - -C "${root_fs_dir}" ./usr/${CHOST} \
+      --strip-components=3 "${libc_excludes[@]/#/--exclude=}"
+}
+
 create_base_image() {
   local image_name=$1
   local rootfs_verification_enabled=$2
@@ -147,36 +181,8 @@ create_base_image() {
   setup_symlinks_on_root "." \
     "${stateful_fs_dir}/var_overlay" "${stateful_fs_dir}"
 
-  # We need to install libc manually from the cross toolchain.
-  # TODO: Improve this? It would be ideal to use emerge to do this.
-  libc_version="$(get_variable "${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}" \
-    "LIBC_VERSION")"
-  PKGDIR="/var/lib/portage/pkgs"
-  local libc_atom="cross-${CHOST}/glibc-${libc_version}"
-  LIBC_PATH="${PKGDIR}/${libc_atom}.tbz2"
-
-  if [[ ! -e ${LIBC_PATH} ]]; then
-    sudo emerge --nodeps -gf "=${libc_atom}"
-  fi
-
-  # Strip out files we don't need in the final image at runtime.
-  local libc_excludes=(
-    # Compile-time headers.
-    'usr/include' 'sys-include'
-    # Link-time objects.
-    '*.[ao]'
-    # Debug commands not used by normal runtime code.
-    'usr/bin/'{getent,ldd}
-    # LD_PRELOAD objects for debugging.
-    'lib*/lib'{memusage,pcprofile,SegFault}.so 'usr/lib*/audit'
-    # We only use files & dns with nsswitch, so throw away the others.
-    'lib*/libnss_'{compat,db,hesiod,nis,nisplus}'*.so*'
-    # This is only for very old packages which we don't have.
-    'lib*/libBrokenLocale*.so*'
-  )
-  pbzip2 -dc --ignore-trailing-garbage=1 "${LIBC_PATH}" | \
-    sudo tar xpf - -C "${root_fs_dir}" ./usr/${CHOST} \
-      --strip-components=3 "${libc_excludes[@]/#/--exclude=}"
+  # install libc
+  install_libc "${root_fs_dir}"
 
   if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
     # Install our custom factory install kernel with the appropriate use flags
