@@ -20,6 +20,7 @@ DEFINE_string device "" "Override boot device reported by target"
 DEFINE_string partition "" "Override kernel partition reported by target"
 DEFINE_string rootoff "" "Override root offset"
 DEFINE_string arch "" "Override architecture reported by target"
+DEFINE_boolean ignore_verity $FLAGS_FALSE "Update kernel even if system is using verity"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
 DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
@@ -54,7 +55,14 @@ learn_partition_and_ro() {
   if [ "${REMOTE_OUT%%-*}" == "/dev/dm" ]; then
     remote_sh rootdev -s
     REMOTE_VERITY=${FLAGS_TRUE}
-    warn "System is using verity: not updating firmware/modules"
+    if [[ ${FLAGS_ignore_verity} -eq ${FLAGS_TRUE} ]]; then
+        warn "System is using verity: not updating firmware/modules"
+    else
+        warn "System is using verity: First remove rootfs verification using"
+        warn "/usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification"
+        warn "on the DUT, or add --ignore_verity parameter to this command."
+        die
+    fi
   else
     REMOTE_VERITY=${FLAGS_FALSE}
     info "System is not using verity: updating firmware and modules"
