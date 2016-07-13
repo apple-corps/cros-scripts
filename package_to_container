@@ -37,7 +37,7 @@ build_container_image() {
   install_libc "${ROOTDIR}"
 
   info "Installing libcontainer_overrides ... "
-  install_with_no_deps "libcontainer_overrides" "${ROOTDIR}"
+  install_with_no_deps "chromeos-base/libcontainer_overrides" "${ROOTDIR}"
 
   info "Creating top level dirs and socket dirs ... "
   sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,run/broker_service,sys}
