@@ -449,6 +449,12 @@ for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
   sudo ln -s -fT "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"/chromite
 done
 
+# The stage3 contains an old version of ncurses, which causes a slot conflict
+# later when we try to setup the toolchains.  Update it here to the latest
+# version, which gracefully handles the slot issues.
+info "Updating ncurses"
+early_enter_chroot emerge -uNvq sys-libs/ncurses
+
 info "Updating host toolchain"
 if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
   early_enter_chroot $EMERGE_CMD -uNv crossdev
