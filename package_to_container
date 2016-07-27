@@ -11,6 +11,8 @@ DEFINE_string board "${DEFAULT_BOARD}" \
   "The board to build an image for."
 DEFINE_string package "" \
   "Package whose bare minimum deps the final container should have."
+DEFINE_string name "" \
+  "Name of the container."
 DEFINE_string extra "" \
   "Comma separated extra packages to be included in the final image."
 
@@ -21,6 +23,7 @@ switch_to_strict_mode
 # Produce the container image.
 build_container_image() {
   local pkg_name="$1"
+  local container_name="$2"
   local ROOTDIR="out"
 
   info "Cleaning previously generated files ... "
@@ -43,7 +46,7 @@ build_container_image() {
   sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,run/broker_service,sys}
 
   info "Generating squashfs file ... "
-  mksquashfs "${ROOTDIR}" "${pkg_name}.sqsh"
+  mksquashfs "${ROOTDIR}" "${container_name}.sqsh"
 
   info "Cleaning up ... "
   sudo rm -rf "${ROOTDIR}"
@@ -72,11 +75,16 @@ main() {
   . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
 
   if [[ -n "${FLAGS_package}" ]]; then
-    if [[ -f "${FLAGS_package}.sqsh" ]]; then
-      die_notrace "File already exists : ${FLAGS_package}.sqsh"
+    if [[ -n "${FLAGS_name}" ]]; then
+      local container_name="${FLAGS_name}"
+    else
+      local container_name="${FLAGS_package}"
     fi
-    info "Building container for ${FLAGS_package} ..."
-    build_container_image "${FLAGS_package}"
+    if [[ -f "${container_name}.sqsh" ]]; then
+      die_notrace "File already exists : ${container_name}.sqsh"
+    fi
+    info "Building container '${container_name}' for ${FLAGS_package} ..."
+    build_container_image "${FLAGS_package}" "${container_name}"
   else
     die_notrace "--package is needed."
   fi
