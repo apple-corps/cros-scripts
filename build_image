@@ -136,7 +136,7 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
 
   BASE_PACKAGE="virtual/target-os-factory-shim"
 
-  export USE="${USE} fbconsole vtconsole factory_shim_ramfs tpm i2cdev vfat"
+  export USE="${USE} fbconsole vtconsole factory_shim_ramfs i2cdev vfat"
 fi
 
 # TODO: </prebuild hook>
