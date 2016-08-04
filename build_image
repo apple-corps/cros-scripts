@@ -31,6 +31,9 @@ DEFINE_string enable_serial "" \
   "Enable serial port for printks. Example values: ttyS0"
 DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
+DEFINE_string builder_path "" \
+  "The build_name to be installed on DUT during hwtest."
+
 
 FLAGS_HELP="USAGE: build_image [flags] [list of images to build].
 This script is used to build a Chromium OS image. Chromium OS comes in many

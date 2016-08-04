@@ -237,9 +237,15 @@ create_base_image() {
     arc_version="--arc_version=${CHROMEOS_ARC_VERSION}"
   fi
 
+  local builder_path=
+  if [[ -n "${FLAGS_builder_path}" ]]; then
+    builder_path="--builder_path=${FLAGS_builder_path}"
+  fi
+
   "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
+    ${builder_path} \
     --version_string="${CHROMEOS_VERSION_STRING}" \
     --auserver="${CHROMEOS_VERSION_AUSERVER}" \
     --devserver="${CHROMEOS_VERSION_DEVSERVER}" \
