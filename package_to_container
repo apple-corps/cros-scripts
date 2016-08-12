@@ -43,7 +43,12 @@ build_container_image() {
   install_with_no_deps "chromeos-base/libcontainer_overrides" "${ROOTDIR}"
 
   info "Creating top level dirs and socket dirs ... "
-  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,run/broker_service,sys,home/user}
+  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,config}
+  sudo mkdir -p "${ROOTDIR}"/run/broker_service
+
+  info "Adding runtime.json and config.json files ... "
+  sudo cp generic_container_files/config.json "${ROOTDIR}/config"
+  sudo cp generic_container_files/runtime.json "${ROOTDIR}/config"
 
   info "Generating squashfs file ... "
   mksquashfs "${ROOTDIR}" "${container_name}.sqsh"
