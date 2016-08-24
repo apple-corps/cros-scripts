@@ -64,7 +64,7 @@ fi
 
 # Build initramfs network boot image
 echo "Building kernel"
-export USE="fbconsole vtconsole netboot_ramfs tpm i2cdev vfat"
+export USE="fbconsole vtconsole factory_netboot_ramfs tpm i2cdev vfat"
 export EMERGE_BOARD_CMD="emerge-${FLAGS_board}"
 emerge_custom_kernel ${temp_build_path}
 
