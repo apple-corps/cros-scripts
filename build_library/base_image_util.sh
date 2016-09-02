@@ -62,7 +62,7 @@ create_dev_install_lists() {
   local pkgs_out=$(mktemp -d)
 
   for pkg in "${pkgs[@]}" ; do
-    emerge-${BOARD} --pretend --quiet --emptytree \
+    emerge-${BOARD} --color n --pretend --quiet --emptytree \
       --root-deps=rdeps ${pkg} | \
       egrep -o ' [[:alnum:]-]+/[^[:space:]/]+\b' | \
       tr -d ' ' | \
