@@ -98,7 +98,9 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   # a successful build.
   EMERGE_FLAGS+=" --useoldpkg-atoms=dev-lang/go"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/binutils"
+  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/clang"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/gcc"
+  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/llvm"
   EMERGE_FLAGS+=" --useoldpkg-atoms=sys-libs/glibc"
 fi
 
