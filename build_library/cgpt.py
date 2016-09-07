@@ -329,6 +329,7 @@ def LoadPartitionConfig(filename):
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
       'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
       'page_size', 'size_min', 'fs_size_min'))
+  valid_features = set(('expand',))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -434,6 +435,12 @@ def LoadPartitionConfig(filename):
           part['erase_block_size'] = ParseHumanNumber(part['erase_block_size'])
         if 'page_size' in part:
           part['page_size'] = ParseHumanNumber(part['page_size'])
+
+        part.setdefault('features', [])
+        unknown_features = set(part['features']) - valid_features
+        if unknown_features:
+          raise InvalidLayout('%s: Unknown features: %s' %
+                              (part['label'], unknown_features))
   except KeyError as e:
     raise InvalidLayout('Layout is missing required entries: %s' % e)
 
@@ -520,7 +527,7 @@ def GetTableTotals(config, partitions):
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
-    if 'features' in partition and 'expand' in partition['features']:
+    if 'expand' in partition['features']:
       ret['expand_count'] += 1
       ret['expand_min'] += partition['blocks']
     else:
@@ -760,7 +767,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
                         config['metadata']['block_size'])
 
     if (partition.get('type') != 'blank' and partition['num'] == 1 and
-        'features' in partition and 'expand' in partition['features']):
+        'expand' in partition['features']):
       lines += [
           'local stateful_size=%s' % partition['blocks'],
           'if [ -b $1 ]; then',
@@ -1247,7 +1254,7 @@ def DoDebugOutput(options, image_type, layout_filename):
         partition.get('type', ''),
         size,
         fs_size,
-        partition.get('features', ''),
+        partition.get('features', []),
     ))
 
 
@@ -1367,7 +1374,7 @@ def CheckSimpleNandProperties(partitions):
       raise UnalignedPartition(
           'partition size %s does not divide erase block size %s' %
           (partition['bytes'], erase_block_size))
-    if 'features' in partition and 'expand' in partition['features']:
+    if 'expand' in partition['features']:
       raise ExpandNandImpossible(
           'expand partitions may not be used with raw NAND')
 
