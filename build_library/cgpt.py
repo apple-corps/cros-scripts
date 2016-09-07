@@ -812,7 +812,10 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
 
   efi_partitions = GetPartitionsByType(partitions, 'efi')
   if efi_partitions:
-    lines += ['${GPT} boot -p -b $2 -i %d ${target}' % efi_partitions[0]['num']]
+    lines += [
+        '${GPT} boot -p -b $2 -i %d ${target}' % efi_partitions[0]['num'],
+        '${GPT} add -i %s -B 1 ${target}' % efi_partitions[0]['num'],
+    ]
   if metadata.get('hybrid_mbr'):
     lines += ['install_hybrid_mbr ${target}']
   lines += ['${GPT} show ${target}']
