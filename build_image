@@ -81,6 +81,8 @@ DEFINE_string toolset "cros" \
   "Toolset that this script is being used with."
 DEFINE_string version "" \
   "Overrides version number in name to this version."
+DEFINE_string output_suffix "" \
+  "Add custom suffix to output directory."
 DEFINE_boolean eclean ${FLAGS_TRUE} \
   "Do NOT call eclean before building the image (default is to call eclean)."
 
