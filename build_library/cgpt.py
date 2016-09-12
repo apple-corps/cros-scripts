@@ -743,10 +743,10 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     ]
   else:
     lines += [
-        'create_image $1 %d %s' % (
+        'local target="$1"',
+        'create_image "${target}" %d %s' % (
             partition_totals['min_disk_size'],
             config['metadata']['block_size']),
-        'target=$1',
     ]
 
   # ${target} is referenced unquoted because it may expand into multiple
@@ -754,8 +754,8 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   lines += [
       'local curr=%d' % _GetStartSector(config, partitions),
       '# Create the GPT headers and tables. Pad the primary ones.',
-      '${GPT} create -p %d ${target}' % (_GetPrimaryEntryArrayLBA(config) -
-                                         (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
+      '${GPT} create -p %d "${target}"' % (_GetPrimaryEntryArrayLBA(config) -
+                                           (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
   metadata = GetMetadataPartition(partitions)
@@ -770,8 +770,8 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
         'expand' in partition['features']):
       lines += [
           'local stateful_size=%s' % partition['blocks'],
-          'if [ -b $1 ]; then',
-          '  stateful_size=$(( $(numsectors $1) - %d))' % (
+          'if [ -b "${target}" ]; then',
+          '  stateful_size=$(( $(numsectors "${target}") - %d))' % (
               partition_totals['block_count']),
           'fi',
           ': $(( stateful_size -= (stateful_size %% %d) ))' % (
@@ -785,7 +785,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       continue
     if partition['type'] != 'blank':
       lines += [
-          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" ${target} && ' % (
+          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" "${target}"' % (
               partition['num'], str(partition['var']), partition['type'],
               partition['label']),
       ]
@@ -804,7 +804,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   # default bootable partition.
   for partition in GetPartitionsByType(partitions, 'kernel'):
     lines += [
-        '${GPT} add -i %s -S 0 -T %i -P %i ${target}' %
+        '${GPT} add -i %s -S 0 -T %i -P %i "${target}"' %
         (partition['num'], tries, prio)
     ]
     prio = 0
@@ -820,12 +820,12 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   efi_partitions = GetPartitionsByType(partitions, 'efi')
   if efi_partitions:
     lines += [
-        '${GPT} boot -p -b $2 -i %d ${target}' % efi_partitions[0]['num'],
-        '${GPT} add -i %s -B 1 ${target}' % efi_partitions[0]['num'],
+        '${GPT} boot -p -b $2 -i %d "${target}"' % efi_partitions[0]['num'],
+        '${GPT} add -i %s -B 1 "${target}"' % efi_partitions[0]['num'],
     ]
   if metadata.get('hybrid_mbr'):
-    lines += ['install_hybrid_mbr ${target}']
-  lines += ['${GPT} show ${target}']
+    lines += ['install_hybrid_mbr "${target}"']
+  lines += ['${GPT} show "${target}"']
 
   if _HasExternalGpt(partitions):
     lines += ['flashrom -w -iRW_GPT:${gptfile} --fast-verify']

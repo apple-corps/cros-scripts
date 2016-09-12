@@ -39,6 +39,7 @@ get_disk_layout_path() {
     return 0
   fi
   DISK_LAYOUT_PATH="${BUILD_LIBRARY_DIR}/legacy_disk_layout.json"
+  local overlay
   for overlay in ${BOARD_OVERLAY}; do
     local disk_layout="${overlay}/scripts/disk_layout.json"
     if [[ -e ${disk_layout} ]]; then
@@ -457,6 +458,7 @@ build_gpt_image() {
   emit_gpt_scripts "${outdev}" "$(dirname "${outdev}")"
 
   # Create the filesystem on each partition defined in the layout file.
+  local p
   for p in $(get_partitions "${disk_layout}"); do
     mk_fs "${outdev}" "${disk_layout}" "${p}"
   done
