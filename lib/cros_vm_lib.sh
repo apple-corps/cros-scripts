@@ -40,25 +40,26 @@ set_kvm() {
   # The value of the flag is only valid after the command line has been parsed.
   KVM_BINARY="${FLAGS_qemu_binary}"
   if [[ ! -x "${KVM_BINARY}" ]]; then
-    if ! KVM_BINARY=$(which kvm 2> /dev/null); then
-      if ! KVM_BINARY=$(which qemu-kvm 2> /dev/null); then
-        if ! KVM_BINARY=$(which qemu-system-x86_64 2> /dev/null); then
-          die "no kvm binary found"
-        fi
-      fi
+    if ! KVM_BINARY=$(which qemu-system-x86_64 2> /dev/null); then
+      die "no QEMU binary found"
     fi
   fi
-}
+  info "QEMU binary: ${KVM_BINARY}"
 
-# Return the version number of the QEMU/KVM binary used.
-get_kvm_version() {
-  set_kvm
+  # Make sure it's a recent enough version.
   # The version string typically looks like this:
   #"QEMU emulator version 2.5.0, Copyright (c) 2003-2008 Fabrice Bellard"
-  # but in Debian/ubuntu distributions, some QEMU or KVM binaries has a
+  # but in Debian/ubuntu distributions, some QEMU binaries have a
   # space and a package version rather the comma just after the version number:
   #"QEMU emulator version 2.0.0 (Debian 2.0.0+dfsg-2ubuntu1.22), Copyright[...]"
-  ${KVM_BINARY} --version | sed -E 's/^.*version ([0-9.]*).*$/\1/'
+  local ver version
+  version=$("${KVM_BINARY}" --version)
+  ver="${version#QEMU emulator version }"
+  info "QEMU version: ${version}"
+  case ${ver} in
+  [23].[0-9]*) ;;
+  *) die "Old/unknown/unsupported version of QEMU: ${ver}" ;;
+  esac
 }
 
 get_pid() {
@@ -91,14 +92,6 @@ blocking_kill() {
     timeout=$((timeout*2))
   done
   ! ps -p ${1} > /dev/null
-}
-
-kvm_version_greater_equal() {
-  local test_version="${1}"
-  local kvm_version="$(get_kvm_version)"
-
-  [ $(echo -e "${test_version}\n${kvm_version}" | sort -r -V | head -n 1) = \
-    $kvm_version ]
 }
 
 # Send a command to the KVM monitor. The caller is responsible for
@@ -155,7 +148,6 @@ get_decompressor() {
 # $2: Name of the board to virtualize.
 start_kvm() {
   set_kvm
-  echo "QEMU/KVM binary: ${KVM_BINARY} version: $(get_kvm_version)"
 
   # Determine appropriate qemu CPU for board.
   # TODO(spang): Let the overlay provide appropriate options.
@@ -189,11 +181,7 @@ start_kvm() {
     local nographics=""
     local usesnapshot=""
     if [ ${FLAGS_no_graphics} -eq ${FLAGS_TRUE} ]; then
-      if kvm_version_greater_equal "1.4.0"; then
-        nographics="-display none"
-      else
-        nographics="-nographic"
-      fi
+      nographics="-display none"
     fi
     if [ -n "${FLAGS_vnc}" ]; then
       nographics="-vnc ${FLAGS_vnc}"
@@ -226,11 +214,6 @@ start_kvm() {
     if [ -f "$(dirname "${vm_image}")/.use_e1000" ]; then
       info "Detected older image, using e1000 instead of virtio."
       net_option="-net nic,model=e1000"
-    fi
-
-    local cache_type="writeback"
-    if kvm_version_greater_equal "0.14"; then
-      cache_type="unsafe"
     fi
 
     local incoming=""
@@ -297,9 +280,9 @@ start_kvm() {
     sudo chmod a+r "${KVM_SERIAL_FILE}"
 
     local drive
-    drive="-drive file=${vm_image},index=0,media=disk,cache=${cache_type}"
+    drive="-drive file=${vm_image},index=0,media=disk,cache=unsafe"
     if [ ${FLAGS_scsi} -eq ${FLAGS_TRUE} ]; then
-      drive=$(echo "-drive if=none,id=hd,file=${vm_image},cache=${cache_type}"\
+      drive=$(echo "-drive if=none,id=hd,file=${vm_image},cache=unsafe"\
           "-device virtio-scsi-pci,id=scsi "\
           "-device scsi-hd,drive=hd")
     fi
@@ -307,23 +290,27 @@ start_kvm() {
     # Note: the goofiness around the expansion of |incoming_option| is
     # to ensure that it is quoted if set, but _not_ quoted if
     # unset. (QEMU chokes on empty arguments).
-    sudo "${KVM_BINARY}" ${kvm_flag} -m 2G \
-      -smp 4 \
-      -vga cirrus \
-      -pidfile "${KVM_PID_FILE}" \
-      -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}" \
-      -serial "file:${KVM_SERIAL_FILE}" \
-      -mon chardev=control_pipe \
-      -daemonize \
-      ${cpu_option} \
-      ${net_option} \
-      ${nographics} \
-      ${snapshot} \
-      ${net_user} \
-      ${incoming} ${incoming_option:+"$incoming_option"} \
-      ${usb_passthrough} \
-      ${moblab_env} \
+    local cmd=(
+      "${KVM_BINARY}" ${kvm_flag} -m 2G
+      -smp 4
+      -vga cirrus
+      -pidfile "${KVM_PID_FILE}"
+      -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}"
+      -serial "file:${KVM_SERIAL_FILE}"
+      -mon chardev=control_pipe
+      -daemonize
+      ${cpu_option}
+      ${net_option}
+      ${nographics}
+      ${snapshot}
+      ${net_user}
+      ${incoming} ${incoming_option:+"$incoming_option"}
+      ${usb_passthrough}
+      ${moblab_env}
       ${drive}
+    )
+    info "Launching: ${cmd[*]}"
+    sudo "${cmd[@]}"
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
     info "Serial output, if available, can be found here in ${KVM_SERIAL_FILE}"
