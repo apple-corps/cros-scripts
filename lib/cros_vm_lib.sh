@@ -26,20 +26,33 @@ DEFINE_string usb_devices "" \
      where each item is of the form <vendor_id>:<product_id>
      (eg. --usb_devices=1050:0211,0409:005a)"
 DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
+DEFINE_string qemu_binary \
+  "${DEFAULT_CHROOT_DIR}"/usr/bin/qemu-system-x86_64 \
+  "The qemu binary to be used. Defaults to qemu shipped with the SDK."
 
 KVM_PID_FILE=/tmp/kvm.$$.pid
 LIVE_VM_IMAGE=
 
-if ! KVM_BINARY=$(which kvm 2> /dev/null); then
-  if ! KVM_BINARY=$(which qemu-kvm 2> /dev/null); then
-    if ! KVM_BINARY=$(which qemu-system-x86_64 2> /dev/null); then
-      die "no kvm binary found"
+# Pick which qemu/kvm binary will be used. Must be called before any function
+# that needs ${KVM_BINARY}, and *after* the command line has been parsed by the
+# calling script. Otherwise the default value can not be overriden by the user.
+set_kvm() {
+  # The value of the flag is only valid after the command line has been parsed.
+  KVM_BINARY="${FLAGS_qemu_binary}"
+  if [[ ! -x "${KVM_BINARY}" ]]; then
+    if ! KVM_BINARY=$(which kvm 2> /dev/null); then
+      if ! KVM_BINARY=$(which qemu-kvm 2> /dev/null); then
+        if ! KVM_BINARY=$(which qemu-system-x86_64 2> /dev/null); then
+          die "no kvm binary found"
+        fi
+      fi
     fi
   fi
-fi
+}
 
 # Return the version number of the QEMU/KVM binary used.
 get_kvm_version() {
+  set_kvm
   # The version string typically looks like this:
   #"QEMU emulator version 2.5.0, Copyright (c) 2003-2008 Fabrice Bellard"
   # but in Debian/ubuntu distributions, some QEMU or KVM binaries has a
@@ -141,6 +154,7 @@ get_decompressor() {
 # $1: Path to the virtual image to start.
 # $2: Name of the board to virtualize.
 start_kvm() {
+  set_kvm
   echo "QEMU/KVM binary: ${KVM_BINARY} version: $(get_kvm_version)"
 
   # Determine appropriate qemu CPU for board.
@@ -350,6 +364,7 @@ retry_until_ssh() {
 }
 
 stop_kvm() {
+  set_kvm
   if [ "${FLAGS_persist}" -eq "${FLAGS_TRUE}" ]; then
     echo "Persist requested.  Use --ssh_port ${FLAGS_ssh_port} " \
       "--ssh_private_key ${FLAGS_ssh_private_key} " \
