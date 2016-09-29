@@ -116,7 +116,7 @@
           "squashfs": "-noI -comp lzo -Xalgorithm lzo1x_999 -Xcompression-level 9"
         },
         "size": "2048 MiB",
-        "fs_size": "1224 MiB",
+        "fs_size": "1240 MiB",
         "uuid": "clear"
       },
       {
