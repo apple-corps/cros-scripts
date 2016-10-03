@@ -63,8 +63,9 @@ _make_conf_private() {
   local chromeos_overlay="src/private-overlays/chromeos-overlay"
   chromeos_overlay="${CHROOT_TRUNK_DIR}/${chromeos_overlay}"
 
-  local make_conf="${chromeos_overlay}/make.conf"
-  if [[ -e "${make_conf}" ]]; then
+  if [[ -d "${chromeos_overlay}" ]]; then
+    local make_conf="${CHROOT_TRUNK_DIR}/src/third_party/chromiumos-overlay"
+    make_conf+="/chromeos/config/make.conf.sdk-chromeos"
     echo "source ${make_conf}"
   fi
 
