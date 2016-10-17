@@ -374,9 +374,6 @@ setup_env() {
     fi
 
     if [ $FLAGS_ssh_agent -eq $FLAGS_TRUE ]; then
-      # Clean up previous ssh agents.
-      rmdir "${FLAGS_chroot}"/tmp/ssh-* 2>/dev/null
-
       if [ -n "${SSH_AUTH_SOCK}" -a -d "${SUDO_HOME}/.ssh" ]; then
         local target_ssh="/home/${SUDO_USER}/.ssh"
         TARGET_DIR="${FLAGS_chroot}${target_ssh}"
@@ -399,10 +396,9 @@ setup_env() {
         copy_ssh_config "${TARGET_DIR}"
         chown -R ${SUDO_UID}:${SUDO_GID} "${TARGET_DIR}"
 
-        # Don't try to bind mount the ssh agent dir if it has gone stale.
-        ASOCK=${SSH_AUTH_SOCK%/*}
-        if [ -d "${ASOCK}" ]; then
-          setup_mount "${ASOCK}" "--bind" "${ASOCK}"
+        if [ -S "${SSH_AUTH_SOCK}" ]; then
+          touch "${FLAGS_chroot}/tmp/ssh-auth-sock"
+          setup_mount "${SSH_AUTH_SOCK}" "--bind" "/tmp/ssh-auth-sock"
         fi
       fi
     fi
@@ -569,6 +565,9 @@ for var in LANG \
     fi
   fi
 done
+
+# Needs to be set here because setup_env runs in a subshell.
+[ -S "${FLAGS_chroot}/tmp/ssh-auth-sock" ] && SSH_AUTH_SOCK=/tmp/ssh-auth-sock
 
 # Add the whitelisted environment variables to CHROOT_PASSTHRU.
 load_environment_whitelist
