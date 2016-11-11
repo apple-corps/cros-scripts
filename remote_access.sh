@@ -16,6 +16,7 @@ DEFINE_integer ssh_connect_timeout 30 \
   "SSH connect timeout in seconds"
 DEFINE_integer ssh_connection_attempts 4 \
   "SSH connection attempts"
+DEFINE_boolean ssh_allow_agent ${FLAGS_FALSE} "Don't block out SSH_AUTH_SOCK"
 
 # Returns true if $1 has at least two colons.
 has_two_colons_or_more() {
@@ -246,5 +247,12 @@ remote_access_init() {
     echo "Please specify --remote=<IP-or-hostname> of the Chromium OS instance"
     exit 1
   fi
+
+  # Having SSH_AUTH_SOCK set makes our ssh connections super slow so unset
+  # if it's not really needed.
+  if [[ ${FLAGS_ssh_allow_agent} -eq ${FLAGS_FALSE} ]]; then
+    unset SSH_AUTH_SOCK
+  fi
+
   set_up_remote_access
 }
