@@ -52,6 +52,9 @@ ssh_connect_settings() {
       "IdentitiesOnly=yes"
       "IdentityFile=${TMP_PRIVATE_KEY}"
       "UserKnownHostsFile=${TMP_KNOWN_HOSTS}"
+      "ControlPath=${TMP_CONTROL_FILE}"
+      "ControlMaster=auto"
+      "ControlPersist=45"
     )
     printf -- '-o %s ' "${settings[@]}"
   fi
@@ -243,6 +246,8 @@ cleanup_remote_access() {
 remote_access_init() {
   TMP_PRIVATE_KEY=$TMP/private_key
   TMP_KNOWN_HOSTS=$TMP/known_hosts
+  TMP_CONTROL_FILE="${TMP}/ssh_control%r@%h:%p"
+
   if [ -z "$FLAGS_remote" ]; then
     echo "Please specify --remote=<IP-or-hostname> of the Chromium OS instance"
     exit 1
