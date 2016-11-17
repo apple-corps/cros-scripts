@@ -43,16 +43,12 @@ sudo rm -rf netboot
 mkdir -p netboot
 
 # Get netboot firmware.
-# TODO(nsanders): Set default IP here when userspace
-# env modification is available.
-# TODO(nsanders): ARM generic doesn't build chromeos-u-boot package.
-# When ARM generic goes away, delete the test.
-if ls "${SYSROOT}"/firmware/nv_image-*.bin >/dev/null 2>&1; then
-    echo "Copying netboot firmware nv_image-*.bin"
-    cp -v "${SYSROOT}"/firmware/nv_image-*.bin "netboot"
+FIRMWARE_PATH="/firmware/image.net.bin"
+if [ -f "${SYSROOT}${FIRMWARE_PATH}" ]; then
+  echo "Copying netboot firmware ${FIRMWARE_PATH}..."
+  cp -v "${SYSROOT}${FIRMWARE_PATH}" netboot/
 else
-    echo "Skipping netboot firmware: " \
-        "${SYSROOT}/firmware/nv_image-*.bin not present?"
+  echo "Skipping netboot firmware: ${SYSROOT}${FIRMWARE_PATH} not present?"
 fi
 
 # Create temporary emerge root
@@ -69,17 +65,12 @@ export EMERGE_BOARD_CMD="emerge-${FLAGS_board}"
 emerge_custom_kernel ${temp_build_path}
 
 # Place kernel image under 'netboot'
-echo "Generating netboot kernel vmlinux.uimg/vmlinux.bin"
-if [ "${ARCH}" = "arm" ]; then
-  cp "${temp_build_path}"/boot/vmlinux.uimg netboot/
-  cp netboot/vmlinux.uimg netboot/vmlinux.bin
+KERNEL_PATH="/boot/vmlinuz"
+if [ -f "${temp_build_path}${KERNEL_PATH}" ]; then
+  echo "Generating netboot kernel ${KERNEL_PATH}"
+  cp -v "${temp_build_path}${KERNEL_PATH}" netboot/
 else
-  # U-boot put kernel image at 0x100000. We load it at 0x3000000 because
-  # 0x3000000 is safe enough not to overlap with image at 0x100000.
-  mkimage -A x86 -O linux -T kernel -n "Linux kernel" -C none \
-      -d "${temp_build_path}"/boot/vmlinuz \
-      -a 0x03000000 -e 0x03000000 netboot/vmlinux.uimg
-  cp "${temp_build_path}"/boot/vmlinuz netboot/vmlinux.bin
+  echo "No ${KERNEL_PATH} found in your board."
 fi
 
 sudo rm -rf "${temp_build_path}"
