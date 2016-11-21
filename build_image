@@ -144,6 +144,15 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
   export USE="${USE} fbconsole vtconsole factory_shim_ramfs i2cdev vfat"
 fi
 
+# Mask systemd directories if this is not a systemd image.
+if ! has "systemd" "$(portageq-${FLAGS_board} envvar USE)"; then
+  COMMON_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
+  DEFAULT_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
+  FACTORY_TEST_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
+  FACTORY_SHIM_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
+  INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
+fi
+
 # TODO: </prebuild hook>
 
 # If we are creating a developer image, also create a pristine image with a

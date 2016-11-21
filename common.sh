@@ -437,7 +437,6 @@ COMMON_INSTALL_MASK="
   /firmware
   /lib/modules/*/vdso
   /lib/rc
-  /lib/systemd
   /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
@@ -446,7 +445,6 @@ COMMON_INSTALL_MASK="
   /usr/lib/debug
   /usr/lib/gopath
   /usr/lib*/pkgconfig
-  /usr/lib/systemd
   /usr/local/autotest-chrome
   /usr/man
   /usr/share/aclocal
@@ -513,6 +511,12 @@ FACTORY_SHIM_INSTALL_MASK="
   /usr/share/tts
   /usr/share/zoneinfo
   "
+
+# Mask for images without systemd.
+SYSTEMD_INSTALL_MASK="
+  /lib/systemd
+  /usr/lib/systemd
+"
 
 # -----------------------------------------------------------------------------
 # Functions
