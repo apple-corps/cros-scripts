@@ -375,6 +375,12 @@ DEFAULT_CHROOT_DIR=${CHROMEOS_CHROOT_DIR:-"${GCLIENT_ROOT}/chroot"}
 # they don't pollute the source directory.
 DEFAULT_BUILD_ROOT=${CHROMEOS_BUILD_ROOT:-"${SRC_ROOT}/build"}
 
+# Default location for event files
+DEFAULT_EVENT_DIR=${DEFAULT_EVENT_DIR:-"${DEFAULT_BUILD_ROOT}/events"}
+
+# Default event file. Format is YYYYDD.HHMM.json
+DEFAULT_EVENT_FILE=${DEFAULT_EVENT_FILE:-"${DEFAULT_EVENT_DIR}/$(date +%Y%m%d.%H%M.).json"}
+
 # Set up a global ALL_BOARDS value
 if [[ -d ${SRC_ROOT}/overlays ]]; then
   ALL_BOARDS=$(cd "${SRC_ROOT}/overlays"; \
