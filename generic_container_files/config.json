@@ -1,78 +1,97 @@
 {
-	"version": "0.2.0",
+	"ociVersion": "1.0.0-rc1",
 	"platform": {
-		"os": "linux"
+		"os": "linux",
+		"arch": "all"
 	},
 	"process": {
+		"terminal": @TERMINAL@,
 		"user": {
-			"uid": 1000,
-			"gid": 1000,
-			"additionalGids": null
+			"uid": @USER_UID@,
+			"gid": @USER_GID@
 		},
 		"args": [
-			":"
-		]
+			"@ARGV@"
+		],
+		"cwd": "/"
 	},
 	"root": {
-		"path": "root"
+		"path": "rootfs",
+		"readonly": false
 	},
-	"hostname": "generic_container",
+	"hostname": "@APP_NAME@",
 	"mounts": [
 		{
-			"name": "dev",
-			"path": "/dev"
+			"destination": "/",
+			"type": "squashfs",
+			"source": "@APP_NAME@.squashfs",
+			"options": [
+				"ro",
+				"loop",
+				"nodev",
+				"nosuid",
+				"dm=@VERITY@"
+			]
 		},
 		{
-			"name": "dev_bus",
-			"path": "/dev/bus"
+			"destination": "/proc",
+			"type": "proc",
+			"source": "proc",
+			"options": [
+				"nosuid",
+				"noexec",
+				"nodev"
+			]
 		},
 		{
-			"name": "dev_bus_usb",
-			"path": "/dev/bus/usb"
-		},
-		{
-			"name": "dev_null",
-			"path": "/dev/null"
-		},
-		{
-			"name": "dev_random",
-			"path": "/dev/random"
-		},
-		{
-			"name": "dev_urandom",
-			"path": "/dev/urandom"
-		},
-		{
-			"name": "proc",
-			"path": "/proc"
-		},
-		{
-			"name": "run_broker_service",
-			"path": "/run/broker_service"
-		},
-		{
-			"name": "sys",
-			"path": "/sys"
-		},
-		{
-			"name": "sys_bus",
-			"path": "/sys/bus"
-		},
-		{
-			"name": "sys_bus_usb",
-			"path": "/sys/bus/usb"
-		},
-		{
-			"name": "sys_bus_usb_devices",
-			"path": "/sys/bus/usb/devices"
-		},
-		{
-			"name": "sys_devices",
-			"path": "/sys/devices"
-		},
-		{
-			"name": "tmp",
-			"path": "/tmp"
+			"destination": "/dev",
+			"type": "tmpfs",
+			"source": "tmpfs",
+			"options": [
+				"mode=755",
+				"nosuid",
+				"noexec"
+			]
 		}
-	]
+	],
+	"hooks": {},
+	"linux": {
+		"namespaces": [
+			{
+				"type": "cgroup"
+			},
+			{
+				"type": "pid"
+			},
+			{
+				"type": "network"
+			},
+			{
+				"type": "ipc"
+			},
+			{
+				"type": "user"
+			},
+			{
+				"type": "uts"
+			},
+			{
+				"type": "mount"
+			}
+		],
+		"uidMappings": [
+			{
+				"hostID": @USER_UID@,
+				"containerID": 0,
+				"size": 1
+			}
+		],
+		"gidMappings": [
+			{
+				"hostID": @USER_GID@,
+				"containerID": 0,
+				"size": 1
+			}
+		]
+	}
 }

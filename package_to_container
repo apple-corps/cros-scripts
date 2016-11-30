@@ -7,92 +7,187 @@
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
 
+assert_inside_chroot "$@"
+
 DEFINE_string board "${DEFAULT_BOARD}" \
   "The board to build an image for."
 DEFINE_string package "" \
   "Package whose bare minimum deps the final container should have."
-DEFINE_string name "" \
+DEFINE_string name "example" \
   "Name of the container."
 DEFINE_string extra "" \
   "Comma separated extra packages to be included in the final image."
+DEFINE_string argv "" \
+  "The command (and args) to run inside the container."
+
+FLAGS_HELP="USAGE: $(basename "$0") [flags]
+
+The --package and --argv options are required.
+
+To build a container for fastboot, you might want something like:
+$ $(basename "$0") --package dev-util/android-tools --argv /usr/bin/fastboot
+"
 
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
+# Sign the manifest.json file.
+sign_manifest() {
+  "${VBOOT_SIGNING_DIR}"/sign_official_build.sh \
+    oci-container "$1" "${VBOOT_DEVKEYS_DIR}" "$1"
+}
+
+# Generate the manifest.json for this container.
+generate_manifest() {
+  local pkg_name="$1"
+  local output="$2"
+  local manifest="${output}/manifest.json"
+
+  (
+    hash() {
+      local file="$1"
+      local comma="$2"
+      # The Chromium base library does not support dots in dict keys.  They
+      # use it as a short hand to access children dicts.  Normalize them.
+      local dict_key="${file//./_}"
+      local size sha
+
+      size=$(stat -c %s "${file}")
+      sha=$(sha256sum <"${file}" | awk '{print $1}')
+
+      printf '  "%s": {\n    "size": %s,\n    "sha256": "%s"\n  }%s\n' \
+        "${dict_key}" "${size}" "${sha}" "${comma}"
+    }
+
+    cd "${output}"
+    printf '{\n"version": 1,\n"files": {\n'
+    hash "config.json" ","
+    hash "${pkg_name}.squashfs" ""
+    printf '}\n}\n'
+  ) >"${manifest}"
+
+  # Sanity check the generated manifest.
+  python -mjson.tool <"${manifest}" >/dev/null
+
+  sign_manifest "${output}"
+}
+
+# Sign the specified disk image using verity so we can load it with dm-verity
+# at runtime.  We don't allow algorithm selection -- sha1 should be good enough
+# for everyone! :)
+# Note: We write the verity command line to the "verity" variable as an output.
+sign_disk_image() {
+  local img="$1"
+  local hashtree="${img}.hashtree"
+  # TODO: Add "salt=random" here.
+  verity=$(verity mode=create alg=sha256 payload="${img}" \
+                  hashtree="${hashtree}")
+  verity=$(echo "${verity}" | sed -E -e 's:(ROOT|HASH)_DEV:@DEV@:g')
+  cat "${hashtree}" >>"${img}"
+  rm "${hashtree}"
+}
+
 # Produce the container image.
 build_container_image() {
   local pkg_name="$1"
   local container_name="$2"
-  local ROOTDIR="out"
+  local argv="$3"
+  # For now we hardcode chronos.
+  local container_uid="1000"
+  local container_gid="1000"
+  local output="${PWD}/${container_name}"
+  local ROOTDIR="${output}/rootfs"
 
-  info "Cleaning previously generated files ... "
-  sudo rm -rf "${ROOTDIR}"
+  export INSTALL_MASK="${DEFAULT_INSTALL_MASK}"
 
-  install_with_root_deps "${pkg_name}" "${ROOTDIR}"
+  mkdir -p "${output}"
 
-  local pkg
-  for pkg in $(echo $FLAGS_extra | sed "s/,/ /g"); do
-    install_with_root_deps "${pkg}" "${ROOTDIR}"
-  done
+  install_with_root_deps "${ROOTDIR}" "${pkg_name}" sys-libs/gcc-libs \
+    ${FLAGS_extra//,/ }
 
-  info "Installing libc.so ... "
+  info "Installing C library ... "
   install_libc "${ROOTDIR}"
 
-  info "Installing libcontainer_overrides ... "
-  install_with_no_deps "chromeos-base/libcontainer_overrides" "${ROOTDIR}"
+  info "Cleaning excess files ... "
+  sudo rm -rf "${ROOTDIR}"/var "${ROOTDIR}"/usr/lib*/gconv/ \
+    "${ROOTDIR}"/sbin/ldconfig
+  sudo find "${ROOTDIR}"/ -type d -depth -exec rmdir {} + 2>/dev/null || :
 
   info "Creating top level dirs and socket dirs ... "
-  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,config}
-  sudo mkdir -p "${ROOTDIR}"/run/broker_service
-
-  info "Adding runtime.json and config.json files ... "
-  sudo cp generic_container_files/config.json "${ROOTDIR}/config"
-  sudo cp generic_container_files/runtime.json "${ROOTDIR}/config"
+  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,run,tmp,var}
 
   info "Generating squashfs file ... "
-  mksquashfs "${ROOTDIR}" "${container_name}.sqsh"
+  local args=(
+    -all-root
+    -noappend
+  )
+  local img="${output}/${container_name}.squashfs"
+  # We need to run through sudo because some files might be read-only by root.
+  sudo mksquashfs "${ROOTDIR}" "${img}" "${args[@]}"
+  sudo chown $(id -u):$(id -g) "${img}"
+  info "Signing squashfs file ... "
+  local verity
+  sign_disk_image "${img}"
+
+  info "Adding config.json ... "
+  sed \
+    -e "s:@APP_NAME@:${container_name}:g" \
+    -e "s:@TERMINAL@:true:g" \
+    -e "s:@USER_UID@:${container_uid}:g" \
+    -e "s:@USER_GID@:${container_gid}:g" \
+    -e "s:@ARGV@:${argv// /\", \"}:g" \
+    -e "s:@VERITY@:${verity}:" \
+    generic_container_files/config.json >"${output}/config.json"
+
+  info "Generating manifest ..."
+  generate_manifest "${container_name}" "${output}"
 
   info "Cleaning up ... "
   sudo rm -rf "${ROOTDIR}"
+  mkdir "${ROOTDIR}"
+}
+
+run_emerge() {
+  emerge-${BOARD} \
+    --quiet --jobs ${NUM_JOBS} \
+    --usepkgonly \
+    "$@"
 }
 
 # Normal emerge.
 install_with_no_deps() {
-  local package_to_install="$1"
-  local root_dir="$2"
-  info "Installing '${package_to_install}' with no deps ... "
-  emerge-${BOARD} "${package_to_install}" --nodeps --usepkgonly \
-    --root="${root_dir}" --quiet
+  local root_dir="$1"
+  shift
+  info "Installing '$*' with no deps ... "
+  run_emerge --root="${root_dir}" "$@" --nodeps
 }
 
 # Emerge with root deps.
 install_with_root_deps() {
-  local package_to_install="$1"
-  local root_dir="$2"
-  info "Installing '${package_to_install}' with root deps ... "
-  emerge-${BOARD} "${package_to_install}" --root-deps=rdeps --usepkgonly \
-    --root="${root_dir}" --quiet
+  local root_dir="$1"
+  shift
+  info "Installing '$*' with root deps ... "
+  run_emerge --root="${root_dir}" "$@" --root-deps=rdeps
 }
 
 main() {
   . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
   . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
 
-  if [[ -n "${FLAGS_package}" ]]; then
-    if [[ -n "${FLAGS_name}" ]]; then
-      local container_name="${FLAGS_name}"
-    else
-      local container_name="${FLAGS_package}"
-    fi
-    if [[ -f "${container_name}.sqsh" ]]; then
-      die_notrace "File already exists : ${container_name}.sqsh"
-    fi
-    info "Building container '${container_name}' for ${FLAGS_package} ..."
-    build_container_image "${FLAGS_package}" "${container_name}"
-  else
+  if [[ -z "${FLAGS_argv}" ]]; then
+    die_notrace "--argv is needed."
+  fi
+  if [[ -z "${FLAGS_package}" ]]; then
     die_notrace "--package is needed."
   fi
+
+  local container_name="${FLAGS_name}"
+  if [[ -d "${container_name}" ]]; then
+    die_notrace "Output dir already exists : ${container_name}/"
+  fi
+  info "Building container '${container_name}' for ${FLAGS_package} ..."
+  build_container_image "${FLAGS_package}" "${container_name}" "${FLAGS_argv}"
 }
 
 main "$@"
