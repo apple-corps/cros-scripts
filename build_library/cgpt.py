@@ -823,6 +823,13 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
         '${GPT} boot -p -b $2 -i %d "${target}"' % efi_partitions[0]['num'],
         '${GPT} add -i %s -B 1 "${target}"' % efi_partitions[0]['num'],
     ]
+  else:
+    # Provide a PMBR all the time for boot loaders (like u-boot)
+    # that expect one to always be there.
+    lines += [
+        '${GPT} boot -p -b $2 "${target}"',
+    ]
+
   if metadata.get('hybrid_mbr'):
     lines += ['install_hybrid_mbr "${target}"']
   lines += ['${GPT} show "${target}"']
