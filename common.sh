@@ -443,6 +443,7 @@ COMMON_INSTALL_MASK="
   /firmware
   /lib/modules/*/vdso
   /lib/rc
+  /opt/google/containers/android/vendor/lib*/pkgconfig
   /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
