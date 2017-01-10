@@ -285,6 +285,12 @@ else
       fi
       exit 0
     fi
+
+    # Call cros_workon to recreate symlinks to masked/unmasked packages
+    # currently worked on in case S{BOARD_ROOT} has been recreated
+    # (crbug.com/679831).
+    cros_workon --board="${BOARD_VARIANT}" list >/dev/null
+
     if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
       # Emerge the kernel headers into the board build root.  Use rdeps to
       # avoid pulling any spurious DEPEND things in that we don't care about.
