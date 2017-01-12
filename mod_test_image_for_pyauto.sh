@@ -41,8 +41,6 @@ STATEFUL_FS_DIR="${IMAGE_DIR}/stateful"
 
 PYAUTO_DEP="${FLAGS_build_root}/client/deps/pyauto_dep"
 CHROME_DEP="${FLAGS_build_root}/client/deps/chrome_test"
-VBOOT_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference/scripts/"\
-"image_signing"
 
 if [ ! -d $PYAUTO_DEP ]; then
   die_notrace  "The required path: $PYAUTO_DEP does not exist.  Did you mean \
@@ -54,10 +52,10 @@ if [ ! -d $CHROME_DEP ]; then
 to pass --build_root and the path to the autotest bundle?"
 fi
 
-if [ ! -d $VBOOT_DIR ]; then
-  die_notrace "The required path: $VBOOT_DIR does not exist.  This directory \
-needs to be sync'd into your chroot.\n $ cros_workon start vboot_reference \
---board ${FLAGS_board}"
+if [[ ! -d "${VBOOT_SIGNING_DIR}" ]]; then
+  die_notrace "The required path: $VBOOT_SIGNING_DIR does not exist.  This \
+directory needs to be sync'd into your chroot.\n $ cros_workon start \
+vboot_reference --board ${FLAGS_board}"
 fi
 
 if [ ! -d "${FLAGS_build_root}/client/cros" ]; then
@@ -173,16 +171,14 @@ done
 cleanup
 
 # cros_make_image_bootable is unstable (crosbug.com/18709)
-DEVKEYS_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference/tests/devkeys/"
 TMP_BIN_PATH="$(dirname "${FLAGS_image}")/pyauto_tmp.bin"
 
 echo ${TMP_BIN_PATH}
 
 rm -f "${TMP_BIN_PATH}"
 
-"${VBOOT_DIR}/sign_official_build.sh" usb "${FLAGS_image}" \
-                                     "${DEVKEYS_DIR}" \
-                                     "${TMP_BIN_PATH}" \
+"${VBOOT_SIGNING_DIR}/sign_official_build.sh" \
+  usb "${FLAGS_image}" "${VBOOT_DEVKEYS_DIR}" "${TMP_BIN_PATH}"
 
 rm -f "${FLAGS_image}"
 mv "${TMP_BIN_PATH}" "${FLAGS_image}"

@@ -24,7 +24,7 @@ DEFINE_string working_dir "/tmp/vmlinuz.working" \
   "Working directory for in-progress files. (Default: /tmp/vmlinuz.working)"
 DEFINE_boolean keep_work ${FLAGS_FALSE} \
   "Keep temporary files (*.keyblock, *.vbpubk). (Default: false)"
-DEFINE_string keys_dir "${SRC_ROOT}/platform/vboot_reference/tests/testkeys" \
+DEFINE_string keys_dir "${VBOOT_TESTKEYS_DIR}" \
   "Directory with the RSA signing keys. (Defaults to test keys)"
 DEFINE_string keyblock "kernel.keyblock" \
   "The keyblock to use. (Defaults to kernel.keyblock)"

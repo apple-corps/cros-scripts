@@ -109,7 +109,7 @@ DEFINE_string verity_algorithm "sha1" \
 DEFINE_string verity_salt "" \
   "Salt for rootfs hash tree."
 
-DEFINE_string keys_dir "/usr/share/vboot/devkeys" \
+DEFINE_string keys_dir "${VBOOT_DEVKEYS_DIR}" \
   "Directory containing the signing keys."
 
 DEFINE_string rootfs_mountpoint "/tmp/rootfs" \

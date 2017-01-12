@@ -164,8 +164,6 @@ else
   PRISTINE_IMAGE_NAME=${CHROMEOS_BASE_IMAGE_NAME}
 fi
 
-DEVKEYSDIR="/usr/share/vboot/devkeys"
-
 if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
   "${BOARD_ROOT}/build/bin/eclean" -d packages
 fi

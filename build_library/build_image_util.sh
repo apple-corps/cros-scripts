@@ -133,7 +133,7 @@ create_boot_desc() {
   --board=${BOARD}
   --image_type=${image_type}
   --arch="${ARCH}"
-  --keys_dir="${DEVKEYSDIR}"
+  --keys_dir="${VBOOT_DEVKEYS_DIR}"
   --boot_args="${FLAGS_boot_args}"
   --nocleanup_dirs
   --verity_algorithm=sha1

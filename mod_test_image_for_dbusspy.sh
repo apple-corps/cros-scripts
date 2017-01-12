@@ -33,9 +33,6 @@ IMAGE_NAME=$(basename "${FLAGS_image}")
 ROOT_FS_DIR="${IMAGE_DIR}/rootfs"
 DBUS_CONF="$(dirname "$0")/mod_for_dbusspy/dbus.conf"
 SYSTEM_LOCAL_CONF="$(dirname "$0")/mod_for_dbusspy/system-local.conf"
-DEVKEYS_DIR="/usr/share/vboot/devkeys"
-VBOOT_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference/scripts/"\
-"image_signing"
 
 cleanup() {
   "${SCRIPTS_DIR}/mount_gpt_image.sh" -u -r "$ROOT_FS_DIR"
@@ -67,7 +64,6 @@ sudo cp "${SYSTEM_LOCAL_CONF}" "${ROOT_FS_DIR}/etc/dbus-1/system-local.conf"
 # cros_make_image_bootable.
 cleanup
 TMP_BIN_PATH="${FLAGS_image}.new"
-"${VBOOT_DIR}/sign_official_build.sh" usb "${FLAGS_image}" \
-                                     "${DEVKEYS_DIR}" \
-                                     "${TMP_BIN_PATH}"
+"${VBOOT_SIGNING_DIR}/sign_official_build.sh" \
+  usb "${FLAGS_image}" "${VBOOT_DEVKEYS_DIR}" "${TMP_BIN_PATH}"
 mv "${TMP_BIN_PATH}" "${FLAGS_image}"

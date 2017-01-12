@@ -42,7 +42,7 @@ DEFINE_integer jobs -1 \
   j
 DEFINE_string build_root "/build" \
   "root location for board sysroots"
-DEFINE_string keys_dir "/usr/share/vboot/devkeys" \
+DEFINE_string keys_dir "${VBOOT_DEVKEYS_DIR}" \
   "directory containing the signing keys"
 DEFINE_boolean verbose $FLAGS_FALSE \
   "log all commands to stdout" v
