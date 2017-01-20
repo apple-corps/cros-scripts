@@ -65,7 +65,8 @@ test_image_content() {
   # Exclude Chrome components, which are the only files in the lib directory.
   local components="${root}/opt/google/chrome/lib/*"
   libs=( $(sudo \
-      find "${root}" -type f -name '*.so*' -not -path "${components}") )
+      find "${root}" -type f -name '*.so*' -not -name '*.so.debug' \
+        -not -path "${components}") )
   if ! test_elf_deps "${root}" "${binaries[@]}" "${libs[@]}"; then
     returncode=1
   fi
