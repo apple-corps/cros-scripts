@@ -24,7 +24,7 @@ run_lddtree() {
   # In case the file list is too big, send it through xargs.
   # http://crbug.com/369314
   printf '%s\0' "$@" | xargs -0 \
-    sudo "${lddtree}" -R "${root}" --no-auto-root --skip-non-elfs "${flags[@]}"
+    sudo "${lddtree}" -R "${root}" --skip-non-elfs "${flags[@]}"
 }
 
 # Usage: test_elf_deps <root> <files to check>
@@ -43,7 +43,7 @@ test_elf_deps() {
     for f in "$@"; do
       deps=$(run_lddtree "${root}" -l "${f}")
       if echo "${deps}" | grep -q '^[^/]'; then
-        error "Package: $(ROOT="${root}" qfile -qCRv "${f}")"
+        error "Package: $(qfile --root "${root}" -qCRv "${root}${f}")"
         error "$(run_lddtree "${root}" "${f}")"
       fi
     done
@@ -66,7 +66,7 @@ test_image_content() {
   local components="${root}/opt/google/chrome/lib/*"
   libs=( $(sudo \
       find "${root}" -type f -name '*.so*' -not -name '*.so.debug' \
-        -not -path "${components}") )
+        -not -path "${components}" -printf '/%P\n') )
   if ! test_elf_deps "${root}" "${binaries[@]}" "${libs[@]}"; then
     returncode=1
   fi
