@@ -754,7 +754,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   lines += [
       'local curr=%d' % _GetStartSector(config, partitions),
       '# Create the GPT headers and tables. Pad the primary ones.',
-      '${GPT} create -p %d "${target}"' % (_GetPrimaryEntryArrayLBA(config) -
+      '${GPT} create -p %d ${target}' % (_GetPrimaryEntryArrayLBA(config) -
                                            (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
@@ -785,7 +785,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       continue
     if partition['type'] != 'blank':
       lines += [
-          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" "${target}"' % (
+          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" ${target}' % (
               partition['num'], str(partition['var']), partition['type'],
               partition['label']),
       ]
@@ -804,7 +804,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   # default bootable partition.
   for partition in GetPartitionsByType(partitions, 'kernel'):
     lines += [
-        '${GPT} add -i %s -S 0 -T %i -P %i "${target}"' %
+        '${GPT} add -i %s -S 0 -T %i -P %i ${target}' %
         (partition['num'], tries, prio)
     ]
     prio = 0
@@ -820,19 +820,19 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   efi_partitions = GetPartitionsByType(partitions, 'efi')
   if efi_partitions:
     lines += [
-        '${GPT} boot -p -b $2 -i %d "${target}"' % efi_partitions[0]['num'],
-        '${GPT} add -i %s -B 1 "${target}"' % efi_partitions[0]['num'],
+        '${GPT} boot -p -b $2 -i %d ${target}' % efi_partitions[0]['num'],
+        '${GPT} add -i %s -B 1 ${target}' % efi_partitions[0]['num'],
     ]
   else:
     # Provide a PMBR all the time for boot loaders (like u-boot)
     # that expect one to always be there.
     lines += [
-        '${GPT} boot -p -b $2 "${target}"',
+        '${GPT} boot -p -b $2 ${target}',
     ]
 
   if metadata.get('hybrid_mbr'):
-    lines += ['install_hybrid_mbr "${target}"']
-  lines += ['${GPT} show "${target}"']
+    lines += ['install_hybrid_mbr ${target}']
+  lines += ['${GPT} show ${target}']
 
   if _HasExternalGpt(partitions):
     lines += ['flashrom -w -iRW_GPT:${gptfile} --fast-verify']
