@@ -7,8 +7,8 @@
 	"process": {
 		"terminal": @TERMINAL@,
 		"user": {
-			"uid": @USER_UID@,
-			"gid": @USER_GID@
+			"uid": 0,
+			"gid": 0
 		},
 		"args": [
 			"@ARGV@"
