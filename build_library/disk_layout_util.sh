@@ -6,6 +6,8 @@
 # is sourced as ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
 . "${BUILD_LIBRARY_DIR}/filesystem_util.sh" || exit 1
 
+# These fixed partition numbers are deprecated.
+# We should use values derived from disk_layout.
 PARTITION_NUM_STATE=1
 PARTITION_NUM_KERN_A=2
 PARTITION_NUM_ROOT_A=3

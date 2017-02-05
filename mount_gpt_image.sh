@@ -103,7 +103,7 @@ get_partition_size() {
   local part_size var_name
 
   var_name="PARTITION_SIZE_${part_num}"
-  part_size="${!var_name:-}"
+  part_size="${!var_name}"
   if [[ -z "${part_size}" ]]; then
     part_size=$(partsize "${filename}" ${part_num}) || true
     if [[ -z "${part_size}" ]]; then
@@ -164,12 +164,13 @@ unmount_image() {
 
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
-  local part_num part_offset part_size data_size
-  for part_num in ${PARTITION_NUM_EFI_SYSTEM} ${PARTITION_NUM_OEM} \
-                  ${PARTITION_NUM_STATE} ${PARTITION_NUM_ROOT_A}; do
-    var_name="PART_${part_num}_MOUNTPOINT"
-    mountpoint="${!var_name:-}"
+  local part_label part_num part_offset part_size data_size
+  for part_label in EFI_SYSTEM OEM STATE ROOT_A; do
+    var_name="${part_label}_MOUNTPOINT"
+    mountpoint="${!var_name}"
     [[ -n "${mountpoint}" ]] || continue
+    var_name="PARTITION_NUM_${part_label}"
+    part_num="${!var_name}"
 
     part_size=$(get_partition_size "${filename}" "${part_num}") || continue
 
@@ -187,11 +188,11 @@ unmount_image() {
       die "Failed to get partition offset for partition ${part_num}"
     # Get the variables loaded with load_partition_vars during mount_*.
     var_name="FS_FORMAT_${part_num}"
-    fs_format="${!var_name:-}"
+    fs_format="${!var_name}"
     var_name="FS_OPTIONS_${part_num}"
-    fs_options="${!var_name:-}"
+    fs_options="${!var_name}"
     var_name="DATA_SIZE_${part_num}"
-    data_size="${!var_name:-}"
+    data_size="${!var_name}"
 
     mount_options="offset=$(( part_offset * 512 ))"
     if [[ -n "${data_size}" ]]; then
@@ -204,10 +205,9 @@ unmount_image() {
   # We need to remove the mountpoints after we unmount all the partitions since
   # there could be nested mounts.
   if [[ ${FLAGS_delete_mountpts} -eq ${FLAGS_TRUE} ]]; then
-    for part_num in ${PARTITION_NUM_EFI_SYSTEM} ${PARTITION_NUM_OEM} \
-                    ${PARTITION_NUM_STATE} ${PARTITION_NUM_ROOT_A}; do
-      var_name="PART_${part_num}_MOUNTPOINT"
-      mountpoint="${!var_name:-}"
+    for part_label in EFI_SYSTEM OEM STATE ROOT_A; do
+      var_name="${part_label}_MOUNTPOINT"
+      mountpoint="${!var_name}"
       # Check this is a directory.
       [[ -n "${mountpoint}" && -d "${mountpoint}" ]] || continue
       fs_remove_mountpoint "${mountpoint}"
@@ -233,12 +233,12 @@ mount_usb_partitions() {
     load_partition_vars
   fi
 
-  fs_mount "${FLAGS_from}${PARTITION_NUM_ROOT_A}" "${PART_3_MOUNTPOINT}" \
-    "${FS_FORMAT_3}" "${rootfs_ro_rw}"
-  fs_mount "${FLAGS_from}${PARTITION_NUM_STATE}" "${PART_1_MOUNTPOINT}" \
-    "${FS_FORMAT_1}" "${ro_rw}"
-  fs_mount "${FLAGS_from}${PARTITION_NUM_OEM}" "${PART_8_MOUNTPOINT}" \
-    "${FS_FORMAT_8}" "${ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_ROOT_A}" "${ROOT_A_MOUNTPOINT}" \
+    "${FS_FORMAT_ROOT_A}" "${rootfs_ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_STATE}" "${STATE_MOUNTPOINT}" \
+    "${FS_FORMAT_STATE}" "${ro_rw}"
+  fs_mount "${FLAGS_from}${PARTITION_NUM_OEM}" "${OEM_MOUNTPOINT}" \
+    "${FS_FORMAT_OEM}" "${ro_rw}"
 
   if [[ -n "${FLAGS_esp_mountpt}" && \
         -e ${FLAGS_from}${PARTITION_NUM_EFI_SYSTEM} ]]; then
@@ -275,17 +275,20 @@ mount_gpt_partitions() {
 
   # Mount in order: rootfs, stateful, OEM and EFI.
   local var_name mountpoint fs_format
-  local part_num part_offset part_size part_ro_rw
-  for part_num in ${PARTITION_NUM_ROOT_A} ${PARTITION_NUM_STATE} \
-                  ${PARTITION_NUM_OEM} ${PARTITION_NUM_EFI_SYSTEM}; do
-    var_name="PART_${part_num}_MOUNTPOINT"
-    mountpoint="${!var_name:-}"
+  local part_label part_num part_offset part_size part_ro_rw
+  for part_label in ROOT_A STATE OEM EFI_SYSTEM; do
+    var_name="${part_label}_MOUNTPOINT"
+    mountpoint="${!var_name}"
     [[ -n "${mountpoint}" ]] || continue
+
+    var_name="PARTITION_NUM_${part_label}"
+    part_num="${!var_name}"
+
     part_size=$(get_partition_size "${filename}" ${part_num}) || continue
     part_offset=$(partoffset "${filename}" ${part_num}) ||
         die "Failed to get partition offset for partition ${part_num}"
     var_name="FS_FORMAT_${part_num}"
-    fs_format="${!var_name:-}"
+    fs_format="${!var_name}"
 
     # The "safe" flags tells if the rootfs should be mounted as read-only,
     # otherwise we use ${ro_rw}.
@@ -351,12 +354,14 @@ remount_image() {
   # If all the filesystems are mounted via the kernel, just issue the remount
   # command with the proper flags.
   local var_name mountpoint
-  local part_num part_ro_rw part_size
-  for part_num in ${PARTITION_NUM_ROOT_A} ${PARTITION_NUM_STATE} \
-                  ${PARTITION_NUM_OEM} ${PARTITION_NUM_EFI_SYSTEM}; do
-    var_name="PART_${part_num}_MOUNTPOINT"
-    mountpoint="${!var_name:-}"
+  local part_label part_num part_ro_rw part_size
+  for part_label in ROOT_A STATE OEM EFI_SYSTEM; do
+    var_name="${part_label}_MOUNTPOINT"
+    mountpoint="${!var_name}"
     [[ -n "${mountpoint}" ]] || continue
+
+    var_name="PARTITION_NUM_${part_label}"
+    part_num="${!var_name}"
 
     part_size=$(get_partition_size "${filename}" ${part_num}) || continue
 
@@ -386,10 +391,10 @@ FLAGS_rootfs_mountpt="$(readlink -f "${FLAGS_rootfs_mountpt}")"
 FLAGS_stateful_mountpt="$(readlink -f "${FLAGS_stateful_mountpt}")"
 
 # Partition mountpoints based on the flags.
-PART_3_MOUNTPOINT="${FLAGS_rootfs_mountpt}"
-PART_1_MOUNTPOINT="${FLAGS_stateful_mountpt}"
-PART_8_MOUNTPOINT="${FLAGS_rootfs_mountpt}/usr/share/oem"
-PART_12_MOUNTPOINT="${FLAGS_esp_mountpt}"
+ROOT_A_MOUNTPOINT="${FLAGS_rootfs_mountpt}"
+STATE_MOUNTPOINT="${FLAGS_stateful_mountpt}"
+OEM_MOUNTPOINT="${FLAGS_rootfs_mountpt}/usr/share/oem"
+EFI_SYSTEM_MOUNTPOINT="${FLAGS_esp_mountpt}"
 
 # Perform desired operation.
 if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} ]]; then
