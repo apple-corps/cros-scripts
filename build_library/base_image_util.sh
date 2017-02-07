@@ -228,17 +228,13 @@ create_base_image() {
     official_flag="--official"
   fi
 
-  # Get the build info of ARC if available.
-  if type get_arc_build_info &>/dev/null; then
-    # This will set CHROMEOS_ARC_*.
-    get_arc_build_info "${root_fs_dir}"
+  # Get the version of ARC if available
+  if type set_arc_version &>/dev/null; then
+    set_arc_version
   fi
-  local arc_flags=()
+  local arc_version=
   if [[ -n "${CHROMEOS_ARC_VERSION}" ]]; then
-    arc_flags+=("--arc_version=${CHROMEOS_ARC_VERSION}")
-  fi
-  if [[ -n "${CHROMEOS_ARC_ANDROID_SDK_VERSION}" ]]; then
-    arc_flags+=("--arc_android_sdk_version=${CHROMEOS_ARC_ANDROID_SDK_VERSION}")
+    arc_version="--arc_version=${CHROMEOS_ARC_VERSION}"
   fi
 
   "${VBOOT_SIGNING_DIR}"/insert_container_publickey.sh \
@@ -264,7 +260,7 @@ create_base_image() {
     --build_number="${CHROMEOS_BUILD}" \
     --chrome_milestone="${CHROME_BRANCH}" \
     --patch_number="${CHROMEOS_PATCH}" \
-    "${arc_flags[@]}"
+    ${arc_version}
 
   # Set /etc/os-release on the image.
   # Note: fields in /etc/os-release can come from different places:
