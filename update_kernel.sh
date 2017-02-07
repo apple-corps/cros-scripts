@@ -24,6 +24,7 @@ DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
 DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
+DEFINE_boolean firmware $FLAGS_FALSE "Also update firmwares (/lib/firmware)"
 
 ORIG_ARGS=("$@")
 
@@ -271,8 +272,12 @@ main() {
 
     copy_kernelmodules
 
-    echo "copying firmware"
-    remote_send_to /build/"${FLAGS_board}"/lib/firmware/ /lib/firmware/
+    if [[ ${FLAGS_firmware} -eq ${FLAGS_TRUE} ]]; then
+      echo "copying firmware"
+      remote_send_to /build/"${FLAGS_board}"/lib/firmware/ /lib/firmware/
+    else
+      info "Skipping update of firmware (per request)."
+    fi
   fi
 
   if [ ${FLAGS_vboot} -eq ${FLAGS_TRUE} ]; then
