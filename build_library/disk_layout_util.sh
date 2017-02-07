@@ -6,19 +6,6 @@
 # is sourced as ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
 . "${BUILD_LIBRARY_DIR}/filesystem_util.sh" || exit 1
 
-# These fixed partition numbers are deprecated.
-# We should use values derived from disk_layout.
-PARTITION_NUM_STATE=1
-PARTITION_NUM_KERN_A=2
-PARTITION_NUM_ROOT_A=3
-PARTITION_NUM_KERN_B=4
-PARTITION_NUM_ROOT_B=5
-PARTITION_NUM_KERN_C=6
-PARTITION_NUM_ROOT_C=7
-PARTITION_NUM_OEM=8
-PARTITION_NUM_RWFW=11
-PARTITION_NUM_EFI_SYSTEM=12
-
 CGPT_PY="${BUILD_LIBRARY_DIR}/cgpt.py"
 PARTITION_SCRIPT_PATH="usr/sbin/write_gpt.sh"
 DISK_LAYOUT_PATH=
