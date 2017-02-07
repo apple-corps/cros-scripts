@@ -871,6 +871,7 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
         part_format = partition.get('format', '')
         fs_format = partition.get('fs_format', '')
         fs_options = partition.get('fs_options', '')
+        partition_num = partition.get('num', '')
         lines += [
             'PARTITION_SIZE_%s=%s' % (shell_label, part_bytes),
             '  RESERVED_EBS_%s=%s' % (shell_label, reserved_ebs),
@@ -878,6 +879,7 @@ def WritePartitionSizesFunction(options, sfile, func, image_type, config):
             '        FORMAT_%s=%s' % (shell_label, part_format),
             '     FS_FORMAT_%s=%s' % (shell_label, fs_format),
             '    FS_OPTIONS_%s="%s"' % (shell_label, fs_options),
+            ' PARTITION_NUM_%s="%s"' % (shell_label, partition_num),
         ]
 
   sfile.write('%s\n}\n' % '\n  '.join(lines))
