@@ -251,7 +251,6 @@ case ${TARGET} in
   fi
 esac
 
-set -x
 EOF
     echo "${gpt_layout}" >> "${x}"
   done
