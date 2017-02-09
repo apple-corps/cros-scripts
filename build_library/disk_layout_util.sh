@@ -494,23 +494,7 @@ update_partition_table() {
 
   rm -f "${dst_img}"
 
-  # Make sure new stateful's size is a multiple of 4096 blocks so that
-  # relocated partitions following it are not misaligned.
-  dst_stateful_blocks=$(round_up_4096 $dst_stateful_blocks)
-  # Calculate change in image size.
-  local src_stateful_blocks=$(cgpt show -i ${PARTITION_NUM_STATE} -s ${src_img})
-  local delta_blocks=$(( dst_stateful_blocks - src_stateful_blocks ))
-  local dst_stateful_bytes=$(( dst_stateful_blocks * 512 ))
-  local src_stateful_bytes=$(( src_stateful_blocks * 512 ))
-  local src_size=$(stat -c %s ${src_img})
-  local dst_size=$(( src_size - src_stateful_bytes + dst_stateful_bytes ))
-  truncate -s ${dst_size} ${dst_img}
-
-  # Copy MBR, initialize GPT.
-  dd if="${src_img}" of="${dst_img}" conv=notrunc bs=512 count=1 status=none
-  cgpt create ${dst_img}
-
-  # Find partition number of STATE (really should always be "1")
+  # Find partition number of STATE.
   local part=0
   local label=""
   while [ "${label}" != "STATE" ]; do
@@ -522,6 +506,23 @@ update_partition_table() {
       return 1
     fi
   done
+
+  # Make sure new stateful's size is a multiple of 4096 blocks so that
+  # relocated partitions following it are not misaligned.
+  dst_stateful_blocks=$(round_up_4096 $dst_stateful_blocks)
+  # Calculate change in image size.
+  local src_stateful_blocks=$(cgpt show -i ${part} -s ${src_img})
+  local delta_blocks=$(( dst_stateful_blocks - src_stateful_blocks ))
+  local dst_stateful_bytes=$(( dst_stateful_blocks * 512 ))
+  local src_stateful_bytes=$(( src_stateful_blocks * 512 ))
+  local src_size=$(stat -c %s ${src_img})
+  local dst_size=$(( src_size - src_stateful_bytes + dst_stateful_bytes ))
+  truncate -s ${dst_size} ${dst_img}
+
+  # Copy MBR, initialize GPT.
+  dd if="${src_img}" of="${dst_img}" conv=notrunc bs=512 count=1 status=none
+  cgpt create ${dst_img}
+
   local src_state_start=$(cgpt show -i ${part} -b ${src_img})
 
   # Duplicate each partition entry.
