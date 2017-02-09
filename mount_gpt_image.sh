@@ -243,7 +243,7 @@ mount_usb_partitions() {
   if [[ -n "${FLAGS_esp_mountpt}" && \
         -e ${FLAGS_from}${PARTITION_NUM_EFI_SYSTEM} ]]; then
     fs_mount "${FLAGS_from}${PARTITION_NUM_EFI_SYSTEM}" \
-      "${PART_12_MOUNTPOINT}" "${FS_FORMAT_12}" "${ro_rw}"
+      "${EFI_SYSTEM_MOUNTPOINT}" "${FS_FORMAT_EFI_SYSTEM}" "${ro_rw}"
   fi
 }
 
