@@ -1202,6 +1202,24 @@ def GetLabel(options, image_type, layout_filename, num):
     return 'UNTITLED'
 
 
+def GetNumber(options, image_type, layout_filename, label):
+  """Returns the partition number of a given label.
+
+  Args:
+    options: Flags passed to the script
+    image_type: Type of image eg base/test/dev/factory_install
+    layout_filename: Path to partition configuration file
+    label: Number of the partition you want to read from
+
+  Returns:
+    The number of the partition corresponding to the label.
+  """
+
+  partitions = GetPartitionTableFromConfig(options, layout_filename, image_type)
+  partition = GetPartitionByLabel(partitions, label)
+  return partition['num']
+
+
 def GetReservedEraseBlocks(options, image_type, layout_filename, num):
   """Returns the number of erase blocks reserved in the partition.
 
@@ -1457,6 +1475,10 @@ def main(argv):
       'readlabel': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
           'func': GetLabel,
+      },
+      'readnumber': {
+          'usage': ['<image_type>', '<disk_layout>', '<partition_label>'],
+          'func': GetNumber,
       },
       'readreservederaseblocks': {
           'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],

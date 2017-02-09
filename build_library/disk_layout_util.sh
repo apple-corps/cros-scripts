@@ -171,6 +171,14 @@ get_label() {
   cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
+get_partition_number() {
+  local image_type=$1
+  local part_label=$2
+  get_disk_layout_path
+
+  cgpt_py readnumber "${image_type}" "${DISK_LAYOUT_PATH}" "${part_label}"
+}
+
 get_reserved_erase_blocks() {
   local image_type=$1
   local part_id=$2
