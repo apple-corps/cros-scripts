@@ -474,7 +474,7 @@ build_gpt_image() {
 
   # Pre-set "sucessful" bit in gpt, so we will never mark-for-death
   # a partition on an SDCard/USB stick.
-  cgpt add -i ${PARTITION_NUM_KERN_A} -S 1 "${outdev}"
+  cgpt add -i $(get_partition_number "${disk_layout}" KERN-A) -S 1 "${outdev}"
 }
 
 round_up_4096() {

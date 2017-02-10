@@ -233,8 +233,8 @@ make_image_bootable() {
 
   # Update legacy boot config templates (in rootfs) before rootfs is locked.
   # This is required because postinst will copy new legacy boot configurations
-  # from rootfs partition instead of modifying existing entries in partition 12
-  # (EFI partition).
+  # from rootfs partition instead of modifying existing entries in EFI
+  # partition.
   if [ ${FLAGS_force_developer_mode} -eq ${FLAGS_TRUE} ]; then
     trap "unmount_image ; die 'cros_make_image_bootable failed.'" EXIT
     mount_image "${image}" "${FLAGS_rootfs_mountpoint}" \
@@ -297,8 +297,10 @@ make_image_bootable() {
   fi
 
   # Builds the kernel partition image.
+  local partition_num_root_a="$(get_partition_number \
+    ${FLAGS_image_type} ROOT-A)"
   local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} \
-      ${PARTITION_NUM_ROOT_A})
+      ${partition_num_root_a})
   build_img "vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" "${keyblock}" \
             "recovery_kernel_data_key.vbprivk" "recovery_key.vbpubk"
   build_img "hd_vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" \
@@ -311,12 +313,16 @@ make_image_bootable() {
   info "Kernel image A   size is ${kernel_image_size_A} bytes."
   local kernel_image_size_B=$(stat -c '%s' ${FLAGS_output_dir}/hd_vmlinuz.image)
   info "Kernel image B   size is ${kernel_image_size_B} bytes."
-  check_kernel_size ${kernel_image_size_A} ${PARTITION_NUM_KERN_A} A
-  check_kernel_size ${kernel_image_size_B} ${PARTITION_NUM_KERN_B} B
+  local partition_num_kern_a="$(get_partition_number \
+    ${FLAGS_image_type} KERN-A)"
+  check_kernel_size ${kernel_image_size_A} ${partition_num_kern_a} A
+  local partition_num_kern_b="$(get_partition_number \
+    ${FLAGS_image_type} KERN-B)"
+  check_kernel_size ${kernel_image_size_B} ${partition_num_kern_b} B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
   local rootfs_partition_size=$(get_partition_size ${FLAGS_image_type} \
-      ${PARTITION_NUM_ROOT_A})
+      ${partition_num_root_a})
   local rootfs_hash_pad=$(( rootfs_partition_size - rootfs_fs_size ))
   info "Appending rootfs.hash (${rootfs_hash_size} bytes) to the root fs"
   if [[ ${rootfs_hash_size} -gt ${rootfs_hash_pad} ]]
@@ -328,7 +334,7 @@ make_image_bootable() {
   # Unfortunately, mount_gpt_image uses mount and not losetup to create the
   # loop devices.  This means that they are not the correct size.  We have to
   # write directly to the image to append the hash tree data.
-  local hash_offset="$(partoffset ${image} ${PARTITION_NUM_ROOT_A})"
+  local hash_offset="$(partoffset ${image} ${partition_num_root_a})"
   hash_offset=$((hash_offset + (${rootfs_fs_size} / 512)))
   sudo dd bs=512 \
           seek=${hash_offset} \
@@ -351,10 +357,10 @@ make_image_bootable() {
 
   # Install the kernel to both slots A and B so there will always be a regular
   # kernel in slot B on recovery and non-recovery images.
-  local koffset="$(partoffset ${image} ${PARTITION_NUM_KERN_A})"
+  local koffset="$(partoffset ${image} ${partition_num_kern_a})"
   sudo dd if="${FLAGS_output_dir}/vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
-  koffset="$(partoffset ${image} ${PARTITION_NUM_KERN_B})"
+  koffset="$(partoffset ${image} ${partition_num_kern_b})"
   sudo dd if="${FLAGS_output_dir}/hd_vmlinuz.image" of="${image}" \
     conv=notrunc bs=512 seek=${koffset} status=none
 
@@ -363,9 +369,11 @@ make_image_bootable() {
 
   # We should update the esp in place in the image.
   local bootloader_to="${image}"
-  local esp_offset="$(partoffset ${image} ${PARTITION_NUM_EFI_SYSTEM})"
+  local partition_num_efi_system="$(get_partition_number \
+    ${FLAGS_image_type} EFI-SYSTEM)"
+  local esp_offset="$(partoffset ${image} ${partition_num_efi_system})"
   esp_offset=$((esp_offset * 512))  # sectors to bytes
-  local esp_size="$(partsize ${image} ${PARTITION_NUM_EFI_SYSTEM})"
+  local esp_size="$(partsize ${image} ${partition_num_efi_system})"
   esp_size=$((esp_size * 512))  # sectors to bytes
   local bootloader_to_flags="--to_offset=${esp_offset} --to_size=${esp_size}"
 
@@ -380,7 +388,7 @@ make_image_bootable() {
   fi
 
   if [[ ${esp_size} -gt 0 ]]; then
-    # Update partition 12
+    # Update EFI partition
     ${SCRIPTS_DIR}/update_bootloaders.sh \
       --arch="${FLAGS_arch}" \
       --to="${bootloader_to}" \
@@ -401,7 +409,9 @@ make_image_bootable() {
 
 verify_image_rootfs() {
   local image=$1
-  local rootfs_offset="$(partoffset ${image} ${PARTITION_NUM_ROOT_A})"
+  local partition_num_root_a="$(get_partition_number \
+    ${FLAGS_image_type} ROOT-A)"
+  local rootfs_offset="$(partoffset ${image} ${partition_num_root_a})"
 
   local rootfs_tmp_file=$(mktemp)
   trap "rm ${rootfs_tmp_file}" EXIT
