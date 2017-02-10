@@ -259,6 +259,11 @@ mount_gpt_partitions() {
     die "Image ${filename} does not exist."
   fi
 
+  if [[ -f "${FLAGS_from}/${FLAGS_partition_script}" ]]; then
+    . "${FLAGS_from}/${FLAGS_partition_script}"
+    load_partition_vars
+  fi
+
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} && \
         ${FLAGS_safe} -eq ${FLAGS_FALSE} ]]; then
     local rootfs_offset=$(partoffset "${filename}" ${PARTITION_NUM_ROOT_A})
@@ -266,11 +271,6 @@ mount_gpt_partitions() {
     # if desired.
     # cros_make_image_bootable should restore the bit if needed.
     enable_rw_mount "${filename}" "$(( rootfs_offset * 512 ))"
-  fi
-
-  if [[ -f "${FLAGS_from}/${FLAGS_partition_script}" ]]; then
-    . "${FLAGS_from}/${FLAGS_partition_script}"
-    load_partition_vars
   fi
 
   # Mount in order: rootfs, stateful, OEM and EFI.
