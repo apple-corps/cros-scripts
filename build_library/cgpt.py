@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,7 +10,8 @@ from __future__ import print_function
 import copy
 import json
 import math
-import optparse
+# TODO(crbug.com/496565): Migrate to Argparse
+import optparse  # pylint: disable=deprecated-module
 import os
 import re
 import sys
@@ -755,7 +756,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       'local curr=%d' % _GetStartSector(config, partitions),
       '# Create the GPT headers and tables. Pad the primary ones.',
       '${GPT} create -p %d ${target}' % (_GetPrimaryEntryArrayLBA(config) -
-                                           (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
+                                         (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
   ]
 
   metadata = GetMetadataPartition(partitions)
