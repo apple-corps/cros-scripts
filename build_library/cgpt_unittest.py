@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/env python2
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -408,6 +408,7 @@ class JSONLoadingTest(unittest.TestCase):
                 'base': [
                     {
                         'erase_block_size': 262144,
+                        'features': [],
                         'num': 'metadata',
                         'page_size': 4096,
                         'type': 'blank'
@@ -415,6 +416,7 @@ class JSONLoadingTest(unittest.TestCase):
                     {
                         'blocks': 512,
                         'bytes': 262144,
+                        'features': [],
                         'format': 'ubi',
                         'fs_bytes': 253952,
                         'fs_size': "253952",
