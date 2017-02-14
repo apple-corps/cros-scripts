@@ -7,11 +7,10 @@
 
 from __future__ import print_function
 
+import argparse
 import copy
 import json
 import math
-# TODO(crbug.com/496565): Migrate to Argparse
-import optparse  # pylint: disable=deprecated-module
 import os
 import re
 import sys
@@ -1506,7 +1505,7 @@ def main(argv):
       },
   }
 
-  usage = """%prog <action> [options]
+  usage = """%(prog)s <action> [options]
 
 For information on the JSON format, see:
   http://dev.chromium.org/chromium-os/developer-guide/disk-layout-format
@@ -1538,24 +1537,22 @@ Actions:
                                               ' '.join(action['usage']), doc))
   usage += '\n\n'.join(action_docs)
 
-  parser = optparse.OptionParser(usage=usage)
-  parser.add_option("--adjust_part", dest="adjust_part",
-                    help="adjust partition sizes", default="")
-  (options, args) = parser.parse_args(args=argv[1:])
+  parser = argparse.ArgumentParser(usage=usage)
+  parser.add_argument('--adjust_part', metavar='SPEC', default='',
+                      help='adjust partition sizes')
+  parser.add_argument('command', choices=sorted(action_map.keys()))
+  parser.add_argument('args', nargs='*')
+  opts = parser.parse_args(argv)
 
-  if not args or args[0] not in action_map:
-    parser.error('need a valid action to perform')
+  action = action_map[opts.command]
+  if len(action['usage']) == len(opts.args):
+    ret = action['func'](opts, *opts.args)
+    if ret is not None:
+      print(ret)
   else:
-    action_name = args[0]
-    action = action_map[action_name]
-    if len(action['usage']) == len(args) - 1:
-      ret = action['func'](options, *args[1:])
-      if ret is not None:
-        print(ret)
-    else:
-      sys.exit('Usage: %s %s %s' % (sys.argv[0], args[0],
-                                    ' '.join(action['usage'])))
+    sys.exit('Usage: %s %s %s' % (sys.argv[0], opts.command,
+                                  ' '.join(action['usage'])))
 
 
 if __name__ == '__main__':
-  main(sys.argv)
+  sys.exit(main(sys.argv[1:]))
