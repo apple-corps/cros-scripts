@@ -3,12 +3,34 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Parse and operate based on disk layout files."""
+"""Parse and operate based on disk layout files.
+
+For information on the JSON format, see:
+  http://dev.chromium.org/chromium-os/developer-guide/disk-layout-format
+
+The --adjust_part flag takes arguments like:
+  <label>:<op><size>
+Where:
+  <label> is a label name as found in the disk layout file
+  <op> is one of the three: + - =
+  <size> is a number followed by an optional size qualifier:
+         B, KiB, MiB, GiB, TiB: bytes, kibi-, mebi-, gibi-, tebi- (base 1024)
+         B,   K,   M,   G,   T: short hand for above
+         B,  KB,  MB,  GB,  TB: bytes, kilo-, mega-, giga-, tera- (base 1000)
+
+This will set the ROOT-A partition size to 1 gibibytes (1024 * 1024 * 1024 * 1):
+  --adjust_part ROOT-A:=1GiB
+This will grow the ROOT-A partition size by 500 mebibytes (1024 * 1024 * 500):
+  --adjust_part ROOT-A:+500MiB
+This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
+  --adjust_part ROOT-A:-20MiB
+"""
 
 from __future__ import print_function
 
 import argparse
 import copy
+import inspect
 import json
 import math
 import os
@@ -1433,125 +1455,99 @@ def Validate(options, image_type, layout_filename):
   CheckReservedEraseBlocks(partitions)
 
 
-def main(argv):
-  action_map = {
-      'write': {
-          'usage': ['<image_type>', '<disk_layout>', '<script_file>'],
-          'func': WritePartitionScript,
-      },
-      'readblocksize': {
-          'usage': ['<disk_layout>'],
-          'func': GetBlockSize,
-      },
-      'readfsblocksize': {
-          'usage': ['<disk_layout>'],
-          'func': GetFilesystemBlockSize,
-      },
-      'readpartsize': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetPartitionSize,
-      },
-      'readformat': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetFormat,
-      },
-      'readfsformat': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetFilesystemFormat,
-      },
-      'readfssize': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetFilesystemSize,
-      },
-      'readimagetypes': {
-          'usage': ['<disk_layout>'],
-          'func': GetImageTypes,
-      },
-      'readfsoptions': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetFilesystemOptions,
-      },
-      'readlabel': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetLabel,
-      },
-      'readnumber': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_label>'],
-          'func': GetNumber,
-      },
-      'readreservederaseblocks': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetReservedEraseBlocks,
-      },
-      'readtype': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetType,
-      },
-      'readpartitionnums': {
-          'usage': ['<image_type>', '<disk_layout>'],
-          'func': GetPartitions,
-      },
-      'readuuid': {
-          'usage': ['<image_type>', '<disk_layout>', '<partition_num>'],
-          'func': GetUUID,
-      },
-      'debug': {
-          'usage': ['<image_type>', '<disk_layout>'],
-          'func': DoDebugOutput,
-      },
-      'validate': {
-          'usage': ['<image_type>', '<disk_layout>'],
-          'func': Validate,
-      },
-  }
+class ArgsAction(argparse.Action):  # pylint: disable=no-init
+  """Helper to add all arguments to an args array.
 
-  usage = """%(prog)s <action> [options]
+  ArgumentParser does not let you specify the same dest for multiple args.
+  We take care of appending to the 'args' array ourselves here.
+  """
 
-For information on the JSON format, see:
-  http://dev.chromium.org/chromium-os/developer-guide/disk-layout-format
+  def __call__(self, parser, namespace, values, option_string=None):
+    args = getattr(namespace, 'args', [])
+    args.append(values)
+    setattr(namespace, 'args', args)
 
-The --adjust_part flag takes arguments like:
-  <label>:<op><size>
-Where:
-  <label> is a label name as found in the disk layout file
-  <op> is one of the three: + - =
-  <size> is a number followed by an optional size qualifier:
-         B, KiB, MiB, GiB, TiB: bytes, kibi-, mebi-, gibi-, tebi- (base 1024)
-         B,   K,   M,   G,   T: short hand for above
-         B,  KB,  MB,  GB,  TB: bytes, kilo-, mega-, giga-, tera- (base 1000)
 
-This will set the ROOT-A partition size to 1 gibibytes (1024 * 1024 * 1024 * 1):
-  --adjust_part ROOT-A:=1GiB
-This will grow the ROOT-A partition size by 500 mebibytes (1024 * 1024 * 500):
-  --adjust_part ROOT-A:+500MiB
-This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
-  --adjust_part ROOT-A:-20MiB
+class HelpAllAction(argparse.Action):
+  """Display all subcommands help in one go."""
 
-Actions:
-"""
+  def __init__(self, *args, **kwargs):
+    if 'nargs' in kwargs:
+      raise ValueError('nargs not allowed')
+    kwargs['nargs'] = 0
+    argparse.Action.__init__(self, *args, **kwargs)
 
-  action_docs = []
-  for action_name, action in sorted(action_map.iteritems()):
-    doc = action['func'].__doc__.split('\n', 1)[0]
-    action_docs.append('  %s %s\n      %s' % (action_name,
-                                              ' '.join(action['usage']), doc))
-  usage += '\n\n'.join(action_docs)
+  def __call__(self, parser, namespace, values, option_string=None):
+    print('%s\nCommands:' % (parser.description,), end='')
+    subparser = getattr(namespace, 'help_all')
+    for key, subparser in namespace.help_all.choices.items():
+      # Should we include the desc of each arg too ?
+      print('\n  %s %s\n    %s' %
+            (key, subparser.get_default('help_all'), subparser.description))
+    sys.exit(0)
 
-  parser = argparse.ArgumentParser(usage=usage)
+
+def GetParser():
+  """Return a parser for the CLI."""
+  parser = argparse.ArgumentParser(
+      description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('--adjust_part', metavar='SPEC', default='',
                       help='adjust partition sizes')
-  parser.add_argument('command', choices=sorted(action_map.keys()))
-  parser.add_argument('args', nargs='*')
+
+  action_map = {
+      'write': WritePartitionScript,
+      'readblocksize': GetBlockSize,
+      'readfsblocksize': GetFilesystemBlockSize,
+      'readpartsize': GetPartitionSize,
+      'readformat': GetFormat,
+      'readfsformat': GetFilesystemFormat,
+      'readfssize': GetFilesystemSize,
+      'readimagetypes': GetImageTypes,
+      'readfsoptions': GetFilesystemOptions,
+      'readlabel': GetLabel,
+      'readnumber': GetNumber,
+      'readreservederaseblocks': GetReservedEraseBlocks,
+      'readtype': GetType,
+      'readpartitionnums': GetPartitions,
+      'readuuid': GetUUID,
+      'debug': DoDebugOutput,
+      'validate': Validate,
+  }
+
+  subparsers = parser.add_subparsers(title='Commands')
+  for name, func in sorted(action_map.iteritems()):
+    # Turn the func's docstring into something we can show the user.
+    desc, doc = func.__doc__.split('\n', 1)
+    # Extract the help for each argument.
+    args_help = {}
+    for line in doc.splitlines():
+      if ':' in line:
+        arg, text = line.split(':', 1)
+        args_help[arg.strip()] = text.strip()
+
+    argspec = inspect.getargspec(func)
+    # Skip the first argument as that'll be the options field.
+    args = argspec.args[1:]
+
+    subparser = subparsers.add_parser(name, description=desc, help=desc)
+    subparser.set_defaults(callback=func,
+                           help_all=' '.join('<%s>' % x for x in args))
+    for arg in args:
+      subparser.add_argument(arg, action=ArgsAction, help=args_help[arg])
+
+  parser.add_argument('--help-all', action=HelpAllAction, default=subparsers,
+                      help='show all commands and their help in one screen')
+
+  return parser
+
+
+def main(argv):
+  parser = GetParser()
   opts = parser.parse_args(argv)
 
-  action = action_map[opts.command]
-  if len(action['usage']) == len(opts.args):
-    ret = action['func'](opts, *opts.args)
-    if ret is not None:
-      print(ret)
-  else:
-    sys.exit('Usage: %s %s %s' % (sys.argv[0], opts.command,
-                                  ' '.join(action['usage'])))
+  ret = opts.callback(opts, *opts.args)
+  if ret is not None:
+    print(ret)
 
 
 if __name__ == '__main__':
