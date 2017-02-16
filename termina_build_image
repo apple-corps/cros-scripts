@@ -1,0 +1,139 @@
+#!/bin/bash
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
+. "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
+
+assert_inside_chroot "$@"
+
+DEFINE_string board "${DEFAULT_BOARD}" \
+  "The board to build an image for."
+DEFINE_boolean dev "${FLAGS_FALSE}" \
+  "Include dev packages and allow serial login."
+DEFINE_boolean test "${FLAGS_FALSE}" \
+  "Include test and dev packages, and allow serial login."
+DEFINE_string output_root "${DEFAULT_BUILD_ROOT}/images" \
+  "Directory in which to place image result directories (named by version)"
+
+FLAGS_HELP="USAGE: ${SCRIPT_NAME} [flags]
+
+To build a tatl dev image, try:
+$ ${SCRIPT_NAME} --board=tatl --dev
+"
+FLAGS "$@" || exit 1
+eval set -- "${FLAGS_ARGV}"
+switch_to_strict_mode
+
+IMAGE_TYPE_BASE="base"
+IMAGE_TYPE_DEV="dev"
+IMAGE_TYPE_TEST="test"
+
+# Produce the VM image.
+build_vm_image() {
+  local image_name="$1"
+  local image_type="$2"
+  local extra=()
+  local ROOTDIR="${OUTPUT_DIR}/rootfs"
+  local image_suffix=""
+
+  case "${image_type}" in
+    "${IMAGE_TYPE_TEST}")
+      extra+=( "virtual/target-termina-os-dev" )
+      extra+=( "virtual/target-termina-os-test" )
+      image_suffix="-test"
+      ;;
+    "${IMAGE_TYPE_DEV}")
+      extra+=( "virtual/target-termina-os-dev" )
+      image_suffix="-dev"
+      ;;
+  esac
+
+  export INSTALL_MASK="${DEFAULT_INSTALL_MASK}"
+
+  mkdir -p "${OUTPUT_DIR}"
+
+  install_with_root_deps "${ROOTDIR}" "virtual/target-termina-os" \
+                                      "sys-libs/gcc-libs" \
+                                      "${extra[@]}"
+
+  info "Installing C library ... "
+  install_libc "${ROOTDIR}"
+
+  info "Cleaning excess files ... "
+  sudo rm -rf "${ROOTDIR}"/var "${ROOTDIR}"/usr/lib*/gconv/ \
+    "${ROOTDIR}"/sbin/ldconfig "${ROOTDIR}"/boot "${ROOTDIR}"/lib/firmware
+  # Remove empty directories from the rootfs.
+  sudo find "${ROOTDIR}"/ -type d -depth -exec rmdir {} + 2>/dev/null || :
+
+  info "Creating top level dirs and socket dirs ... "
+  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,run,tmp,var}
+
+  info "Creating container mounts ..."
+  sudo mkdir -p "${ROOTDIR}"/mnt/{container_rootfs,container_private}
+
+  info "Installing container pubkey ..."
+  "${VBOOT_SIGNING_DIR}"/insert_container_publickey.sh \
+    "${ROOTDIR}" \
+    "${VBOOT_DEVKEYS_DIR}"/cros-oci-container-pub.pem
+
+  info "Generating squashfs file ... "
+  local args=(
+    -all-root
+    -noappend
+  )
+  local img="${OUTPUT_DIR}/rootfs${image_suffix}.bin"
+  sudo mksquashfs "${ROOTDIR}" "${img}" "${args[@]}"
+  sudo chown $(id -u):$(id -g) "${img}"
+
+  info "Copying in kernel ..."
+  cp /build/"${FLAGS_board}"/boot/vmlinuz \
+     "${OUTPUT_DIR}/termina-kernel${image_suffix}.bin"
+
+  info "Cleaning up ... "
+  sudo rm -rf "${ROOTDIR}"
+}
+
+run_emerge() {
+  emerge-${BOARD} \
+    --quiet --jobs ${NUM_JOBS} \
+    --usepkgonly \
+    "$@"
+}
+
+# Emerge with root deps.
+install_with_root_deps() {
+  local root_dir="$1"
+  shift
+  info "Installing '$*' with root deps ... "
+  run_emerge --root="${root_dir}" "$@" --root-deps=rdeps
+}
+
+main() {
+  OVERLAY_CHROMEOS_DIR="${SRC_ROOT}/third_party/chromiumos-overlay/chromeos"
+  . "${OVERLAY_CHROMEOS_DIR}/config/chromeos_version.sh" || exit 1
+  . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+  . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
+  . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
+
+  local image_name="${FLAGS_board}"
+  info "Building '${image_name}' ..."
+  build_vm_image "${image_name}" "${IMAGE_TYPE_BASE}"
+
+  if [[ ${FLAGS_dev} -eq ${FLAGS_true} ]]; then
+    info "Building '${image_name}-dev' ..."
+    build_vm_image "${image_name}-dev" "${IMAGE_TYPE_DEV}"
+  fi
+
+  if [[ ${FLAGS_test} -eq ${FLAGS_true} ]]; then
+    info "Building '${image_name}-test' ..."
+    build_vm_image "${image_name}-test" "${IMAGE_TYPE_TEST}"
+  fi
+
+  # Set up symlink to latest image directory.
+  LINK_NAME="${FLAGS_output_root}/${BOARD}/latest"
+  ln -sfT $(basename ${OUTPUT_DIR}) ${LINK_NAME}
+}
+
+main "$@"
