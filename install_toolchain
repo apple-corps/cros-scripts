@@ -68,7 +68,17 @@ cross_get_version() {
   local count="$(echo $result | wc -w)"
   if [ "$count" -gt "1" ]; then
     die "Multiple versions of $pkg installed"
-  elif [ "$count" -lt "1" ]; then
+  fi
+  echo $result
+}
+
+# Get the version number of a toolchain package.
+# Die if the package is not found.
+cross_get_version_or_die() {
+  local pkg=$1
+  local result=$(cross_get_version "$@")
+  local count="$(echo $result | wc -w)"
+  if [ "$count" -lt "1" ]; then
     die "Cannot find $pkg"
   fi
   echo $result
@@ -78,7 +88,7 @@ cross_get_version() {
 # matches the one installed by the toolchain.
 board_needs_libc_update() {
   local board_version=$(get_variable "${SYSROOT_CACHE}" "LIBC_VERSION")
-  local toolchain_version=$(cross_get_version glibc)
+  local toolchain_version=$(cross_get_version_or_die glibc)
   if [[ "${board_version}" = "${toolchain_version}" ]]; then
     return 1
   fi
@@ -106,8 +116,8 @@ EOF
 # into the board root.
 install_toolchain_in_board() {
   local cmds
-  local gcc_ver=$(cross_get_version gcc)
-  local libc_ver=$(cross_get_version glibc)
+  local gcc_ver=$(cross_get_version_or_die gcc)
+  local libc_ver=$(cross_get_version_or_die glibc)
   local go_ver=$(cross_get_version go)
   if [[ -z ${gcc_ver} || -z ${libc_ver} ]]; then
     die "Cannot find toolchain to install into board root"
