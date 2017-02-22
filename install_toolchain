@@ -43,33 +43,33 @@ cross_get_version() {
   local pkg=$1
   local toolchain=${2:-${FLAGS_toolchain}}
   local cpv
-  if [[ "$CHOST" != "${toolchain}" ]]; then
-    if [[  "$pkg" = "gcc" ]]; then
+  if [[ "${CHOST}" != "${toolchain}" ]]; then
+    if [[ "${pkg}" == "gcc" ]]; then
       # Users can install multiple versions of gcc at once, so we need to call
       # gcc-config to find out which installed version is selected.
       local path=$(CTARGET="${toolchain}" gcc-config -B || true)
-      cpv=$(portageq owners / "$path" | sed -e '/^\t/d')
+      cpv=$(portageq owners / "${path}" | sed -e '/^\t/d')
     else
       cpv=$(portageq match / "cross-${toolchain}/${pkg}" || true)
     fi
   else
-    if [[ "$pkg" = glibc ]] ; then
+    if [[ "${pkg}" == glibc ]] ; then
       cpv=$(portageq match / sys-libs/glibc || true)
-    elif [[ "$pkg" = gcc ]] ; then
+    elif [[ "${pkg}" == gcc ]] ; then
       cpv=$(portageq match / sys-devel/gcc || true)
-    elif [[ "$pkg" = go ]] ; then
+    elif [[ "${pkg}" == go ]] ; then
       cpv=$(portageq match / dev-lang/go || true)
     else
       die "Unknown pkg ${pkg}"
     fi
   fi
-  local cp=$(echo $cpv | sed -e 's/-r[0-9]*$//; s/-[^-]*$//')
+  local cp=$(echo ${cpv} | sed -e 's/-r[0-9]*$//; s/-[^-]*$//')
   local result="${cpv#$cp-}"
   local count="$(echo $result | wc -w)"
-  if [ "$count" -gt "1" ]; then
-    die "Multiple versions of $pkg installed"
+  if [ "${count}" -gt "1" ]; then
+    die "Multiple versions of ${pkg} installed"
   fi
-  echo $result
+  echo "${result}"
 }
 
 # Get the version number of a toolchain package.
@@ -78,17 +78,19 @@ cross_get_version_or_die() {
   local pkg=$1
   local result=$(cross_get_version "$@")
   local count="$(echo $result | wc -w)"
-  if [ "$count" -lt "1" ]; then
-    die "Cannot find $pkg"
+  if [ "${count}" -lt "1" ]; then
+    die "Cannot find ${pkg}"
   fi
-  echo $result
+  echo "${result}"
 }
 
 # Checks whether the libc version installed in the board
 # matches the one installed by the toolchain.
 board_needs_libc_update() {
   local board_version=$(get_variable "${SYSROOT_CACHE}" "LIBC_VERSION")
-  local toolchain_version=$(cross_get_version_or_die glibc)
+  local toolchain_version
+  # Keep `local` decl split from assignment so return code is checked.
+  toolchain_version=$(cross_get_version_or_die glibc)
   if [[ "${board_version}" = "${toolchain_version}" ]]; then
     return 1
   fi
@@ -115,10 +117,11 @@ EOF
 # Install all of the stuff that depends on the toolchain versions
 # into the board root.
 install_toolchain_in_board() {
-  local cmds
-  local gcc_ver=$(cross_get_version_or_die gcc)
-  local libc_ver=$(cross_get_version_or_die glibc)
-  local go_ver=$(cross_get_version go)
+  local cmds gcc_ver libc_ver go_ver
+  # Keep `local` decl split from assignments so return code is checked.
+  gcc_ver=$(cross_get_version_or_die gcc)
+  libc_ver=$(cross_get_version_or_die glibc)
+  go_ver=$(cross_get_version go)
   if [[ -z ${gcc_ver} || -z ${libc_ver} ]]; then
     die "Cannot find toolchain to install into board root"
   fi
