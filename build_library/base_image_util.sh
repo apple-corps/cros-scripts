@@ -201,6 +201,9 @@ create_base_image() {
   # in parallel to speed things up.
   #
 
+  # Run depmod to recalculate the kernel module dependencies.
+  run_depmod "${BOARD_ROOT}" "${root_fs_dir}"
+
   # Generate the license credits page for the packages installed on this
   # image in a location that will be used by Chrome.
   info "Generating license credits page. Time:"

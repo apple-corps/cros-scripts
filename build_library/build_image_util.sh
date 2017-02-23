@@ -288,3 +288,28 @@ run_ldconfig() {
     die "Unable to run ldconfig for ARCH ${ARCH}"
   esac
 }
+
+# Runs "depmod" to recalculate the kernel module dependencies.
+# Args:
+#   board_root: root of the build output for the board
+#   root_fs_dir: target root file system mount point
+run_depmod() {
+  local board_root="$1"
+  local root_fs_dir="$2"
+
+  local root_fs_modules_path="${root_fs_dir}/lib/modules"
+  if [[ ! -d "${root_fs_modules_path}" ]]; then
+    return
+  fi
+
+  local kernel_path
+  for kernel_path in "${root_fs_modules_path}/"*; do
+    local kernel_release="$(basename ${kernel_path})"
+    local kernel_out_dir="${board_root}/lib/modules/${kernel_release}/build"
+    local system_map="${kernel_out_dir}/System.map"
+
+    if [[ -r "${system_map}" ]]; then
+      sudo depmod -ae -F "${system_map}" -b "${root_fs_dir}" "${kernel_release}"
+    fi
+  done
+}

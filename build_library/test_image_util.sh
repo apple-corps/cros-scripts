@@ -34,6 +34,9 @@ mod_image_for_test () {
     BOARD_ROOT="${BOARD_ROOT}" BUILD_DIR="${BUILD_DIR}" \
     "${mod_test_script}"
 
+  # Run depmod to recalculate the kernel module dependencies.
+  run_depmod "${BOARD_ROOT}" "${root_fs_dir}"
+
   # Re-run ldconfig to fix /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 

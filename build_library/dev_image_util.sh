@@ -34,6 +34,9 @@ install_dev_packages() {
   # Install developer packages.
   emerge_to_image --root="${root_dev_dir}" virtual/target-os-dev
 
+  # Run depmod to recalculate the kernel module dependencies.
+  run_depmod "${BOARD_ROOT}" "${root_fs_dir}"
+
   # Copy over the libc debug info so that gdb
   # works with threads and also for a better debugging experience.
   sudo mkdir -p "${root_fs_dir}/usr/local/usr/lib/debug"
