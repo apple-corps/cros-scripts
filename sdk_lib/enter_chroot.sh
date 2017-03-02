@@ -28,6 +28,8 @@ DEFINE_string chrome_root_mount "/home/${SUDO_USER}/chrome_root" \
 DEFINE_string workspace_root "" \
   "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to use for caching."
+DEFINE_string goma_dir "" "Goma installed directory."
+DEFINE_string goma_client_json "" "Service account json file for goma."
 
 DEFINE_boolean ssh_agent $FLAGS_TRUE "Import ssh agent."
 DEFINE_boolean early_make_chroot $FLAGS_FALSE \
@@ -427,6 +429,26 @@ setup_env() {
     if [ -n "${FLAGS_workspace_root}" ]; then
       debug "Mounting workspace"
       setup_mount "${FLAGS_workspace_root}" --bind "${WORKSPACE_DIR}"
+    fi
+
+    if [[ -n "${FLAGS_goma_dir}" ]]; then
+      debug "Mounting goma"
+      # $HOME/goma is the default directory for goma.
+      # It is used by goma if GOMA_DIR is not provide.
+      setup_mount "${FLAGS_goma_dir}" --bind "/home/${SUDO_USER}/goma"
+    fi
+
+    if [[ -n "${FLAGS_goma_client_json}" ]]; then
+      debug "Mounting service-account-goma-client.json"
+      local dest_path="/creds/service_accounts/service-account-goma-client.json"
+      # setup_mount assumes the target is a directory by default.
+      # So here, touch the file in advance.
+      local mounted_path="${MOUNTED_PATH}${dest_path}"
+      mkdir -p $(dirname "${mounted_path}")
+      touch "${mounted_path}"
+      # Note: Original UID:GUI and permission should be inherited even after
+      # mounting.
+      setup_mount "${FLAGS_goma_client_json}" --bind "${dest_path}"
     fi
 
     # Mount additional directories as specified in .local_mounts file.
