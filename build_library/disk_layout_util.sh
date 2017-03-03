@@ -406,6 +406,10 @@ mk_fs() {
     sudo dd if="${squash_file}" of="${part_dev}" bs=4096 status=none
     rm "${squash_file}"
     ;;
+  btrfs)
+    sudo mkfs.${fs_format} -b "$((fs_bytes))" -L "${fs_label}" "${part_dev}" \
+        "${fs_options_arr[@]}"
+    ;;
   *)
     die "Unknown fs format '${fs_format}' for part ${part_num}";;
   esac
