@@ -44,6 +44,16 @@
 			]
 		},
 		{
+			"destination": "/sys",
+			"type": "sysfs",
+			"source": "sysfs",
+			"options": [
+				"nosuid",
+				"noexec",
+				"nodev"
+			]
+		},
+		{
 			"destination": "/dev",
 			"type": "tmpfs",
 			"source": "tmpfs",
