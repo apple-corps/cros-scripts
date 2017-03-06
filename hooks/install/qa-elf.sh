@@ -67,6 +67,10 @@ check_linker_flags()
 
 check_binaries()
 {
+  if [[ " ${RESTRICT} " == *" binchecks "* ]] ; then
+    return
+  fi
+
   local CTARGET="${CTARGET:-${CHOST}}"
   local readelf="${CTARGET}-readelf"
   local binary

@@ -125,7 +125,9 @@ check_lfs()
 # should be good enough for our needs so far.
 case ${ARCH} in
 arm|mips|ppc|sh|x86)
-  check_lfs "${D}"
+  if [[ " ${RESTRICT} " == *" binchecks "* ]] ; then
+    check_lfs "${D}"
+  fi
   ;;
 esac
 
