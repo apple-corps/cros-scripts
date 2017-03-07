@@ -1041,9 +1041,6 @@ command_completed() {
     echo "${attr} ${stats[${attr}]}"
   done >> "${tmpfile}"
 
-  # Call upload_command_stats on the stats file.  If it fails do not stop.
-  "${GCLIENT_ROOT}"/chromite/bin/upload_command_stats "${tmpfile}" || true
-
   rm "${tmpfile}"
   trap - EXIT
 }
