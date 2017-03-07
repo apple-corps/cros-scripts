@@ -223,7 +223,7 @@
       },
       {
         "num": 1,
-        "size": "3072 MiB"
+        "size": "4 GiB"
       }
     ],
     # Very large rootfs, suitable for development with symbols,
