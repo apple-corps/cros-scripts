@@ -444,9 +444,9 @@ setup_env() {
       # setup_mount assumes the target is a directory by default.
       # So here, touch the file in advance.
       local mounted_path="${MOUNTED_PATH}${dest_path}"
-      mkdir -p $(dirname "${mounted_path}")
+      mkdir -p "$(dirname "${mounted_path}")"
       touch "${mounted_path}"
-      # Note: Original UID:GUI and permission should be inherited even after
+      # Note: Original UID:GID and permission should be inherited even after
       # mounting.
       setup_mount "${FLAGS_goma_client_json}" --bind "${dest_path}"
     fi
