@@ -9,8 +9,6 @@
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 . "${SCRIPT_ROOT}/remote_access.sh" || exit 1
-# This file is sourced for partition constants.
-. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 # Script must be run inside the chroot.
 restart_in_chroot_if_needed "$@"
@@ -191,6 +189,8 @@ main() {
   learn_board
 
   learn_device
+
+  learn_partition_layout
 
   learn_partition_and_ro
 

@@ -110,6 +110,7 @@ _remote_sh() {
 
 # Wrapper for ssh that runs the commmand given by the args on the remote host
 # If an ssh error occurs, re-runs the ssh command.
+# Output is stored in REMOTE_OUT.
 remote_sh() {
   local ssh_status=0
   _remote_sh "$@" || ssh_status=$?
@@ -170,6 +171,12 @@ learn_arch() {
     exit 1
   fi
   info "Target reports arch is ${FLAGS_arch}"
+}
+
+# Discover partition numbers from the target.
+learn_partition_layout() {
+  source <(remote_sh_raw cat /usr/sbin/write_gpt.sh)
+  load_base_vars
 }
 
 # Checks whether a remote device has rebooted successfully.
