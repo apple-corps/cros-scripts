@@ -4,6 +4,8 @@
 
 . "${SRC_ROOT}/platform/dev/toolchain_utils.sh" || exit 1
 
+CHROMEOS_MASTER_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.dtb"
+
 check_full_disk() {
   local prev_ret=$?
 
@@ -253,9 +255,18 @@ create_base_image() {
     builder_path="--builder_path=${FLAGS_builder_path}"
   fi
 
+  # For unified builds, include a list of models, e.g. with --models "reef pyro"
+  local model_flags=()
+  if [[ -f "${CHROMEOS_MASTER_CONFIG_FILE}" ]]; then
+    models=$(fdtget "${CHROMEOS_MASTER_CONFIG_FILE}" -l /chromeos/models \
+      | tr '\n' ' ')
+    [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
+  fi
+
   "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
+    "${model_flags[@]}" \
     ${builder_path} \
     --version_string="${CHROMEOS_VERSION_STRING}" \
     --auserver="${CHROMEOS_VERSION_AUSERVER}" \
