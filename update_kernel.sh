@@ -120,6 +120,28 @@ make_kernelimage() {
   rm "${config_path}"
 }
 
+copy_kernelmodules() {
+  echo "copying modules"
+  local modules_dir=/build/"${FLAGS_board}"/lib/modules/
+  if [ ! -d "${modules_dir}" ]; then
+    info "No modules.  Skipping."
+    return
+  fi
+  remote_send_to "${modules_dir}" /lib/modules/
+  local kernel_release
+  remote_sh "cd /lib/modules; echo *"
+  for kernel_release in "${REMOTE_OUT}"; do
+    local system_map="${modules_dir}"/"${kernel_release}"/build/System.map
+    if [ -r "${system_map}" ]; then
+      remote_sh mktemp -d /tmp/update_kernel_system_map_"${kernel_release}".XXXXXX
+      local temp_dir="${REMOTE_OUT}"
+      remote_cp_to "${system_map}" "${temp_dir}"
+      remote_sh depmod -ae -F "${temp_dir}"/System.map "${kernel_release}"
+      remote_sh rm -rf "${temp_dir}"
+    fi
+  done
+}
+
 copy_kernelimage() {
   remote_sh dd of="${FLAGS_partition}" bs=4K < "${TMP}/new_kern.bin"
 }
@@ -213,12 +235,7 @@ main() {
       update_syslinux_kernel
     fi
 
-    echo "copying modules"
-    if [ -d /build/"${FLAGS_board}"/lib/modules/ ]; then
-      remote_send_to /build/"${FLAGS_board}"/lib/modules/ /lib/modules/
-    else
-      info "No modules.  Skipping."
-    fi
+    copy_kernelmodules
 
     echo "copying firmware"
     remote_send_to /build/"${FLAGS_board}"/lib/firmware/ /lib/firmware/
