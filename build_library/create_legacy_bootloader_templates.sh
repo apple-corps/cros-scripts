@@ -9,7 +9,7 @@
 
 SCRIPT_ROOT=$(readlink -f $(dirname "$0")/..)
 . "${SCRIPT_ROOT}/common.sh" || exit 1
-. ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
+. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 # We're invoked only by build_image, which runs in the chroot
 assert_inside_chroot
@@ -29,6 +29,8 @@ DEFINE_boolean enable_rootfs_verification ${FLAGS_FALSE} \
   "Controls if verity is used for root filesystem checking (Default: false)"
 DEFINE_string enable_serial "tty2" \
   "Enable serial port for printks. Example values: ttyS0 (Default: tty2)"
+DEFINE_string image_type "usb" \
+  "Type of image we're building for."
 DEFINE_integer loglevel 7 \
   "The loglevel to add to the kernel command line."
 DEFINE_integer verity_error_behavior 3 \
@@ -100,6 +102,14 @@ verity_common="${verity_common} dm_verity.max_bios=${FLAGS_verity_max_ios}"
 # Ensure that dm-verity waits for its device.
 # TODO(wad) should add a timeout that display a useful message
 verity_common="${verity_common} dm_verity.dev_wait=${dev_wait}"
+
+# Discover last known partition numbers.
+partition_num_kern_a="$(get_layout_partition_number \
+    "${FLAGS_image_type}" KERN-A)"
+partition_num_kern_b="$(get_layout_partition_number \
+    "${FLAGS_image_type}" KERN-B)"
+partition_num_root_a="$(get_layout_partition_number \
+    "${FLAGS_image_type}" ROOT-A)"
 
 # Populate the x86 rootfs to support legacy and EFI bios config templates.
 # The templates are used by the installer to populate partition 12 with
@@ -214,8 +224,8 @@ EOF
   cat <<EOF | sudo dd of="${FLAGS_to}/efi/boot/grub.cfg" 2>/dev/null
 defaultA=0
 defaultB=1
-gptpriority \$grubdisk ${PARTITION_NUM_KERN_A} prioA
-gptpriority \$grubdisk ${PARTITION_NUM_KERN_B} prioB
+gptpriority \$grubdisk ${partition_num_kern_a} prioA
+gptpriority \$grubdisk ${partition_num_kern_b} prioB
 
 if [ \$prioA -lt \$prioB ]; then
   set default=\$defaultB
@@ -249,7 +259,7 @@ menuentry "verified image B" {
 
 # FIXME: usb doesn't support verified boot for now
 menuentry "Alternate USB Boot" {
-  linux (hd0,${PARTITION_NUM_ROOT_A})/boot/vmlinuz ${common_args} root=HDROOTUSB i915.modeset=1 cros_efi
+  linux (hd0,${partition_num_root_a})/boot/vmlinuz ${common_args} root=HDROOTUSB i915.modeset=1 cros_efi
 }
 EOF
   if [[ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]]; then

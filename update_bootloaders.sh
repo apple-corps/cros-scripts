@@ -9,7 +9,7 @@
 
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
-. ${BUILD_LIBRARY_DIR}/disk_layout_util.sh
+. "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 
 # Need to be inside the chroot to load chromeos-common.sh
 assert_inside_chroot
@@ -20,6 +20,8 @@ assert_inside_chroot
 # Flags.
 DEFINE_string arch "x86" \
   "The boot architecture: arm, mips, x86, or amd64 (Default: x86)"
+DEFINE_string image_type "usb" \
+  "Type of image we're building for."
 # TODO(wad) once extlinux is dead, we can remove this.
 DEFINE_boolean install_syslinux ${FLAGS_FALSE} \
   "Controls whether syslinux is run on 'to'. (Default: false)"
@@ -73,8 +75,13 @@ if ! type -p update_x86_bootloaders; then
       dm_table=$(echo "$kernel_cmdline" | sed -s 's/.*dm="\([^"]*\)".*/\1/')
     fi
 
-    root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" ${PARTITION_NUM_ROOT_A})"
-    root_b_uuid="PARTUUID=$(part_index_to_uuid "$to" ${PARTITION_NUM_ROOT_B})"
+    # Discover last known partition numbers.
+    local partition_num_root_a="$(get_layout_partition_number \
+      "${FLAGS_image_type}" ROOT-A)"
+    local partition_num_root_b="$(get_layout_partition_number \
+      "${FLAGS_image_type}" ROOT-B)"
+    root_a_uuid="PARTUUID=$(part_index_to_uuid "$to" ${partition_num_root_a})"
+    root_b_uuid="PARTUUID=$(part_index_to_uuid "$to" ${partition_num_root_b})"
 
     # Rewrite grub table
     grub_dm_table_a=${dm_table//${old_root}/${root_a_uuid}}

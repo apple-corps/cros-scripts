@@ -157,7 +157,7 @@ create_base_image() {
   fi
 
   check_valid_layout "base"
-  check_valid_layout ${image_type}
+  check_valid_layout "${image_type}"
 
   info "Using image type ${image_type}"
   get_disk_layout_path
@@ -307,6 +307,7 @@ create_base_image() {
   ${BUILD_LIBRARY_DIR}/create_legacy_bootloader_templates.sh \
     --arch=${ARCH} \
     --board=${BOARD} \
+    --image_type="${image_type}" \
     --to="${root_fs_dir}"/boot \
     --boot_args="${FLAGS_boot_args}" \
     --enable_serial="${FLAGS_enable_serial}" \

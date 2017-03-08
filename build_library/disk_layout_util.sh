@@ -171,7 +171,7 @@ get_label() {
   cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
-get_partition_number() {
+get_layout_partition_number() {
   local image_type=$1
   local part_label=$2
   get_disk_layout_path
@@ -474,7 +474,8 @@ build_gpt_image() {
 
   # Pre-set "sucessful" bit in gpt, so we will never mark-for-death
   # a partition on an SDCard/USB stick.
-  cgpt add -i $(get_partition_number "${disk_layout}" KERN-A) -S 1 "${outdev}"
+  cgpt add -i $(get_layout_partition_number "${disk_layout}" KERN-A) -S 1 \
+    "${outdev}"
 }
 
 round_up_4096() {

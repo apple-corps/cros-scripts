@@ -297,10 +297,10 @@ make_image_bootable() {
   fi
 
   # Builds the kernel partition image.
-  local partition_num_root_a="$(get_partition_number \
-    ${FLAGS_image_type} ROOT-A)"
-  local rootfs_fs_size=$(get_filesystem_size ${FLAGS_image_type} \
-      ${partition_num_root_a})
+  local partition_num_root_a="$(get_layout_partition_number \
+    "${FLAGS_image_type}" ROOT-A)"
+  local rootfs_fs_size=$(get_filesystem_size "${FLAGS_image_type}" \
+    "${partition_num_root_a}")
   build_img "vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" "${keyblock}" \
             "recovery_kernel_data_key.vbprivk" "recovery_key.vbpubk"
   build_img "hd_vmlinuz.image" "${root_dev}" "${rootfs_fs_size}" \
@@ -313,11 +313,11 @@ make_image_bootable() {
   info "Kernel image A   size is ${kernel_image_size_A} bytes."
   local kernel_image_size_B=$(stat -c '%s' ${FLAGS_output_dir}/hd_vmlinuz.image)
   info "Kernel image B   size is ${kernel_image_size_B} bytes."
-  local partition_num_kern_a="$(get_partition_number \
-    ${FLAGS_image_type} KERN-A)"
+  local partition_num_kern_a="$(get_layout_partition_number \
+    "${FLAGS_image_type}" KERN-A)"
   check_kernel_size ${kernel_image_size_A} ${partition_num_kern_a} A
-  local partition_num_kern_b="$(get_partition_number \
-    ${FLAGS_image_type} KERN-B)"
+  local partition_num_kern_b="$(get_layout_partition_number \
+    "${FLAGS_image_type}" KERN-B)"
   check_kernel_size ${kernel_image_size_B} ${partition_num_kern_b} B
 
   local rootfs_hash_size=$(stat -c '%s' ${FLAGS_rootfs_hash})
@@ -369,8 +369,8 @@ make_image_bootable() {
 
   # We should update the esp in place in the image.
   local bootloader_to="${image}"
-  local partition_num_efi_system="$(get_partition_number \
-    ${FLAGS_image_type} EFI-SYSTEM)"
+  local partition_num_efi_system="$(get_layout_partition_number \
+    "${FLAGS_image_type}" EFI-SYSTEM)"
   local esp_offset="$(partoffset ${image} ${partition_num_efi_system})"
   esp_offset=$((esp_offset * 512))  # sectors to bytes
   local esp_size="$(partsize ${image} ${partition_num_efi_system})"
@@ -391,6 +391,7 @@ make_image_bootable() {
     # Update EFI partition
     ${SCRIPTS_DIR}/update_bootloaders.sh \
       --arch="${FLAGS_arch}" \
+      --image_type="${FLAGS_image_type}" \
       --to="${bootloader_to}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \
       --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
@@ -409,8 +410,8 @@ make_image_bootable() {
 
 verify_image_rootfs() {
   local image=$1
-  local partition_num_root_a="$(get_partition_number \
-    ${FLAGS_image_type} ROOT-A)"
+  local partition_num_root_a="$(get_layout_partition_number \
+    "${FLAGS_image_type}" ROOT-A)"
   local rootfs_offset="$(partoffset ${image} ${partition_num_root_a})"
 
   local rootfs_tmp_file=$(mktemp)
