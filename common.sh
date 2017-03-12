@@ -412,8 +412,10 @@ BUILD_DIR=
 # Path to the verified boot directory where we get signing related keys/scripts.
 VBOOT_DIR="${CHROOT_TRUNK_DIR}/src/platform/vboot_reference"
 VBOOT_TESTKEYS_DIR="${VBOOT_DIR}/tests/testkeys"
-VBOOT_DEVKEYS_DIR="${VBOOT_DIR}/tests/devkeys"
-VBOOT_SIGNING_DIR="${VBOOT_DIR}/scripts/image_signing"
+# We load these from the chroot rather than directly from the vboot source repo
+# so we work correctly even in a minilayout.
+VBOOT_DEVKEYS_DIR="/usr/share/vboot/devkeys"
+VBOOT_SIGNING_DIR="/usr/share/vboot/bin"
 
 # Standard filenames
 CHROMEOS_BASE_IMAGE_NAME="chromiumos_base_image.bin"
