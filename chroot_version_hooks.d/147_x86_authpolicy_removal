@@ -1,0 +1,28 @@
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# authpolicy got removed from x86, but incremental builds still had it and unit
+# tests failed. This script removes authpolicy from all x86 boards.
+
+BOARDS=(
+  x86-alex
+  x86-alex_he
+  x86-generic
+  x86-mario
+  x86-zgb
+  x86-zgb_he
+)
+
+packages=(
+  chromeos-base/authpolicy
+)
+
+for b in "${BOARDS[@]}"; do
+  if [[ -d /build/${b} ]]; then
+    if ROOT="/build/${b}" qlist -ICe "${packages[@]}" >&/dev/null; then
+      info "Cleaning ${packages[*]} from /build/${b}"
+      sudo ROOT="/build/${b}" qmerge -yqU "${packages[@]}"
+    fi
+  fi
+done
