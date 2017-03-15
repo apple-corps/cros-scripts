@@ -158,6 +158,13 @@ get_label() {
   cgpt_py readlabel "${image_type}" "${DISK_LAYOUT_PATH}" "${part_id}"
 }
 
+get_image_partition_number() {
+  local image="$1"
+  local label="$2"
+  local part=$("${GPT}" find -n -l "${label}" "${image}")
+  echo "${part}"
+}
+
 get_layout_partition_number() {
   local image_type=$1
   local part_label=$2

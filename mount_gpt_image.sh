@@ -119,7 +119,7 @@ get_partition_size() {
   return 0
 }
 
-load_partition_script() {
+load_image_partition_numbers() {
   local partition_script="${FLAGS_from}/${FLAGS_partition_script}"
   # Attempt to load the partition script from the rootfs when not found in the
   # FLAGS_from directory.
@@ -129,7 +129,24 @@ load_partition_script() {
   if [[ -f "${partition_script}" ]]; then
     . "${partition_script}"
     load_partition_vars
+    return
   fi
+
+  # Without a partition script, infer numbers from the payload image.
+  local image
+  if [[ -b "${FLAGS_from}" ]]; then
+    image="${FLAGS_from}"
+  else
+    image="${FLAGS_from}/${FLAGS_image}"
+    if [[ ! -f "${image}" ]]; then
+      die "Image ${image} does not exist."
+    fi
+  fi
+  PARTITION_NUM_STATE="$(get_image_partition_number "${image}" "STATE")"
+  PARTITION_NUM_ROOT_A="$(get_image_partition_number "${image}" "ROOT-A")"
+  PARTITION_NUM_OEM="$(get_image_partition_number "${image}" "OEM")"
+  PARTITION_NUM_EFI_SYSTEM="$(get_image_partition_number "${image}" \
+    "EFI-SYSTEM")"
 }
 
 # Common unmounts for either a device or directory
@@ -159,8 +176,6 @@ unmount_image() {
       fi
     fi
   fi
-
-  load_partition_script
 
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
@@ -349,8 +364,6 @@ remount_image() {
     ro_rw="ro"
   fi
 
-  load_partition_script
-
   # If all the filesystems are mounted via the kernel, just issue the remount
   # command with the proper flags.
   local var_name mountpoint
@@ -395,6 +408,9 @@ ROOT_A_MOUNTPOINT="${FLAGS_rootfs_mountpt}"
 STATE_MOUNTPOINT="${FLAGS_stateful_mountpt}"
 OEM_MOUNTPOINT="${FLAGS_rootfs_mountpt}/usr/share/oem"
 EFI_SYSTEM_MOUNTPOINT="${FLAGS_esp_mountpt}"
+
+# Read the image partition numbers from the GPT.
+load_image_partition_numbers
 
 # Perform desired operation.
 if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} ]]; then
