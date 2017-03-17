@@ -22,18 +22,6 @@
 	"hostname": "@APP_NAME@",
 	"mounts": [
 		{
-			"destination": "/",
-			"type": "squashfs",
-			"source": "@APP_NAME@.squashfs",
-			"options": [
-				"ro",
-				"loop",
-				"nodev",
-				"nosuid",
-				"dm=@VERITY@"
-			]
-		},
-		{
 			"destination": "/proc",
 			"type": "proc",
 			"source": "proc",

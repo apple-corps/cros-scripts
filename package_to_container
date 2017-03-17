@@ -19,6 +19,8 @@ DEFINE_string extra "" \
   "Comma separated extra packages to be included in the final image."
 DEFINE_string argv "" \
   "The command (and args) to run inside the container."
+DEFINE_integer minor_version -1 \
+  "An extra minor version number to append to the version read from portage."
 
 FLAGS_HELP="USAGE: $(basename "$0") [flags]
 
@@ -26,6 +28,16 @@ The --package and --argv options are required.
 
 To build a container for fastboot, you might want something like:
 $ $(basename "$0") --package dev-util/android-tools --argv /usr/bin/fastboot
+
+The output directory will contain the following:
+* image.squash: a squashfs image containing the rootfs and config.json
+    for run_oci
+* table: text file containing verity commandline
+* imageloader.json: imageloader manifest which contains hashes
+    of image.squash and table
+* imageloader.sig.2: ECDSA signature of imageloader.json
+
+If the --minor_version flag is given a negative number, it is ignored.
 "
 
 FLAGS "$@" || exit 1
@@ -38,33 +50,27 @@ sign_manifest() {
     oci-container "$1" "${VBOOT_DEVKEYS_DIR}" "$1"
 }
 
-# Generate the manifest.json for this container.
+# Generate the imageloader.json for this container.
 generate_manifest() {
-  local pkg_name="$1"
+  local pkg_version="$1"
   local output="$2"
-  local manifest="${output}/manifest.json"
+  local manifest="${output}/imageloader.json"
+  local image="${output}/image.squash"
+  local table="${output}/table"
 
   (
-    hash() {
+    gethash() {
       local file="$1"
-      local comma="$2"
-      # The Chromium base library does not support dots in dict keys.  They
-      # use it as a short hand to access children dicts.  Normalize them.
-      local dict_key="${file//./_}"
-      local size sha
-
-      size=$(stat -c %s "${file}")
-      sha=$(sha256sum <"${file}" | awk '{print $1}')
-
-      printf '  "%s": {\n    "size": %s,\n    "sha256": "%s"\n  }%s\n' \
-        "${dict_key}" "${size}" "${sha}" "${comma}"
+      echo $(sha256sum <"${file}" | awk '{print $1}')
     }
 
     cd "${output}"
-    printf '{\n"version": 1,\n"files": {\n'
-    hash "config.json" ","
-    hash "${pkg_name}.squashfs" ""
-    printf '}\n}\n'
+    printf '{\n'
+    printf '"manifest-version": 1,\n'
+    printf '"version": "%s",\n' "${pkg_version}"
+    printf '"image-sha256-hash": "%s",\n' "$(gethash "${image}")"
+    printf '"table-sha256-hash": "%s"\n' "$(gethash "${table}")"
+    printf '}\n'
   ) >"${manifest}"
 
   # Sanity check the generated manifest.
@@ -74,8 +80,8 @@ generate_manifest() {
 }
 
 # Sign the specified disk image using verity so we can load it with dm-verity
-# at runtime.  We don't allow algorithm selection -- sha1 should be good enough
-# for everyone! :)
+# at runtime.  We don't allow algorithm selection -- sha256 should be good
+# enough for everyone! :)
 # Note: We write the verity command line to the "verity" variable as an output.
 sign_disk_image() {
   local img="$1"
@@ -83,7 +89,6 @@ sign_disk_image() {
   # TODO: Add "salt=random" here.
   verity=$(verity mode=create alg=sha256 payload="${img}" \
                   hashtree="${hashtree}")
-  verity=$(echo "${verity}" | sed -E -e 's:(ROOT|HASH)_DEV:@DEV@:g')
   cat "${hashtree}" >>"${img}"
   rm "${hashtree}"
 }
@@ -97,11 +102,16 @@ build_container_image() {
   local container_uid="1000"
   local container_gid="1000"
   local output="${PWD}/${container_name}"
-  local ROOTDIR="${output}/rootfs"
+  local IMAGEDIR="${output}/image"
+  local ROOTDIR="${IMAGEDIR}/rootfs"
 
   export INSTALL_MASK="${DEFAULT_INSTALL_MASK}"
 
   mkdir -p "${output}"
+  mkdir -p "${IMAGEDIR}"
+
+  info "Fetching package version ... "
+  local version="$(get_package_version "${pkg_name}")"
 
   install_with_root_deps "${ROOTDIR}" "${pkg_name}" sys-libs/gcc-libs \
     ${FLAGS_extra//,/ }
@@ -117,19 +127,6 @@ build_container_image() {
   info "Creating top level dirs and socket dirs ... "
   sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,run,tmp,var}
 
-  info "Generating squashfs file ... "
-  local args=(
-    -all-root
-    -noappend
-  )
-  local img="${output}/${container_name}.squashfs"
-  # We need to run through sudo because some files might be read-only by root.
-  sudo mksquashfs "${ROOTDIR}" "${img}" "${args[@]}"
-  sudo chown $(id -u):$(id -g) "${img}"
-  info "Signing squashfs file ... "
-  local verity
-  sign_disk_image "${img}"
-
   info "Adding config.json ... "
   sed \
     -e "s:@APP_NAME@:${container_name}:g" \
@@ -137,15 +134,27 @@ build_container_image() {
     -e "s:@USER_UID@:${container_uid}:g" \
     -e "s:@USER_GID@:${container_gid}:g" \
     -e "s:@ARGV@:${argv// /\", \"}:g" \
-    -e "s:@VERITY@:${verity}:" \
-    generic_container_files/config.json >"${output}/config.json"
+    generic_container_files/config.json >"${IMAGEDIR}/config.json"
+
+  info "Generating squashfs file ... "
+  local args=(
+    -all-root
+    -noappend
+  )
+  local img="${output}/image.squash"
+  # We need to run through sudo because some files might be read-only by root.
+  sudo mksquashfs "${IMAGEDIR}" "${img}" "${args[@]}"
+  sudo chown $(id -u):$(id -g) "${img}"
+  info "Signing squashfs file ... "
+  local verity
+  sign_disk_image "${img}"
+  echo "${verity}" > "${output}/table"
 
   info "Generating manifest ..."
-  generate_manifest "${container_name}" "${output}"
+  generate_manifest "${version}" "${output}"
 
   info "Cleaning up ... "
-  sudo rm -rf "${ROOTDIR}"
-  mkdir "${ROOTDIR}"
+  sudo rm -rf "${IMAGEDIR}"
 }
 
 run_emerge() {
@@ -169,6 +178,21 @@ install_with_root_deps() {
   shift
   info "Installing '$*' with root deps ... "
   run_emerge --root="${root_dir}" "$@" --root-deps=rdeps
+}
+
+strip_version() {
+  local full_version="$1"
+  echo "${full_version}" | sed 's/^\([0-9.]*[0-9]\).*/\1/'
+}
+
+get_package_version() {
+  local full_version="$(equery-${BOARD} --quiet list -F '$version' "$@")"
+  local stripped_version="$(strip_version "${full_version}")"
+  if [ "${FLAGS_minor_version}" -ge 0 ]; then
+    echo "${stripped_version}.${FLAGS_minor_version}"
+  else
+    echo "${stripped_version}"
+  fi
 }
 
 main() {
