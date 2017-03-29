@@ -80,7 +80,7 @@ DEFINE_boolean withfactory "${FLAGS_TRUE}" \
   "Build factory installer."
 DEFINE_boolean withtest "${FLAGS_TRUE}" \
   "Build packages required for testing."
-DEFINE_boolean chrome_binhost_only $FLAGS_FALSE \
+DEFINE_boolean chrome_binhost_only "${FLAGS_FALSE}" \
   "Only fetch packages from the Chrome binhost."
 DEFINE_boolean buildretry "${FLAGS_TRUE}" \
   "Retry failed packages."
@@ -90,8 +90,27 @@ DEFINE_boolean buildretry "${FLAGS_TRUE}" \
 # required to build several boards is reduced. This flag is only useful
 # when you are not able to use remote binary packages, since remote binary
 # packages are usually more up to date than anything you have locally.
-DEFINE_boolean reuse_pkgs_from_local_boards $FLAGS_FALSE \
+DEFINE_boolean reuse_pkgs_from_local_boards "${FLAGS_FALSE}" \
   "Bootstrap from local packages instead of remote packages."
+
+# --run_goma option is designed to be used on bots.
+# If you're trying to build pacakges with goma in your local dev env, this is
+# *not* the option you're looking for. Please see comments below.
+# This option; 1) starts goma, 2) builds packages (expecting that goma is
+# used), then 3) stops goma explicitly.
+# 3) is a request from the goma team, so that stats/logs can be taken.
+# Note: GOMA_DIR and GOMA_SERVICE_ACCOUNT_JSON_FILE are expected to be passed
+# via env var.
+#
+# In local dev env cases, compiler_proxy is expected to keep running.
+# In such a case;
+#   $ python ${GOMA_DIR}/goma_ctl.py ensure_start
+#   $ ./build_packages (... and options without --run_goma ...)
+# is an expected commandline sequence. If you set --run_goma flag while
+# compiler_proxy is already running, the existing compiler_proxy will be
+# stopped.
+DEFINE_boolean run_goma "${FLAGS_FALSE}" \
+  "If set to true, (re)starts goma, builds packages, and then stops goma."
 
 # Parse command line
 FLAGS "$@" || exit 1
@@ -273,6 +292,15 @@ fi
 
 info "Merging board packages now"
 (
+  # Support goma on bots. This has to run in subshell, otherwise EXIT trap
+  # handler is overwritten.
+  if [[ "${FLAGS_run_goma}" -eq "${FLAGS_TRUE}" ]]; then
+    info "Starting goma compiler_proxy."
+    goma_ctl="${GOMA_DIR:-${HOME}/goma}/goma_ctl.py"
+    "${goma_ctl}" restart
+    trap "\"${goma_ctl}\" stop" EXIT
+  fi
+
   set -o pipefail
   sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
     tee "${tmpfile}"
