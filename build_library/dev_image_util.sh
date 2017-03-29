@@ -101,11 +101,17 @@ EOF
     local python_path="/usr/local/bin/python${pyver}"
 
     info "Fixing python symlinks for developer and test images."
-    local cmds=() path python_paths=(
+    local cmds=(
+      "ln -sfT /usr/local/etc/env.d/python '${root_fs_dir}/etc/env.d/python'"
+      "ln -sfT /usr/local/lib/python-exec '${root_fs_dir}/usr/lib/python-exec'"
+      "ln -sfT /usr/local/lib/portage '${root_fs_dir}/usr/lib/portage'"
+    )
+    local python_paths=(
       /usr/{local/,}bin/python
       /usr/{local/,}bin/python${pyver:0:1}
       /usr/bin/python${pyver}
     )
+    local path
     for path in "${python_paths[@]}"; do
       cmds+=(
         "ln -sfT '${python_path}' '${root_fs_dir}${path}'"
