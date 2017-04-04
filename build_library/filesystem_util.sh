@@ -60,6 +60,11 @@ fs_mount() {
   local all_options="${ro_rw}"
   [[ -n "${mount_options}" ]] && all_options="${ro_rw},${mount_options}"
 
+  # TODO: move this to layout file.(crbug.com/710929)
+  case ${fs_format} in
+  btrfs) all_options+=",compress=zlib";;
+  esac
+
   case ${fs_format} in
   ext[234]|fat12|fat16|fat32|fat|vfat|btrfs|"")
     local extra_flags=()

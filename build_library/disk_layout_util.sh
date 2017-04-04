@@ -411,8 +411,8 @@ mk_fs() {
     rm "${squash_file}"
     ;;
   btrfs)
-    sudo mkfs.${fs_format} -b "$((fs_bytes))" -L "${fs_label}" "${part_dev}" \
-        "${fs_options_arr[@]}"
+    sudo mkfs.${fs_format} -b "$((fs_bytes))" -d single -m single -M \
+      -L "${fs_label}" -O "${fs_options_arr[@]}" "${part_dev}"
     ;;
   *)
     die "Unknown fs format '${fs_format}' for part ${part_num}";;
