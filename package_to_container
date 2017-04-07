@@ -36,6 +36,7 @@ The output directory will contain the following:
 * imageloader.json: imageloader manifest which contains hashes
     of image.squash and table
 * imageloader.sig.2: ECDSA signature of imageloader.json
+* manifest.json: chrome extension manifest
 
 If the --minor_version flag is given a negative number, it is ignored.
 "
@@ -77,6 +78,25 @@ generate_manifest() {
   python -mjson.tool <"${manifest}" >/dev/null
 
   sign_manifest "${output}"
+}
+
+# Generate the manifest for a chrome extension.
+generate_crx_manifest() {
+  local container_name="$1"
+  local pkg_version="$2"
+  local manifest="${output}/manifest.json"
+
+  (
+    cd "${output}"
+    printf '{\n'
+    printf '"manifest_version": 2,\n'
+    printf '"name": "%s",\n' "${container_name}"
+    printf '"version": "%s"\n' "${pkg_version}"
+    printf '}\n'
+  ) >"${manifest}"
+
+  # Sanity check the generated manifest.
+  python -mjson.tool <"${manifest}" >/dev/null
 }
 
 # Sign the specified disk image using verity so we can load it with dm-verity
@@ -152,6 +172,9 @@ build_container_image() {
 
   info "Generating manifest ..."
   generate_manifest "${version}" "${output}"
+
+  info "Generating extension manifest ..."
+  generate_crx_manifest "${container_name}" "${version}"
 
   info "Cleaning up ... "
   sudo rm -rf "${IMAGEDIR}"
