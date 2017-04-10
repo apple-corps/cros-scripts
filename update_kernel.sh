@@ -83,15 +83,25 @@ learn_partition_and_ro() {
 }
 
 get_bootargs() {
+  local local_config="${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+
+  # Autodetect by default.  https://crbug.com/316239
+  # This isn't quite right if people use --noremote_bootargs, but that's not
+  # a scenario people do today, so we won't worry about it.
+  if [[ ${FLAGS_remote_bootargs} -eq ${FLAGS_FALSE} && \
+        ! -e "${local_config}" ]]; then
+    warn "Local kernel config does not exist: ${local_config}"
+    FLAGS_remote_bootargs=${FLAGS_TRUE}
+  fi
+
   if [ ${FLAGS_remote_bootargs} -eq ${FLAGS_TRUE} ] ; then
     info "Using remote bootargs"
     remote_sh cat /proc/cmdline && echo "${REMOTE_OUT}"
   else
     if [ -n "${FLAGS_rootoff}" ]; then
-      sed "s/PARTNROFF=1/PARTNROFF=${FLAGS_rootoff}/" \
-          "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+      sed "s/PARTNROFF=1/PARTNROFF=${FLAGS_rootoff}/" "${local_config}"
     else
-      cat "${SRC_ROOT}/build/images/${FLAGS_board}/latest/config.txt"
+      cat "${local_config}"
     fi
   fi
 }
