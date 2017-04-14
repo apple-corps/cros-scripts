@@ -79,7 +79,9 @@ WHITELIST="vmlinuz_hd.vblock unencrypted/import_extensions"
 get_install_vblock() {
   # If it exists, we need to copy the vblock over to stateful
   # This is the real vblock and not the recovery vblock.
-  local stateful_offset=$(partoffset "$FLAGS_image" ${PARTITION_NUM_STATE})
+  local partition_num_state=$(get_image_partition_number "${FLAGS_image}" \
+    "STATE")
+  local stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
   local stateful_mnt=$(mktemp -d)
   local out=$(mktemp)
 
@@ -98,8 +100,10 @@ get_install_vblock() {
 create_recovery_kernel_image() {
   local sysroot="$FACTORY_ROOT"
   local vmlinuz="$sysroot/boot/vmlinuz"
-  local root_offset=$(partoffset "${RECOVERY_IMAGE}" ${PARTITION_NUM_ROOT_A})
-  local root_size=$(partsize "${RECOVERY_IMAGE}" ${PARTITION_NUM_ROOT_A})
+  local partition_num_root_a=$(get_image_partition_number "${RECOVERY_IMAGE}" \
+    "ROOT-A")
+  local root_offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_root_a}")
+  local root_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_root_a}")
 
   local enable_rootfs_verification_flag=--noenable_rootfs_verification
   if grep -q enable_rootfs_verification "${IMAGE_DIR}/boot.desc"; then
@@ -116,8 +120,10 @@ create_recovery_kernel_image() {
   # recovery image generation.  (Alternately, it means an image can be created,
   # modified for recovery, then passed to a signer which can then sign both
   # partitions appropriately without needing any external dependencies.)
-  local kern_offset=$(partoffset "${RECOVERY_IMAGE}" ${PARTITION_NUM_KERN_A})
-  local kern_size=$(partsize "${RECOVERY_IMAGE}" ${PARTITION_NUM_KERN_A})
+  local partition_num_kern_a=$(get_image_partition_number "${RECOVERY_IMAGE}" \
+    "KERN-A")
+  local kern_offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_kern_a}")
+  local kern_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_kern_a}")
   local kern_tmp=$(mktemp)
   local kern_hash=
 
@@ -152,8 +158,11 @@ create_recovery_kernel_image() {
   # passes.
   local block_size=$(get_block_size)
 
-  local efi_offset=$(partoffset "${RECOVERY_IMAGE}" ${PARTITION_NUM_EFI_SYSTEM})
-  local efi_size=$(partsize "${RECOVERY_IMAGE}" ${PARTITION_NUM_EFI_SYSTEM})
+  local partition_num_efi_system=$(get_image_partition_number \
+    "${RECOVERY_IMAGE}" "EFI-SYSTEM")
+  local efi_offset=$(partoffset "${RECOVERY_IMAGE}" \
+    "${partition_num_efi_system}")
+  local efi_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_efi_system}")
   local efi_offset_bytes=$(( $efi_offset * $block_size ))
   local efi_size_bytes=$(( $efi_size * $block_size ))
 
@@ -176,10 +185,15 @@ create_recovery_kernel_image() {
 }
 
 install_recovery_kernel() {
-  local kern_a_offset=$(partoffset "$RECOVERY_IMAGE" ${PARTITION_NUM_KERN_A})
-  local kern_a_size=$(partsize "$RECOVERY_IMAGE" ${PARTITION_NUM_KERN_A})
-  local kern_b_offset=$(partoffset "$RECOVERY_IMAGE" ${PARTITION_NUM_KERN_B})
-  local kern_b_size=$(partsize "$RECOVERY_IMAGE" ${PARTITION_NUM_KERN_B})
+  local partition_num_kern_a=$(get_image_partition_number "${RECOVERY_IMAGE}" \
+    "KERN-A")
+  local kern_a_offset=$(partoffset "$RECOVERY_IMAGE" "${partition_num_kern_a}")
+  local kern_a_size=$(partsize "$RECOVERY_IMAGE" "${partition_num_kern_a}")
+
+  local partition_num_kern_b=$(get_image_partition_number "${RECOVERY_IMAGE}" \
+    "KERN-B")
+  local kern_b_offset=$(partoffset "$RECOVERY_IMAGE" "${partition_num_kern_b}")
+  local kern_b_size=$(partsize "$RECOVERY_IMAGE" "${partition_num_kern_b}")
 
   if [ $kern_b_size -eq 1 ]; then
     echo "Image was created with no KERN-B partition reserved!" 1>&2
@@ -209,7 +223,7 @@ install_recovery_kernel() {
 
   # Set the 'Success' flag to 1 (to prevent the firmware from updating
   # the 'Tries' flag).
-  sudo $GPT add -i ${PARTITION_NUM_KERN_A} -S 1 "$RECOVERY_IMAGE"
+  sudo $GPT add -i "${partition_num_kern_a}" -S 1 "$RECOVERY_IMAGE"
 
   # Repeat for the legacy bioses.
   # Replace vmlinuz.A with the recovery version we built.
@@ -221,7 +235,10 @@ install_recovery_kernel() {
   if [ "$ARCH" = "x86" ]; then
     # There is no syslinux on ARM, so this copy only makes sense for x86.
     set +e
-    local esp_offset=$(partoffset "$RECOVERY_IMAGE" ${PARTITION_NUM_EFI_SYSTEM})
+    local partition_num_efi_system=$(get_image_partition_number \
+      "${RECOVERY_IMAGE}" "EFI-SYSTEM")
+    local esp_offset=$(partoffset "${RECOVERY_IMAGE}" \
+      "${partition_num_efi_system}")
     local esp_mnt=$(mktemp -d)
     sudo mount -o loop,offset=$((esp_offset * 512)) "$RECOVERY_IMAGE" "$esp_mnt"
     sudo cp "$vmlinuz" "$esp_mnt/syslinux/vmlinuz.A" || failed=1
@@ -267,7 +284,9 @@ maybe_resize_stateful() {
 
   # Mount the old stateful partition so we can copy selected values
   # off of it.
-  old_stateful_offset=$(partoffset "$FLAGS_image" ${PARTITION_NUM_STATE})
+  local partition_num_state=$(get_image_partition_number \
+    "${FLAGS_image}" "STATE")
+  old_stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
   old_stateful_mnt=$(mktemp -d)
 
   sudo mount -o ro,loop,offset=$((old_stateful_offset * 512)) \
@@ -404,7 +423,9 @@ maybe_resize_stateful  # Also copies the image if needed.
 
 if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
   stateful_mnt=$(mktemp -d)
-  offset=$(partoffset "${RECOVERY_IMAGE}" ${PARTITION_NUM_STATE})
+  local partition_num_state=$(get_image_partition_number \
+    "${RECOVERY_IMAGE}" "STATE")
+  offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_state}")
   sudo mount -o loop,offset=$(( offset * 512 )) \
     "${RECOVERY_IMAGE}" "${stateful_mnt}"
   echo -n "1" | sudo tee "${stateful_mnt}"/decrypt_stateful >/dev/null
