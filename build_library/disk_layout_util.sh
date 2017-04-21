@@ -377,8 +377,18 @@ mk_fs() {
 
   case ${fs_format} in
   ext[234])
+    # When mke2fs supports the same values for -U as tune2fs does, the
+    # following conditionals can be removed and ${fs_uuid} can be used
+    # as the value of the -U option as-is.
+    local uuid_option=()
+    if [[ "${fs_uuid}" == "clear" ]]; then
+      fs_uuid="00000000-0000-0000-0000-000000000000"
+    fi
+    if [[ "${fs_uuid}" != "random" ]]; then
+      uuid_option=( -U "${fs_uuid}" )
+    fi
     sudo mkfs.${fs_format} -F -q -O ext_attr \
-        -U 00000000-0000-0000-0000-000000000000 \
+        "${uuid_option[@]}" \
         -E lazy_itable_init=0 \
         -b ${fs_block_size} "${part_dev}" "$((fs_bytes / fs_block_size))"
     # We need to redirect from stdin and clear the prompt variable to make
@@ -386,7 +396,6 @@ mk_fs() {
     # command below is what we want and is safe (it's a new FS).
     unset TUNE2FS_FORCE_PROMPT
     sudo tune2fs -L "${fs_label}" \
-        -U "${fs_uuid}" \
         -c 0 \
         -i 0 \
         -T 20091119110000 \
