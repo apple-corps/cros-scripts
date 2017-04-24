@@ -15,7 +15,7 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 restart_in_chroot_if_needed "$@"
 
 # Flags.
-DEFINE_string board "" "Which board the firmware is for" b
+DEFINE_string board "${DEFAULT_BOARD}" "Which board the firmware is for" b
 DEFINE_string fw_version "" "Firmware version of the new firmware" v
 DEFINE_string output_dir "" "Output directory" o
 DEFINE_boolean rw_only "${FLAGS_FALSE}" "Only update RW image"
@@ -42,8 +42,11 @@ init() {
   TMP=$(mktemp -d --suffix=.uprev_firmware)
 
   if [[ -z "${FLAGS_board}" ]]; then
-    die_notrace "Please specify a board using -b"
+    die_notrace "-b or --board required."
   fi
+
+  # Uppercase the 1st letter of the board name.
+  BOARD_NAME=${FLAGS_board^}
 
   if [[ -z "${FLAGS_fw_version}" ]]; then
     die_notrace "Please specify a firmware version using -v"
@@ -80,8 +83,9 @@ overlay-${FLAGS_board}-private"
       "${EBUILD_FILE}"
   fi
 
-  MAIN_FW_TAR_NAME="${FLAGS_board}_fw_${FLAGS_fw_version}.tbz2"
-  EC_FW_TAR_NAME="${FLAGS_board}_ec_${FLAGS_fw_version}.tbz2"
+  MAIN_FW_TAR_NAME="${BOARD_NAME}.${FLAGS_fw_version}.tbz2"
+  EC_FW_TAR_NAME="${BOARD_NAME}_EC.${FLAGS_fw_version}.tbz2"
+  PD_FW_TAR_NAME="${BOARD_NAME}_PD.${FLAGS_fw_version}.tbz2"
 }
 
 # Clean up function when exit.
@@ -105,30 +109,56 @@ ${FLAGS_board}/${FLAGS_fw_version}"
   tar -xvf "${TMP}/${build_fw_tar_name}" -C "${TMP}"
   # Make new tarballs for EC/AP FW binaries.
   tar -jcvf "${TMP}/${MAIN_FW_TAR_NAME}" -C "${TMP}" image.bin
-  tar -jcvf "${TMP}/${EC_FW_TAR_NAME}" -C "${TMP}" ec.bin
+  if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
+    tar -jcvf "${TMP}/${EC_FW_TAR_NAME}" -C "${TMP}" ec.bin
+    # Do this for PD FW as well (if available).
+    if [ -d "${TMP}/${FLAGS_board}_pd" ]; then
+      tar -jcvf "${TMP}/${PD_FW_TAR_NAME}" -C "${TMP}/${FLAGS_board}_pd" ec.bin
+    else
+      PD_FW_TAR_NAME=
+    fi
+  fi
+
   if [[ "${TMP}" != "${FLAGS_output_dir}" ]]; then
     mv "${TMP}/${MAIN_FW_TAR_NAME}" "${FLAGS_output_dir}"
-    mv "${TMP}/${EC_FW_TAR_NAME}" "${FLAGS_output_dir}"
+    if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
+      mv "${TMP}/${EC_FW_TAR_NAME}" "${FLAGS_output_dir}"
+      if [[ -z "${PD_FW_TAR_NAME}" ]]; then
+        mv "${TMP}/${PD_FW_TAR_NAME}" "${FLAGS_output_dir}"
+      fi
+    fi
   fi
+
+  local file_list="${FLAGS_output_dir}/${MAIN_FW_TAR_NAME}\n"
+  if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
+    file_list+=" ${FLAGS_output_dir}/${EC_FW_TAR_NAME}\n"
+    if [ -n "${PD_FW_TAR_NAME}" ]; then
+      file_list+=" ${FLAGS_output_dir}/${PD_FW_TAR_NAME}\n"
+    fi
+  fi
+
   info "Your tarballs are ready at\n"\
-  "${FLAGS_output_dir}/${MAIN_FW_TAR_NAME}\n"\
-  "${FLAGS_output_dir}/${EC_FW_TAR_NAME}\n"\
+  "${file_list}"\
   "To continue, please upload them to BCS manually through CPFE:\n"\
   "https://www.google.com/chromeos/partner/fe/#bcUpload:type=PRIVATE\n"
 }
 
 # Update the firmware ebuild file in the device private overlay
 update_fw_ebuild() {
-  local keyword_main_fw="MAIN_IMAGE=\"bcs:\/\/${FLAGS_board}"
-  local keyword_main_rw_fw="MAIN_RW_IMAGE=\"bcs:\/\/${FLAGS_board}"
-  local keyword_ec_fw="EC_IMAGE=\"bcs:\/\/${FLAGS_board}"
+  local keyword_main_fw="MAIN_IMAGE=\"bcs:\/\/${BOARD_NAME}"
+  local keyword_main_rw_fw="MAIN_RW_IMAGE=\"bcs:\/\/${BOARD_NAME}"
+  local keyword_ec_fw="EC_IMAGE=\"bcs:\/\/${BOARD_NAME}"
+  local keyword_pd_fw="PD_IMAGE=\"bcs:\/\/${BOARD_NAME}"
   local main_fw_line=$(grep -i "${keyword_main_fw}" "${EBUILD_FILE}")
   local main_rw_fw_line=$(grep -i "${keyword_main_rw_fw}" "${EBUILD_FILE}")
   local ec_fw_line=$(grep -i "${keyword_ec_fw}" "${EBUILD_FILE}")
+  local pd_fw_line=$(grep -i "${keyword_pd_fw}" "${EBUILD_FILE}")
   local old_main_fw_tar_name="${main_fw_line#*bcs://}"
   old_main_fw_tar_name="${old_main_fw_tar_name%'"'}"
   local old_ec_fw_tar_name="${ec_fw_line#*bcs://}"
   old_ec_fw_tar_name="${old_ec_fw_tar_name%'"'}"
+  local old_pd_fw_tar_name="${pd_fw_line#*bcs://}"
+  old_pd_fw_tar_name="${old_pd_fw_tar_name%'"'}"
 
   # Check if the repo is clean.
   local git_output="$(git --git-dir="${OVERLAY_DIR}/.git" \
@@ -144,6 +174,10 @@ update_fw_ebuild() {
   if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
     sed -i -e "s/${old_main_fw_tar_name}/${MAIN_FW_TAR_NAME}/" \
       -e "s/${old_ec_fw_tar_name}/${EC_FW_TAR_NAME}/" "${EBUILD_FILE}"
+    if [[ -n "${PD_FW_TAR_NAME}" ]]; then
+      sed -i -e "s/${old_pd_fw_tar_name}/${PD_FW_TAR_NAME}/" \
+        "${EBUILD_FILE}"
+    fi
   else
     # Create a new line for CROS_FIRMWARE_MAIN_RW_IMAGE
     main_rw_fw_line="CROS_FIRMWARE_MAIN_RW_IMAGE=\"\
