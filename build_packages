@@ -280,7 +280,7 @@ if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
 fi
 
 # Prepare tmp file to capture emerge output from tee.
-tmpfile=$(mktemp -t tmp.build_packages-emerge.XXXXXX)
+tmpfile=$(mktemp --tmpdir tmp.build_packages-emerge.XXXXXX)
 trap "rm -f '${tmpfile}'" EXIT
 
 if [[ -n "${FLAGS_board_root}" ]]; then
@@ -294,11 +294,18 @@ info "Merging board packages now"
 (
   # Support goma on bots. This has to run in subshell, otherwise EXIT trap
   # handler is overwritten.
+  # Create GOMA_TMP_DIR and log directory.
+  export GOMA_TMP_DIR=$(mktemp --tmpdir -d goma_tmp_dir.XXXXXX)
+  export GLOG_log_dir="${GOMA_TMP_DIR}/log_dir"
+  mkdir "${GLOG_log_dir}"
   if [[ "${FLAGS_run_goma}" -eq "${FLAGS_TRUE}" ]]; then
     info "Starting goma compiler_proxy."
     goma_ctl="${GOMA_DIR:-${HOME}/goma}/goma_ctl.py"
     "${goma_ctl}" restart
-    trap "\"${goma_ctl}\" stop" EXIT
+
+    # Upload logs at exit, regardless of whether "goma_ctl.py stop" is
+    # successfully completed or not.
+    trap "'${goma_ctl}' stop; '${CHROMITE_BIN}/upload_goma_info'" EXIT
   fi
 
   set -o pipefail
