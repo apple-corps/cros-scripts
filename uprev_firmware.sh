@@ -19,6 +19,7 @@ DEFINE_string board "${DEFAULT_BOARD}" "Which board the firmware is for" b
 DEFINE_string fw_version "" "Firmware version of the new firmware" v
 DEFINE_string output_dir "" "Output directory" o
 DEFINE_boolean rw_only "${FLAGS_FALSE}" "Only update RW image"
+DEFINE_boolean dev "${FLAGS_FALSE}" "Use image.dev.bin as the main firmware binary"
 
 FLAGS_HELP="Update chromeos-firmware-${board} ebuild file and tarball in BCS for the new firmware.
 
@@ -83,7 +84,12 @@ overlay-${FLAGS_board}-private"
       "${EBUILD_FILE}"
   fi
 
-  MAIN_FW_TAR_NAME="${BOARD_NAME}.${FLAGS_fw_version}.tbz2"
+  if [[ "${FLAGS_dev}" -eq "${FLAGS_TRUE}" ]]; then
+    MAIN_FW_TAR_NAME="${BOARD_NAME}.${FLAGS_fw_version}.DEV_IMAGE_DO_NOT_SHIP\
+.tbz2"
+  else
+    MAIN_FW_TAR_NAME="${BOARD_NAME}.${FLAGS_fw_version}.tbz2"
+  fi
   EC_FW_TAR_NAME="${BOARD_NAME}_EC.${FLAGS_fw_version}.tbz2"
   PD_FW_TAR_NAME="${BOARD_NAME}_PD.${FLAGS_fw_version}.tbz2"
 }
@@ -107,6 +113,14 @@ ${FLAGS_board}/${FLAGS_fw_version}"
   # Download the firmware tarball.
   gsutil cp "${build_fw_tar_path}" "${TMP}/."
   tar -xvf "${TMP}/${build_fw_tar_name}" -C "${TMP}"
+  if [[ "${FLAGS_dev}" -eq "${FLAGS_TRUE}" ]]; then
+    mv "${TMP}/image.dev.bin" "${TMP}/image.bin"
+    warn "You are uploading a developer image with serial output." \
+      "Please only do this during early bring-up. Dogfooding should always be" \
+      "done with production images since timing differences in developer"\
+      "images can hide bugs and the production image must be sufficiently" \
+      "tested before shipping.\n"
+  fi
   # Make new tarballs for EC/AP FW binaries.
   tar -jcvf "${TMP}/${MAIN_FW_TAR_NAME}" -C "${TMP}" image.bin
   if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
@@ -137,10 +151,10 @@ ${FLAGS_board}/${FLAGS_fw_version}"
     fi
   fi
 
-  info "Your tarballs are ready at\n"\
-  "${file_list}"\
-  "To continue, please upload them to BCS manually through CPFE:\n"\
-  "https://www.google.com/chromeos/partner/fe/#bcUpload:type=PRIVATE\n"
+  info "Your tarballs are ready at\n" \
+    "${file_list}" \
+    "To continue, please upload them to BCS manually through CPFE:\n" \
+    "https://www.google.com/chromeos/partner/fe/#bcUpload:type=PRIVATE\n"
 }
 
 # Update the firmware ebuild file in the device private overlay
