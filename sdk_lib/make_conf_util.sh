@@ -99,8 +99,8 @@ _create_host_setup() {
   local cxx_string=""
 
   if [[ "${use_clang}" == "true" ]];  then
-      cc_string="CC=clang"
-      cxx_string="CXX=clang++"
+      cc_string='CC=${CHOST}-clang'
+      cxx_string='CXX=${CHOST}-clang++'
   fi
 
   ( echo "# Automatically generated.  EDIT THIS AND BE SORRY."
