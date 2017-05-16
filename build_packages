@@ -294,18 +294,11 @@ info "Merging board packages now"
 (
   # Support goma on bots. This has to run in subshell, otherwise EXIT trap
   # handler is overwritten.
-  # Create GOMA_TMP_DIR and log directory.
-  export GOMA_TMP_DIR=$(mktemp --tmpdir -d goma_tmp_dir.XXXXXX)
-  export GLOG_log_dir="${GOMA_TMP_DIR}/log_dir"
-  mkdir "${GLOG_log_dir}"
   if [[ "${FLAGS_run_goma}" -eq "${FLAGS_TRUE}" ]]; then
     info "Starting goma compiler_proxy."
     goma_ctl="${GOMA_DIR:-${HOME}/goma}/goma_ctl.py"
     "${goma_ctl}" restart
-
-    # Upload logs at exit, regardless of whether "goma_ctl.py stop" is
-    # successfully completed or not.
-    trap "'${goma_ctl}' stop; '${CHROMITE_BIN}/upload_goma_info'" EXIT
+    trap "'${goma_ctl}' stop" EXIT
   fi
 
   set -o pipefail
