@@ -467,9 +467,13 @@ fi
 early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
 
-info "Running emerge curl sudo ..."
+info "Running emerge curl sudo gentoolkit ..."
 early_enter_chroot $EMERGE_CMD -uNv $USEPKG --select $EMERGE_JOBS \
-  pbzip2 dev-libs/openssl net-misc/curl sudo
+  pbzip2 dev-libs/openssl net-misc/curl sudo app-portage/gentoolkit
+
+info "Updating Perl modules"
+early_enter_chroot \
+  "${CHROOT_TRUNK_DIR}/src/scripts/build_library/perl_rebuild.sh"
 
 if [ -n "${INITIALIZE_CHROOT}" ]; then
   # If we're creating a new chroot, we also want to set it to the latest
