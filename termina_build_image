@@ -5,135 +5,221 @@
 
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
+. "${SCRIPT_ROOT}/build_library/filesystem_util.sh" || exit 1
 
 assert_inside_chroot "$@"
 
-DEFINE_string board "${DEFAULT_BOARD}" \
-  "The board to build an image for."
-DEFINE_boolean dev "${FLAGS_FALSE}" \
-  "Include dev packages and allow serial login."
-DEFINE_boolean test "${FLAGS_FALSE}" \
-  "Include test and dev packages, and allow serial login."
-DEFINE_string output_root "${DEFAULT_BUILD_ROOT}/images" \
-  "Directory in which to place image result directories (named by version)"
+DEFINE_string arch "amd64" \
+  "Architecture of the VM image"
+DEFINE_string filesystem "ext4" \
+  "Filesystem for the rootfs image"
+DEFINE_string image "" \
+  "Chromium OS disk image to build the Termina image from"
+DEFINE_string output "" \
+  "Output directory"
+DEFINE_boolean upload ${FLAGS_FALSE} \
+  "Upload resulting image to Google Storage" u
+DEFINE_boolean test_image ${FLAGS_FALSE} \
+  "True if the image is a test image" t
 
 FLAGS_HELP="USAGE: ${SCRIPT_NAME} [flags]
 
-To build a tatl dev image, try:
-$ ${SCRIPT_NAME} --board=tatl --dev
+To build a tatl test image, try:
+$ ./build_image --board=tatl test
+$ ${SCRIPT_NAME} --image=../build/images/tatl/latest/chromiumos_test_image.bin --output=tatl
 "
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
-IMAGE_TYPE_BASE="base"
-IMAGE_TYPE_DEV="dev"
-IMAGE_TYPE_TEST="test"
+get_version() {
+  local output_dir="$1"
+  awk -F'=' -v key='CHROMEOS_RELEASE_VERSION' '$1==key { print $2 }' \
+    "${output_dir}"/lsb-release
+}
 
-# Produce the VM image.
-build_vm_image() {
-  local image_name="$1"
-  local image_type="$2"
-  local extra=()
-  local ROOTDIR="${OUTPUT_DIR}/rootfs"
-  local image_suffix=""
+is_test_image() {
+  local output_dir="$1"
+  grep -q testimage-channel "${output_dir}"/lsb-release
+}
 
-  case "${image_type}" in
-    "${IMAGE_TYPE_TEST}")
-      extra+=( "virtual/target-termina-os-dev" )
-      extra+=( "virtual/target-termina-os-test" )
-      image_suffix="-test"
-      ;;
-    "${IMAGE_TYPE_DEV}")
-      extra+=( "virtual/target-termina-os-dev" )
-      image_suffix="-dev"
-      ;;
+read_le_int() {
+  local disk="$1"
+  local offset="$2"
+  local size="$3"
+
+  case "${size}" in
+  1 | 2 | 4 | 8)
+    ;;
+  *) die "${size} is not a valid int size to read"
+    ;;
   esac
 
-  export INSTALL_MASK="${DEFAULT_INSTALL_MASK}"
+  local raw="$(xxd -g ${size} -e -s ${offset} -l ${size} ${disk} | cut -d' ' -f2)"
+  local result="$(( 16#${raw} ))"
 
-  mkdir -p "${OUTPUT_DIR}"
-
-  install_with_root_deps "${ROOTDIR}" "virtual/target-termina-os" \
-                                      "sys-libs/gcc-libs" \
-                                      "${extra[@]}"
-
-  info "Installing C library ... "
-  install_libc "${ROOTDIR}"
-
-  info "Cleaning excess files ... "
-  sudo rm -rf "${ROOTDIR}"/var "${ROOTDIR}"/usr/lib*/gconv/ \
-    "${ROOTDIR}"/sbin/ldconfig "${ROOTDIR}"/boot "${ROOTDIR}"/lib/firmware
-  # Remove empty directories from the rootfs.
-  sudo find "${ROOTDIR}"/ -type d -depth -exec rmdir {} + 2>/dev/null || :
-
-  info "Creating top level dirs and socket dirs ... "
-  sudo mkdir -p "${ROOTDIR}"/{dev,proc,root,sys,home/user,run,tmp,var}
-
-  info "Creating container mounts ..."
-  sudo mkdir -p "${ROOTDIR}"/mnt/{container_rootfs,container_private}
-
-  info "Installing container pubkey ..."
-  "${VBOOT_SIGNING_DIR}"/insert_container_publickey.sh \
-    "${ROOTDIR}" \
-    "${VBOOT_DEVKEYS_DIR}"/cros-oci-container-pub.pem
-
-  info "Generating squashfs file ... "
-  local args=(
-    -all-root
-    -noappend
-  )
-  local img="${OUTPUT_DIR}/rootfs${image_suffix}.bin"
-  sudo mksquashfs "${ROOTDIR}" "${img}" "${args[@]}"
-  sudo chown $(id -u):$(id -g) "${img}"
-
-  info "Copying in kernel ..."
-  cp /build/"${FLAGS_board}"/boot/vmlinuz \
-     "${OUTPUT_DIR}/termina-kernel${image_suffix}.bin"
-
-  info "Cleaning up ... "
-  sudo rm -rf "${ROOTDIR}"
+  echo "${result}"
 }
 
-run_emerge() {
-  emerge-${BOARD} \
-    --quiet --jobs ${NUM_JOBS} \
-    --usepkgonly \
-    "$@"
+extract_squashfs_partition() {
+  local src_disk="$1"
+  local src_part="$2"
+  local dst_file="$3"
+
+  local part_start_blks="$(cgpt show -i "${src_part}" -b "${src_disk}")"
+  local part_start_bytes="$(( part_start_blks * 512 ))"
+  local part_size_blks="$(cgpt show -i "${src_part}" -s "${src_disk}")"
+  local part_size_bytes="$(( part_size_blks * 512 ))"
+
+  # To be sure we're extracting a squashfs partition, verify the magic.
+  # See fs/squashfs/squashfs_fs.h.
+  local magic="$(read_le_int ${src_disk} ${part_start_bytes} 4)"
+  if [[ "${magic}" -ne 0x73717368 ]]; then
+    die "Partition ${src_part} doesn't look like a squashfs partition"
+  fi
+
+  dd if="${src_disk}" of="${dst_file}" skip="${part_start_bytes}c" \
+    count="${part_size_bytes}c" iflag=skip_bytes,count_bytes
 }
 
-# Emerge with root deps.
-install_with_root_deps() {
-  local root_dir="$1"
-  shift
-  info "Installing '$*' with root deps ... "
-  run_emerge --root="${root_dir}" "$@" --root-deps=rdeps
+# Repack termina rootfs.
+repack_rootfs() {
+  local output_dir="$1"
+  local fs_type="$2"
+  local rootfs_img="${output_dir}/vm_rootfs.img"
+  local stateful_img="${output_dir}/vm_stateful.img"
+
+  # Create image in a temporary directory to avoid the need for extra space
+  # on the final rootfs.
+  local rootfs="${output_dir}/rootfs"
+  local stateful="${output_dir}/stateful"
+
+  sudo unsquashfs -d "${rootfs}" "${rootfs_img}"
+  sudo unsquashfs -d "${stateful}" "${stateful_img}"
+
+  # Remove source images.
+  sudo rm -f "${rootfs_img}" "${stateful_img}"
+
+  # Fix up rootfs.
+
+  # Remove efi cruft.
+  sudo rm -rf "${rootfs}/boot"/{efi,syslinux}
+  # Don't need firmware if you don't have hardware!
+  sudo rm -rf "${rootfs}/lib/firmware"
+  # Get rid of stateful, it's not needed on termina.
+  sudo rm -rf "${rootfs}/mnt/stateful_partition"
+  # Create container rootfs and private dirs.
+  sudo mkdir "${rootfs}"/mnt/{container_rootfs,container_private}
+  # Copy the dev_image into its location at /usr/local.
+  sudo cp -aT "${stateful}"/dev_image "${rootfs}/usr/local"
+
+  # TODO(smbarber): Don't put kernel onto host rootfs once we can
+  # boot 64-bit kernels directly.
+  sudo cp "${rootfs}/boot/vmlinuz" "${output_dir}/vm_kernel"
+  # Remove vmlinuz from the rootfs since it's already on the host rootfs.
+  sudo rm -rf "${rootfs}"/boot/vmlinuz*
+
+  sudo cp "${rootfs}/etc/lsb-release" "${output_dir}/lsb-release"
+
+  case "${fs_type}" in
+  squashfs)
+    sudo mksquashfs "${rootfs}" "${rootfs_img}" -comp lzo
+    ;;
+  ext4)
+    # Start with 300MB, then shrink.
+    local image_size=300
+    truncate --size "${image_size}M" "${rootfs_img}"
+    /sbin/mkfs.ext4 -F -m 0 -i 16384 -b 1024 -O "^has_journal" "${rootfs_img}"
+    local rootfs_mnt="$(mktemp -d)"
+    fs_mount "${rootfs_img}" "${rootfs_mnt}" ext4 rw
+    sudo cp -aT "${rootfs}" "${rootfs_mnt}"
+    fs_umount "${rootfs_img}" "${rootfs_mnt}" ext4 rw
+    # Shrink to minimum size.
+    /sbin/e2fsck -f "${rootfs_img}"
+    /sbin/resize2fs -M "${rootfs_img}"
+    rmdir "${rootfs_mnt}"
+    ;;
+  *)
+    die_notrace "Unsupported fs type ${fs_type}."
+    ;;
+  esac
+
+  sudo rm -rf "${rootfs}" "${stateful}"
+}
+
+upload() {
+  local output_dir="$1"
+  local gspath="gs://chromeos-localmirror/distfiles"
+
+  local release="$(get_version "${output_dir}")"
+  release="${release/-/_}"
+  if is_test_image "${output_dir}"; then
+    local pkg_name="termina-vm-image-test_${FLAGS_arch}"
+  else
+    local pkg_name="termina-vm-image_${FLAGS_arch}"
+  fi
+
+  local target_file="${pkg_name}-${release}.tar.xz"
+
+  info "Will upload: '${target_file}'"
+
+  if ! prompt_yesno "Are you sure you want to upload this image?"; then
+    echo "Not uploading image."
+    return
+  fi
+
+  info "Generating tarball..."
+  tar caf "${output_dir}/termina-vm-image.tar.xz" -C "${output_dir}" \
+    vm_kernel vm_rootfs.img
+
+  if ! gsutil cp -a public-read "${output_dir}/termina-vm-image.tar.xz" \
+       "${gspath}/${target_file}"; then
+    die_notrace "Couldn't upload '${gspath}/${target_file}'."
+  fi
+  info "Uploaded to ${gspath}/${target_file}"
 }
 
 main() {
-  OVERLAY_CHROMEOS_DIR="${SRC_ROOT}/third_party/chromiumos-overlay/chromeos"
-  . "${OVERLAY_CHROMEOS_DIR}/config/chromeos_version.sh" || exit 1
-  . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
-  . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
-  . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
-
-  local image_name="${FLAGS_board}"
-  info "Building '${image_name}' ..."
-  build_vm_image "${image_name}" "${IMAGE_TYPE_BASE}"
-
-  if [[ ${FLAGS_dev} -eq ${FLAGS_true} ]]; then
-    info "Building '${image_name}-dev' ..."
-    build_vm_image "${image_name}-dev" "${IMAGE_TYPE_DEV}"
+  if [[ -z "${FLAGS_image}" ]]; then
+    die_notrace "Please provide an image using --image"
+  elif [[ ! -f "${FLAGS_image}" ]]; then
+    die_notrace "'${FLAGS_image}' does not exist"
   fi
 
-  if [[ ${FLAGS_test} -eq ${FLAGS_true} ]]; then
-    info "Building '${image_name}-test' ..."
-    build_vm_image "${image_name}-test" "${IMAGE_TYPE_TEST}"
+  if [[ "${FLAGS_arch}" != "amd64" && "${FLAGS_arch}" != "armv8" ]]; then
+    die_notrace "Architecture '${FLAGS_arch}' is not valid. Options are 'amd64' and 'armv8'"
   fi
 
-  # Set up symlink to latest image directory.
-  LINK_NAME="${FLAGS_output_root}/${BOARD}/latest"
-  ln -sfT $(basename ${OUTPUT_DIR}) ${LINK_NAME}
+  case "${FLAGS_filesystem}" in
+  squashfs|ext4)
+    ;;
+  *)
+    die_notrace "Filesystem '${FLAGS_filesystem}' is not valid. Options are 'squashfs' and 'ext4'"
+    ;;
+  esac
+
+  if [[ -z "${FLAGS_output}" ]]; then
+    die_notrace "Output directory was not specified"
+  elif [[ -e "${FLAGS_output}" ]]; then
+    die_notrace "${FLAGS_output} already exists"
+  fi
+
+  local output_dir="${FLAGS_output}"
+  local stateful_img="${output_dir}/vm_stateful.img"
+  local rootfs_img="${output_dir}/vm_rootfs.img"
+  local image="${FLAGS_image}"
+
+  mkdir -p "${output_dir}"
+  extract_squashfs_partition "${image}" "3" "${rootfs_img}"
+  extract_squashfs_partition "${image}" "1" "${stateful_img}"
+
+  repack_rootfs "${output_dir}" "${FLAGS_filesystem}"
+
+  if [[ "${FLAGS_upload}" -eq "${FLAGS_TRUE}" ]]; then
+    upload "${output_dir}"
+  fi
+
+  info "Done! The resulting image is in '${output_dir}'"
 }
 
 main "$@"

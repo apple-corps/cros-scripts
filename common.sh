@@ -1338,6 +1338,30 @@ choose() {
   fi
 }
 
+# Display a prompt that asks the user to choose yes or no.
+# $1 - The prompt to be displayed to the user, with " [y/N]: " appended.
+#
+# Usage example:
+#
+#  prompt_yesno "Would you like a cup of tea?"
+#
+# The function will return 0 for yes and 1 for no, appropriate for using
+# in an if statement or loop.
+prompt_yesno() {
+  local prompt=$1
+  local reply
+
+  assert_interactive
+  read -p "${prompt} [y/N]: " reply
+
+  # Be strict. No is the default.
+  if [[ "${reply}" != y && "${reply}" != Y ]]; then
+    return 1
+  fi
+
+  return 0
+}
+
 # Display --help if requested. This is used to hide options from help
 # that are not intended for developer use.
 #
