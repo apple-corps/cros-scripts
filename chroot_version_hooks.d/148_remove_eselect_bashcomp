@@ -1,0 +1,9 @@
+# Copyright 2017 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# CL:503619 removed app-admin/eselect-bashcomp in preparation for upgrading
+# app-shells/bash-completion, but the existing chroot may still it. This script
+# removes eselect-bashcomp from the chroot.
+
+sudo qmerge -yqU 'app-admin/eselect-bashcomp'
