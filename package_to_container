@@ -36,7 +36,7 @@ The output directory will contain the following:
 * imageloader.json: imageloader manifest which contains hashes
     of image.squash and table
 * imageloader.sig.2: ECDSA signature of imageloader.json
-* manifest.json: chrome extension manifest
+* container.json: container manifest for run_oci and such
 
 If the --minor_version flag is given a negative number, it is ignored.
 "
@@ -45,14 +45,14 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
-# Sign the manifest.json file.
+# Sign the container!
 sign_manifest() {
   "${VBOOT_SIGNING_DIR}"/sign_official_build.sh \
     oci-container "$1" "${VBOOT_DEVKEYS_DIR}" "$1"
 }
 
 # Generate the imageloader.json for this container.
-generate_manifest() {
+generate_imageloader_manifest() {
   local pkg_version="$1"
   local output="$2"
   local manifest="${output}/imageloader.json"
@@ -80,16 +80,16 @@ generate_manifest() {
   sign_manifest "${output}"
 }
 
-# Generate the manifest for a chrome extension.
-generate_crx_manifest() {
+# Generate the manifest for this one container.
+generate_container_manifest() {
   local container_name="$1"
   local pkg_version="$2"
-  local manifest="${output}/manifest.json"
+  local manifest="${output}/container.json"
 
   (
     cd "${output}"
     printf '{\n'
-    printf '"manifest_version": 2,\n'
+    printf '"manifest-version": 1,\n'
     printf '"name": "%s",\n' "${container_name}"
     printf '"version": "%s"\n' "${pkg_version}"
     printf '}\n'
@@ -170,11 +170,11 @@ build_container_image() {
   sign_disk_image "${img}"
   echo "${verity}" > "${output}/table"
 
-  info "Generating manifest ..."
-  generate_manifest "${version}" "${output}"
+  info "Generating imageloader manifest ..."
+  generate_imageloader_manifest "${version}" "${output}"
 
-  info "Generating extension manifest ..."
-  generate_crx_manifest "${container_name}" "${version}"
+  info "Generating container manifest ..."
+  generate_container_manifest "${container_name}" "${version}"
 
   info "Cleaning up ... "
   sudo rm -rf "${IMAGEDIR}"
