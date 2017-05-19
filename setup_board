@@ -309,7 +309,8 @@ else
       fi
 
       sudo -E "emerge-${BOARD_VARIANT}" ${BASE_EMERGE_FLAGS} \
-        sys-kernel/linux-headers sys-libs/gcc-libs
+        sys-kernel/linux-headers sys-libs/gcc-libs sys-libs/libcxxabi \
+          sys-libs/libcxx
       unset BASE_EMERGE_FLAGS
     fi
   fi
