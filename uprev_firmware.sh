@@ -160,7 +160,7 @@ ${FLAGS_board}/${FLAGS_fw_version}"
 # Update the firmware ebuild file in the device private overlay
 update_fw_ebuild() {
   local keyword_main_fw="MAIN_IMAGE=\"bcs:\/\/${BOARD_NAME}"
-  local keyword_main_rw_fw="MAIN_RW_IMAGE=\"bcs:\/\/${BOARD_NAME}"
+  local keyword_main_rw_fw="CROS_FIRMWARE_MAIN_RW_IMAGE="
   local keyword_ec_fw="EC_IMAGE=\"bcs:\/\/${BOARD_NAME}"
   local keyword_pd_fw="PD_IMAGE=\"bcs:\/\/${BOARD_NAME}"
   local main_fw_line=$(grep -i "${keyword_main_fw}" "${EBUILD_FILE}")
@@ -188,16 +188,17 @@ update_fw_ebuild() {
   if [[ "${FLAGS_rw_only}" -eq "${FLAGS_FALSE}" ]]; then
     sed -i -e "s/${old_main_fw_tar_name}/${MAIN_FW_TAR_NAME}/" \
       -e "s/${old_ec_fw_tar_name}/${EC_FW_TAR_NAME}/" "${EBUILD_FILE}"
+    main_rw_fw_line="${keyword_main_rw_fw}\"\""
     if [[ -n "${PD_FW_TAR_NAME}" ]]; then
       sed -i -e "s/${old_pd_fw_tar_name}/${PD_FW_TAR_NAME}/" \
         "${EBUILD_FILE}"
     fi
   else
-    # Create a new line for CROS_FIRMWARE_MAIN_RW_IMAGE
-    main_rw_fw_line="CROS_FIRMWARE_MAIN_RW_IMAGE=\"\
+    main_rw_fw_line="${keyword_main_rw_fw}\"\
 bcs:\/\/${MAIN_FW_TAR_NAME}\""
-    sed -i "/${old_main_fw_tar_name}/a ${main_rw_fw_line}" "${EBUILD_FILE}"
   fi
+  # Create a new line for CROS_FIRMWARE_MAIN_RW_IMAGE
+  sed -i "/${keyword_main_fw}/a ${main_rw_fw_line}" "${EBUILD_FILE}"
 
   # Update the manifest.
   ebuild-"${FLAGS_board}" "${EBUILD_FILE}" manifest
