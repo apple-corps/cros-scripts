@@ -174,7 +174,7 @@ copy_into_chroot_if_exists() {
 # chrome can build with them.  It needs to take it from the places a dev
 # is likely to put them, and recognize that older chroots may or may not
 # have been used since the concept of keys got added, as well as before
-# and after the developer decding to grab his own keys.
+# and after the developer deciding to grab their own keys.
 promote_api_keys() {
   local destination="${FLAGS_chroot}/home/${SUDO_USER}/.googleapikeys"
   # Don't disturb existing keys.  They could be set differently
