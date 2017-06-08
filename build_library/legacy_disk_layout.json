@@ -84,7 +84,7 @@
         "label": "EFI-SYSTEM",
         "type": "efi",
         "fs_format": "vfat",
-        "size": "16 MiB",
+        "size": "32 MiB",
         "uuid": "clear"
       },
       {
