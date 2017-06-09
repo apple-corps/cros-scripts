@@ -215,10 +215,6 @@ create_base_image() {
     --log-level error \
     --generate-licenses \
     --output "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
-  # Copy the license credits file to ${BUILD_DIR} so that is will be uploaded
-  # as artifact later in ArchiveStage.
-  cp "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html" \
-    "${BUILD_DIR}/license_credits.html"
 
   # Remove unreferenced gconv charsets.
   # gconv charsets are .so modules loaded dynamically by iconv_open(3),
