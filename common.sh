@@ -722,7 +722,8 @@ sub_mounts() {
   # will).  As such, we have to unmount in reverse order to cleanly
   # unmount submounts (think /dev/pts and /dev).
   awk -v path="$1" -v len="${#1}" \
-    '(substr($2, 1, len) == path) { print $2 }' /proc/mounts | \
+    '(substr($2, 1, len+1) == path ||
+      substr($2, 1, len+1) == (path "/")) { print $2 }' /proc/mounts | \
     tac | \
     sed -e 's/\\040(deleted)$//'
   # Hack(zbehan): If a bind mount's source is mysteriously removed,

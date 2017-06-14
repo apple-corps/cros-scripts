@@ -281,6 +281,10 @@ setup_env() {
 
     debug "Mounting chroot environment."
     mount --make-rslave /
+    if grep -q -e "${FLAGS_chroot}[[:space:]]" /proc/mounts; then
+      debug "Changing $FLAGS_chroot to a private subtree."
+      mount --make-private "$FLAGS_chroot"
+    fi
     MOUNT_CACHE=$(echo $(awk '{print $2}' /proc/mounts))
     setup_mount none "-t proc" /proc
     setup_mount none "-t sysfs" /sys
