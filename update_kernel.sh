@@ -226,6 +226,10 @@ main() {
 
   learn_partition_and_ro
 
+  if ! remote_sh "test -e '${FLAGS_partition}'"; then
+    die_notrace "Could not find kernel partition on DUT; path='${FLAGS_partition}'"
+  fi
+
   remote_sh uname -r -v
 
   old_kernel="${REMOTE_OUT}"
