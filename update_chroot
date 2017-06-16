@@ -89,33 +89,35 @@ info "Updating the SDK"
 CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
-EMERGE_FLAGS="-uNv --with-bdeps=y --select"
+EMERGE_FLAGS=( -uNv --with-bdeps=y --select )
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
-  EMERGE_FLAGS="${EMERGE_FLAGS} --getbinpkg"
+  EMERGE_FLAGS+=( --getbinpkg )
 
   # Only update toolchain when binpkgs are available. Toolchain rollout
   # process only takes place when the chromiumos sdk builder finishes
   # a successful build.
-  EMERGE_FLAGS+=" --useoldpkg-atoms=dev-lang/go"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/binutils"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/clang"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/gcc"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-devel/llvm"
-  EMERGE_FLAGS+=" --useoldpkg-atoms=sys-libs/glibc"
+  EMERGE_FLAGS+=(
+    --useoldpkg-atoms=dev-lang/go
+    --useoldpkg-atoms=sys-devel/binutils
+    --useoldpkg-atoms=sys-devel/clang
+    --useoldpkg-atoms=sys-devel/gcc
+    --useoldpkg-atoms=sys-devel/llvm
+    --useoldpkg-atoms=sys-libs/glibc
+  )
 fi
 
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
-  EMERGE_FLAGS+=" --jobs=${FLAGS_jobs}"
+  EMERGE_FLAGS+=( --jobs="${FLAGS_jobs}" )
 fi
 
 # Build cros_workon packages when they are changed.
 for pkg in $("${CHROMITE_BIN}/cros_list_modified_packages" --host); do
-  EMERGE_FLAGS+=" --reinstall-atoms=${pkg} --usepkg-exclude=${pkg}"
+  EMERGE_FLAGS+=( --reinstall-atoms="${pkg}" --usepkg-exclude="${pkg}" )
 done
 
 # Second pass, update everything else.
-EMERGE_FLAGS+=" --deep"
-sudo -E ${EMERGE_CMD} ${EMERGE_FLAGS} virtual/target-sdk world
+EMERGE_FLAGS+=( --deep )
+sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
 
 # Automatically discard all CONFIG_PROTECT'ed files. Those that are
 # protected should not be overwritten until the variable is changed.
