@@ -210,11 +210,17 @@ create_base_image() {
   # image in a location that will be used by Chrome.
   info "Generating license credits page. Time:"
   sudo mkdir -p "${root_fs_dir}/opt/google/chrome/resources"
+  local license_path="${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
   time sudo "${GCLIENT_ROOT}/chromite/licensing/licenses" \
     --board="${BOARD}" \
     --log-level error \
     --generate-licenses \
-    --output "${root_fs_dir}/opt/google/chrome/resources/about_os_credits.html"
+    --output "${license_path}"
+  # Copy the license credits file to ${BUILD_DIR} so that is will be uploaded
+  # as artifact later in ArchiveStage.
+  if [[ -r "${license_path}" ]]; then
+    cp "${license_path}" "${BUILD_DIR}/license_credits.html"
+  fi
 
   # Remove unreferenced gconv charsets.
   # gconv charsets are .so modules loaded dynamically by iconv_open(3),
