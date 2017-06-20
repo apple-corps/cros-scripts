@@ -47,6 +47,14 @@ learn_device() {
   info "Target reports root device is ${FLAGS_device}"
 }
 
+# Delete the fixed numbers after R65 when we don't care about <R57 upgrades.
+load_default_partition_numbers() {
+  PARTITION_NUM_KERN_A=2
+  PARTITION_NUM_ROOT_A=3
+  PARTITION_NUM_KERN_B=4
+  PARTITION_NUM_EFI_SYSTEM=12
+}
+
 # Ask the target what the kernel partition is
 learn_partition_and_ro() {
   ! remote_sh rootdev
@@ -223,6 +231,10 @@ main() {
   learn_device
 
   learn_partition_layout
+  if [[ -z "${PARTITION_NUM_KERN_A}" ]]; then
+    info "Target has no partition number info, use default instead"
+    load_default_partition_numbers
+  fi
 
   learn_partition_and_ro
 
