@@ -100,6 +100,10 @@ fi
 get_partition_size() {
   local filename="$1"
   local part_num="$2"
+  if [[ -z "${part_num}" ]]; then
+      error "Skipping blank partition number."
+      return 1
+  fi
   local part_size var_name
 
   var_name="PARTITION_SIZE_${part_num}"
@@ -186,6 +190,7 @@ unmount_image() {
     [[ -n "${mountpoint}" ]] || continue
     var_name="PARTITION_NUM_${part_label}"
     part_num="${!var_name}"
+    [[ -n "${part_num}" ]] || continue
 
     part_size=$(get_partition_size "${filename}" "${part_num}") || continue
 
@@ -298,6 +303,7 @@ mount_gpt_partitions() {
 
     var_name="PARTITION_NUM_${part_label}"
     part_num="${!var_name}"
+    [[ -n "${part_num}" ]] || continue
 
     part_size=$(get_partition_size "${filename}" ${part_num}) || continue
     part_offset=$(partoffset "${filename}" ${part_num}) ||
