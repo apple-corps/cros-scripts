@@ -313,3 +313,14 @@ run_depmod() {
     fi
   done
 }
+
+# Newer udev versions do not pay attention to individual *.hwdb files
+# but require up to date /etc/udev/hwdb.bin. Let's [re]generate it as
+# part of build process.
+#
+# Since hwdb is a generic "key/value database based on modalias strings"
+# the version of udevadm found on the host should suffice.
+run_udevadm_hwdb() {
+  local root_fs_dir="$1"
+  sudo udevadm hwdb --update -r "${root_fs_dir}"
+}

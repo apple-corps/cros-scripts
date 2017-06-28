@@ -233,6 +233,9 @@ create_base_image() {
   # Run ldconfig to create /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 
+  # Run udevadm to generate /etc/udev/hwdb.bin
+  run_udevadm_hwdb "${root_fs_dir}"
+
   # Set /etc/lsb-release on the image.
   local official_flag=
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
