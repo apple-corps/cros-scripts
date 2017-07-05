@@ -390,7 +390,9 @@ mk_fs() {
     sudo mkfs.${fs_format} -F -q -O ext_attr \
         "${uuid_option[@]}" \
         -E lazy_itable_init=0 \
-        -b ${fs_block_size} "${part_dev}" "$((fs_bytes / fs_block_size))"
+        -b ${fs_block_size} \
+        "${fs_options_arr[@]}" \
+        "${part_dev}" "$((fs_bytes / fs_block_size))"
     # We need to redirect from stdin and clear the prompt variable to make
     # sure tune2fs doesn't throw up random prompts on us.  We know that the
     # command below is what we want and is safe (it's a new FS).
@@ -402,8 +404,7 @@ mk_fs() {
         -m 0 \
         -r 0 \
         -e remount-ro \
-        "${part_dev}" \
-        "${fs_options_arr[@]}" </dev/null
+        "${part_dev}" </dev/null
     ;;
   fat12|fat16|fat32)
     sudo mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${part_dev}" \
