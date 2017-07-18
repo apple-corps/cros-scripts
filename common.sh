@@ -483,39 +483,19 @@ DEFAULT_INSTALL_MASK="
   test_*.ko
   "
 
-# Mask for factory test image (make_factory_toolkit.sh)
-FACTORY_TEST_INSTALL_MASK="
-  ${COMMON_INSTALL_MASK}
-  */.svn
-  */CVS
-  /usr/local/autotest/conmux
-  /usr/local/build/autotest
-  /usr/local/factory/bundle
-  "
-
 # Mask for factory install shim (build_image factory_install)
 FACTORY_SHIM_INSTALL_MASK="
   ${DEFAULT_INSTALL_MASK}
-  /opt/[^g]*
-  /opt/google/chrome
-  /opt/google/containers
-  /opt/google/o3d
-  /opt/google/talkplugin
-  /usr/lib/dri
-  /usr/lib/python2.6/test
+  /opt
   /usr/lib64/dri
-  /usr/local/autotest-pkgs
+  /usr/lib/dri
   /usr/share/X11
-  /usr/share/chewing
-  /usr/share/chromeos-assets
+  /usr/share/chromeos-assets/[^i]*
+  /usr/share/chromeos-assets/i[^m]*
   /usr/share/fonts
-  /usr/share/ibus-pinyin
-  /usr/share/libhangul
   /usr/share/locale
-  /usr/share/m17n
   /usr/share/mime
   /usr/share/oem
-  /usr/share/pyzy
   /usr/share/sounds
   /usr/share/tts
   /usr/share/zoneinfo
