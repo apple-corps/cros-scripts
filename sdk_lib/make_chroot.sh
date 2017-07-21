@@ -413,7 +413,7 @@ mount_chroot_image() {
     die_notrace "Unable to find usable VG name for ${mount_path}."
   fi
   if vgs "$chroot_vg" >&/dev/null; then
-    vgchange -q -a y --noudevsync "$chroot_vg" >/dev/null
+    vgchange -q -a y --noudevsync "$chroot_vg" >/dev/null || :
   else
     vgcreate -q "$chroot_vg" "$chroot_dev" >/dev/null
   fi
@@ -422,7 +422,7 @@ mount_chroot_image() {
   # We need to pass --noudevsync to lvcreate because we're running inside
   # a separate IPC namespace from the udev process.
   if lvs "$chroot_vg/chroot" >&/dev/null; then
-    lvchange -q -ay "$chroot_vg/chroot" --noudevsync >/dev/null
+    lvchange -q -ay "$chroot_vg/chroot" --noudevsync >/dev/null || :
   else
     lvcreate -q -L 499G -T "${chroot_vg}/thinpool" -V500G -n chroot \
         --noudevsync >/dev/null
