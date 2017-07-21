@@ -572,19 +572,12 @@ if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
   early_enter_chroot emerge -uNvq sys-apps/baselayout
 fi
 
-# The stage3 contains an old version of Python. Upgrade it first so that
-# parallel_emerge (and chromite libs) can use the latest Python syntax.
-info "Updating python-2.x"
-early_enter_chroot emerge -uNvq =dev-lang/python-2*
-
 # New versions of the stage3 have Python 3 set as the default. Make sure we
 # default to 2.x as our scripts are only compatible with Python 2. We leave
 # Python 3 installed though as we've started including it in our SDK.
 early_enter_chroot eselect python set 1
 
 # Add chromite into python path.
-# This needs to happen after the python update or the correct /usr/lib/python2.*
-# may not exist.
 for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
   python_path+="/site-packages"
   sudo mkdir -p "${python_path}"
