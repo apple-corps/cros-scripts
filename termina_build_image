@@ -113,9 +113,10 @@ repack_rootfs() {
   # Copy the dev_image into its location at /usr/local.
   sudo cp -aT "${stateful}"/dev_image "${rootfs}/usr/local"
 
-  # TODO(smbarber): Don't put kernel onto host rootfs once we can
-  # boot 64-bit kernels directly.
-  sudo cp "${rootfs}/boot/vmlinuz" "${output_dir}/vm_kernel"
+  # TODO(smbarber): Remove vmlinuz once kvmtool is removed.
+  cp "${rootfs}/boot/vmlinuz" "${output_dir}/vmlinuz"
+  "${CHROOT_TRUNK_DIR}"/src/third_party/kernel/v4.4/scripts/extract-vmlinux \
+      "${output_dir}/vmlinuz" > "${output_dir}/vm_kernel"
   # Remove vmlinuz from the rootfs since it's already on the host rootfs.
   sudo rm -rf "${rootfs}"/boot/vmlinuz*
 
