@@ -560,6 +560,21 @@ fi
 # Add version of stage3 for update checks.
 echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 
+# TODO(crbug.com/747810): Remove this once stage3 is updated past 2015-Q1.
+# The 2014.09.18 stage3 uses app-admin/eselect-python, but in 2015-Q1 it moved
+# to app-eselect/eselect-python. Since portage depends on python-exec, and
+# python-exec depends on eselect-python, update python and related packages
+# before portage.
+info "Updating python"
+early_enter_chroot emerge -uNv --quiet python:2.7 python:3.3
+
+# New versions of the stage3 have Python 3 set as the default. Make sure we
+# default to 2.x as our scripts are only compatible with Python 2. We leave
+# Python 3 installed though as we've started including it in our SDK.
+# We can't just "set 1" because the option order changes for different stage3
+# tarballs.
+early_enter_chroot eselect python update --ignore "3*"
+
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet portage
 
@@ -571,11 +586,6 @@ if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
   # above removed our copy in the process.
   early_enter_chroot emerge -uNvq sys-apps/baselayout
 fi
-
-# New versions of the stage3 have Python 3 set as the default. Make sure we
-# default to 2.x as our scripts are only compatible with Python 2. We leave
-# Python 3 installed though as we've started including it in our SDK.
-early_enter_chroot eselect python set 1
 
 # Add chromite into python path.
 for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
