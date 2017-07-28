@@ -66,10 +66,14 @@ get_pid() {
   sudo cat "${KVM_PID_FILE}"
 }
 
+get_host_files_prefix() {
+  echo "${KVM_PID_FILE%.pid}"
+}
+
 # Configure paths to KVM pipes. Must not be called until after KVM_PID_FILE
 # has been updated. (See, e.g., start_kvm.)
 set_kvm_pipes() {
-  local base="${KVM_PID_FILE%.pid}"
+  local base="$(get_host_files_prefix)"
   KVM_PIPE_PREFIX="${base}.monitor"
   KVM_PIPE_IN="${KVM_PIPE_PREFIX}.in"  # to KVM
   KVM_PIPE_OUT="${KVM_PIPE_PREFIX}.out"  # from KVM
@@ -260,23 +264,27 @@ start_kvm() {
       fi
     fi
 
+    local base="$(get_host_files_prefix)"
     local moblab_env=""
     if [ ${FLAGS_moblab} -eq ${FLAGS_TRUE} ]; then
       # Increase moblab memory size.
       moblab_env="-m 4G"
 
       # Set up an external USB storage device.
-      qemu-img create -f raw usb_disk 35g
-      mkfs.ext4 -F usb_disk
-      e2label usb_disk MOBLAB-STORAGE
+      local -r usb_disk=${base}.moblab_usb_disk
+      # Assumed safe, the PID  is not running.
+      sudo rm -f "${usb_disk}"
+      qemu-img create -f raw "${usb_disk}" 35g
+      mkfs.ext4 -F "${usb_disk}"
+      e2label "${usb_disk}" MOBLAB-STORAGE
 
-      moblab_env+=" -usb -drive id=usb_disk,if=none,file=usb_disk"
+      moblab_env+=" -usb -drive id=usb_disk,if=none,file=${usb_disk}"
       moblab_env+=" -device usb-storage,drive=usb_disk"
 
       # Add hostforwarding for important moblab pages to the SLIRP connection.
-      MOB_MONITOR_PORT=9991
-      AFE_PORT=8888
-      DEVSERVER_PORT=7777
+      MOB_MONITOR_PORT=$(( FLAGS_ssh_port + 1 ))
+      AFE_PORT=$(( FLAGS_ssh_port + 2 ))
+      DEVSERVER_PORT=$(( FLAGS_ssh_port + 3 ))
 
       net_user+=",hostfwd=tcp:127.0.0.1:${MOB_MONITOR_PORT}-:9991"
       net_user+=",hostfwd=tcp:127.0.0.1:${AFE_PORT}-:80"
