@@ -103,6 +103,8 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
     --useoldpkg-atoms=sys-devel/gcc
     --useoldpkg-atoms=sys-devel/llvm
     --useoldpkg-atoms=sys-libs/glibc
+    --useoldpkg-atoms=sys-libs/libcxx
+    --useoldpkg-atoms=sys-libs/libcxxabi
   )
 fi
 
