@@ -223,19 +223,13 @@ start_kvm() {
       fi
     fi
 
-    local net_option="-net nic,model=virtio"
-    if [ -f "$(dirname "${vm_image}")/.use_e1000" ]; then
-      info "Detected older image, using e1000 instead of virtio."
-      net_option="-net nic,model=e1000"
-    fi
-    local net_user="-net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22"
-
     # Qemu-vlans are used by qemu to separate out network traffic on the slirp
     # network bridge. qemu forwards traffic on a slirp vlan to all ports
     # conected on that vlan. By default, slirp ports are on vlan 0.
     # We explicitly set a vlan here so that another qemu VM using slirp doesn't
     # conflict with our network traffic.
-    net_option+=",vlan=${FLAGS_ssh_port}"
+    local net_option="-net nic,model=virtio,vlan=${FLAGS_ssh_port}"
+    local net_user="-net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22"
     net_user+=",vlan=${FLAGS_ssh_port}"
 
     local incoming=""
