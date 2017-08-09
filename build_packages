@@ -261,7 +261,27 @@ fi
 CROS_WORKON_PKGS=()
 if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
   LIST_MODIFIED_PACKAGES="${CHROMITE_BIN}/cros_list_modified_packages"
-  CROS_WORKON_PKGS+=( $("${LIST_MODIFIED_PACKAGES}" --board=${FLAGS_board}) )
+  MODIFIED_PACKAGES=( $("${LIST_MODIFIED_PACKAGES}" --board=${FLAGS_board}) )
+
+  if [[ ${#MODIFIED_PACKAGES[@]} -ne 0 ]]; then
+    info "cros_workon modified packages '${MODIFIED_PACKAGES[*]}' detected"
+    info "Computing reverse dependencies to rebuild"
+    REVERSE_DEPS=( $(\
+      equery-${FLAGS_board} -q depends --indirect ${MODIFIED_PACKAGES[*]} |\
+      awk '{print $1}' | grep -v ^virtual/ | sort -u) )
+
+    # If this is a new chroot, there won't be any computed rebuilds
+    if [[ ${#REVERSE_DEPS[@]} -ne 0 ]]; then
+      # Convert specific versions into base package names
+      MODIFIED_PACKAGES+=( $(\
+        equery-${FLAGS_board} -q list -p -o --format='$category/$name' \
+        ${REVERSE_DEPS[*]}) )
+    fi
+
+    info "These affected packages will be rebuilt: ${MODIFIED_PACKAGES[*]}"
+  fi
+
+  CROS_WORKON_PKGS+=( "${MODIFIED_PACKAGES[@]}" )
 
   # TODO(anush): Make chrome a fake cros-workon package.
   if [[ -n "${CHROME_ORIGIN}" ]]; then
