@@ -126,7 +126,7 @@
         "label": "STATE",
         "type": "data",
         "fs_format": "ext4",
-        "size": "1216 MiB",
+        "size": "2 GiB",
         "features": ["expand"],
         "uuid": "random"
       }
