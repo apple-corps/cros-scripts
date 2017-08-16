@@ -121,6 +121,14 @@ make_kernelimage() {
   if [[ "${FLAGS_arch}" == "arm" ]]; then
     name="bootloader.bin"
     bootloader_path="${SRC_ROOT}/build/images/${FLAGS_board}/latest/${name}"
+    # If there is no local bootloader stub, create a dummy file.  This matches
+    # build_kernel_image.sh.  If we wanted to be super paranoid, we could copy
+    # and extract it from the remote image, if it had one.
+    if [[ ! -e "${bootloader_path}" ]]; then
+      warn "Bootloader does not exist; creating a stub: ${bootloader_path}"
+      mkdir -p "${bootloader_path%/*}"
+      truncate -s 512 "${bootloader_path}"
+    fi
     kernel_image="/build/${FLAGS_board}/boot/vmlinux.uimg"
   else
     bootloader_path="/lib64/bootstub/bootstub.efi"
