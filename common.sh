@@ -449,6 +449,7 @@ COMMON_INSTALL_MASK="
   /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
+  /usr/include/c++
   /usr/include/nspr/*
   /usr/include/X11/*
   /usr/lib/debug
