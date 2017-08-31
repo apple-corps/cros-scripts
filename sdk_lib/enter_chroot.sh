@@ -225,8 +225,11 @@ generate_locales() {
     # with long multibyte strings.  Newer setups have this fixed,
     # but locale-gen doesn't need to be run in any locale in the
     # first place, so just go with C to keep it fast.
+    # Force jobs=1 to work around locale-gen weirdness where it simultaneously
+    # wants to and doesn't want to run multiple jobs (and complains about it).
+    # crbug.com/761153
     chroot "${FLAGS_chroot}" env LC_ALL=C locale-gen -q -u \
-      -G "$(printf '%s\n' "${gen_locales[@]}")"
+      -j 1 -G "$(printf '%s\n' "${gen_locales[@]}")"
   fi
 }
 
