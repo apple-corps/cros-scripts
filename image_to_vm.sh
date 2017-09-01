@@ -108,6 +108,27 @@ if [[ ! -e ${SRC_IMAGE} ]]; then
     "Note: only dev/test/factory images can be used as inputs."
 fi
 
+if [[ -z "${FLAGS_board}" ]] && [[ -n "${FLAGS_from}" ]]; then
+  # The user may not know the board of in the input image, so infer it for them.
+  # TODO(pprabhu): This will fail if the user's chroot has a default_board set
+  # which is different from the image provided, because FLAGS_board will use
+  # that. Fix this project-wide by respecting the --board flag when provided,
+  # but preferring the board inferred from FLAGS_from over the default,
+  # everywhere.
+  FLAGS_board="$(
+    . "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh"
+    get_board_from_image "${SRC_IMAGE}"
+  )"
+fi
+
+if [[ ! -d "/build/${FLAGS_board}" ]]; then
+  # Using board options and overrides requires that the board sysroot be setup
+  # (in order to read kernel and disk-image options).
+  # OTOH, we don't actually need to build any packages / update the host
+  # sysroot.
+  "${SCRIPT_ROOT}/setup_board" --quiet --board="${FLAGS_board}" \
+    --skip_toolchain_update --skip_chroot_upgrade --skip_board_pkg_init
+fi
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
 
