@@ -151,11 +151,14 @@ get_decompressor() {
 # $1: Path to the virtual image to start.
 # $2: Name of the board to virtualize.
 start_kvm() {
+  local vm_image="$1"
+  local board="$2"
+  local extra_args=( "${@:3}" )
+
   set_kvm
 
   # Determine appropriate qemu CPU for board.
   # TODO(spang): Let the overlay provide appropriate options.
-  local board="$2"
   local cpu_option=""
   case "${board}" in
     x86-alex*|x86-mario*|x86-zgb*)
@@ -212,7 +215,6 @@ start_kvm() {
         ;;
     esac
 
-    local vm_image="$1"
     if [ ${FLAGS_copy} -eq ${FLAGS_TRUE} ]; then
       local our_copy=$(mktemp "${vm_image}.copy.XXXXXXXXXX")
       if cp "${vm_image}" "${our_copy}"; then
@@ -317,6 +319,7 @@ start_kvm() {
       ${usb_passthrough}
       ${moblab_env}
       ${drive}
+      "${extra_args[@]}"
     )
     info "Launching: ${cmd[*]}"
     sudo "${cmd[@]}"
