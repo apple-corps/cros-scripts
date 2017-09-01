@@ -449,7 +449,12 @@ if [ ${FLAGS_fsck_rootfs} -eq ${FLAGS_TRUE} ]; then
 fi
 
 if [ ${FLAGS_cleanup_dirs} -eq ${FLAGS_TRUE} ]; then
-  rmdir ${FLAGS_rootfs_mountpoint}
-  rmdir ${FLAGS_statefulfs_mountpoint}
-  rmdir ${FLAGS_espfs_mountpoint}
+  # These paths are already cleaned up by make_image_bootable when unmounting
+  # the image. This is a fallback in case there are errors in that script.
+  for path in ${FLAGS_rootfs_mountpoint} ${FLAGS_statefulfs_mountpoint} \
+      ${FLAGS_espfs_mountpoint}; do
+    if [[ -d "${path}" ]]; then
+      rmdir "${path}"
+    fi
+  done
 fi
