@@ -27,8 +27,9 @@ BINARY_EXECUTABLES = [
     '/usr/bin/cgpt',
     '/usr/bin/delta_generator',
     '/usr/bin/simg2img',
-    # This version includes custom patches with bug fixes.
-    '/usr/bin/unsquashfs',
+    # These versions include custom patches with bug fixes.
+    '/usr/bin/bsdiff',
+    '/usr/bin/bspatch',
     ]
 EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
