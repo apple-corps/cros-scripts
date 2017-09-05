@@ -264,17 +264,6 @@ start_kvm() {
       # Increase moblab memory size.
       moblab_env="-m 4G"
 
-      # Set up an external USB storage device.
-      local -r usb_disk=${base}.moblab_usb_disk
-      # Assumed safe, the PID  is not running.
-      sudo rm -f "${usb_disk}"
-      qemu-img create -f raw "${usb_disk}" 35g
-      mkfs.ext4 -F "${usb_disk}"
-      e2label "${usb_disk}" MOBLAB-STORAGE
-
-      moblab_env+=" -usb -drive id=usb_disk,if=none,file=${usb_disk}"
-      moblab_env+=" -device usb-storage,drive=usb_disk"
-
       # Add hostforwarding for important moblab pages to the SLIRP connection.
       MOB_MONITOR_PORT=$(( FLAGS_ssh_port + 1 ))
       AFE_PORT=$(( FLAGS_ssh_port + 2 ))
