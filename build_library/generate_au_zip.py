@@ -30,6 +30,7 @@ BINARY_EXECUTABLES = [
     # These versions include custom patches with bug fixes.
     '/usr/bin/bsdiff',
     '/usr/bin/bspatch',
+    '/usr/bin/unsquashfs',
     ]
 EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
