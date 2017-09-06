@@ -31,9 +31,16 @@ set -- "${@}" CROS_WORKON_SRCROOT PORTAGE_USERNAME
 
 cat > "${root}/etc/sudoers.d/90_cros" <<EOF
 Defaults env_keep += "${*}"
+
+# We need adm currently to let sudo work inside ebuilds.
 %adm ALL=(ALL) ALL
 root ALL=(ALL) ALL
 ${username} ALL=NOPASSWD: ALL
+
+# Simplify the -v option checks due to overlap of the adm group and the user's
+# supplementary groups.  We don't set any passwords, so disable asking.
+# https://crbug.com/762445
+Defaults verifypw = any
 EOF
 
 chmod 0440 "${root}/etc/sudoers.d/90_cros"
