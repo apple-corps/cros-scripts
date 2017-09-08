@@ -35,6 +35,8 @@ DEFINE_integer to_size -1 \
   "Size in bytes of 'to' to use if it is a file. -1 is ignored. (Default: -1)"
 DEFINE_string vmlinuz "/tmp/vmlinuz" \
   "Path to the vmlinuz file to use (Default: /tmp/vmlinuz)"
+DEFINE_string zimage "/tmp/zimage" \
+  "Path to the zimage file to use (Default: /tmp/zimage)"
 # The kernel_partition and the kernel_cmdline each are used to supply
 # verified boot configuration: dm="".
 DEFINE_string kernel_partition "/tmp/vmlinuz.image" \
@@ -107,8 +109,8 @@ if ! type -p update_x86_bootloaders; then
     # new rootfs will be apparently different.
 
     # Copy the vmlinuz's into place for syslinux
-    sudo cp -f "${template_dir}"/vmlinuz "${esp_fs_dir}"/syslinux/vmlinuz.A
-    sudo cp -f "${template_dir}"/vmlinuz "${esp_fs_dir}"/syslinux/vmlinuz.B
+    sudo cp -f "${FLAGS_vmlinuz}" "${esp_fs_dir}"/syslinux/vmlinuz.A
+    sudo cp -f "${FLAGS_vmlinuz}" "${esp_fs_dir}"/syslinux/vmlinuz.B
 
     # The only work left for the installer is to pick the correct defaults
     # and replace HDROOTA and HDROOTB with the correct /dev/sd%D%P/%U+1
@@ -210,9 +212,9 @@ elif [[ "${FLAGS_arch}" = "arm" || "${FLAGS_arch}" = "mips" ]]; then
     sudo mkdir -p "${ESP_FS_DIR}/u-boot"
     sudo cp "${FLAGS_from}/boot-A.scr.uimg" \
       "${ESP_FS_DIR}/u-boot/boot.scr.uimg"
-    sudo cp -f "${FLAGS_from}"/vmlinuz "${ESP_FS_DIR}"/vmlinuz.uimg.A
-    if [ -r "${FLAGS_from}/zImage" ]; then
-      sudo cp -f "${FLAGS_from}"/zImage "${ESP_FS_DIR}"/vmlinuz.A
+    sudo cp -f "${FLAGS_vmlinuz}" "${ESP_FS_DIR}"/vmlinuz.uimg.A
+    if [ -r "${FLAGS_zimage}" ]; then
+      sudo cp -f "${zimage}" "${ESP_FS_DIR}"/vmlinuz.A
     fi
   fi
 fi
