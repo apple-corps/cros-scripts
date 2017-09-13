@@ -95,15 +95,13 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   # Only update toolchain when binpkgs are available. Toolchain rollout
   # process only takes place when the chromiumos sdk builder finishes
   # a successful build.
+  PACKAGES=(
+    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host)
+  )
+  # Sanity check we got some valid results.
+  [[ ${#PACKAGES[@]} -eq 0 ]] && die_notrace "cros_setup_toolchains failed"
   EMERGE_FLAGS+=(
-    --useoldpkg-atoms=dev-lang/go
-    --useoldpkg-atoms=sys-devel/binutils
-    --useoldpkg-atoms=sys-devel/clang
-    --useoldpkg-atoms=sys-devel/gcc
-    --useoldpkg-atoms=sys-devel/llvm
-    --useoldpkg-atoms=sys-libs/glibc
-    --useoldpkg-atoms=sys-libs/libcxx
-    --useoldpkg-atoms=sys-libs/libcxxabi
+    $(printf ' --useoldpkg-atoms=%s' "${PACKAGES[@]}")
   )
 fi
 
