@@ -226,7 +226,12 @@ if ${HOST_BOARD}; then
   sudo_multi "${cmds[@]}"
 
   EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
-  PACKAGES="system virtual/target-sdk world"
+  PACKAGES=(
+    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host)
+  )
+  # Sanity check we got some valid results.
+  [[ ${#PACKAGES[@]} -eq 0 ]] && die_notrace "cros_setup_toolchains failed"
+  PACKAGES+=( system virtual/target-sdk world )
 
   # First, rebuild all packages from scratch. This is needed to make sure
   # we rebuild all chroot packages.
