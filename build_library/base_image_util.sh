@@ -228,7 +228,7 @@ create_base_image() {
   # and we don't known which ones will be used until all the applications are
   # installed. This script looks for the charset names on all the binaries
   # installed on the the ${root_fs_dir} and removes the unreferenced ones.
-  sudo "${GCLIENT_ROOT}/chromite/bin/gconv_strip" "${root_fs_dir}"
+  sudo "${CHROMITE_BIN}/gconv_strip" "${root_fs_dir}"
 
   # Run ldconfig to create /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
@@ -272,7 +272,7 @@ create_base_image() {
     [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
   fi
 
-  "${GCLIENT_ROOT}/chromite/bin/cros_set_lsb_release" \
+  "${CHROMITE_BIN}/cros_set_lsb_release" \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
     "${model_flags[@]}" \
@@ -293,7 +293,7 @@ create_base_image() {
   # Note: fields in /etc/os-release can come from different places:
   # * /etc/os-release itself with docrashid
   # * /etc/os-release.d for fields created with do_osrelease_field
-  sudo "${GCLIENT_ROOT}/chromite/bin/cros_generate_os_release" \
+  sudo "${CHROMITE_BIN}/cros_generate_os_release" \
     --root="${root_fs_dir}" \
     --version="${CHROME_BRANCH}" \
     --build_id="${CHROMEOS_VERSION_STRING}"

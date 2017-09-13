@@ -127,8 +127,6 @@ if [[ -z "${FLAGS_board}" ]]; then
   exit 1
 fi
 
-CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
-
 # Before we can run any tools, we need to update chroot or setup_board.
 UPDATE_ARGS=()
 if [[ -n ${FLAGS_accept_licenses} ]]; then
@@ -335,7 +333,7 @@ echo "Builds complete"
 
 if [[ ${FLAGS_withdebugsymbols} -eq ${FLAGS_TRUE} ]]; then
   info "fetching the debug symbols"
-  sudo -E "${GCLIENT_ROOT}/chromite/bin/cros_install_debug_syms" \
+  sudo -E "${CHROMITE_BIN}/cros_install_debug_syms" \
     "--board=${FLAGS_board}" "--all"
 fi
 

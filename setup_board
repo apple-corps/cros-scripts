@@ -225,7 +225,7 @@ if ${HOST_BOARD}; then
   )
   sudo_multi "${cmds[@]}"
 
-  EMERGE_CMD="${GCLIENT_ROOT}/chromite/bin/parallel_emerge"
+  EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
   PACKAGES="system virtual/target-sdk world"
 
   # First, rebuild all packages from scratch. This is needed to make sure
@@ -252,7 +252,7 @@ else
   if [[ -n "${FLAGS_accept_licenses}" ]]; then
     EXTRA_ARGS+=( --accepted-licenses="${FLAGS_accept_licenses}" )
   fi
-  sudo "${GCLIENT_ROOT}/chromite/bin/cros_sysroot_utils" generate-make-conf \
+  sudo "${CHROMITE_BIN}/cros_sysroot_utils" generate-make-conf \
     --sysroot="${BOARD_ROOT}" --out-file="${BOARD_ETC}/make.conf.board" \
     "${EXTRA_ARGS[@]}"
 

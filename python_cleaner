@@ -31,7 +31,6 @@ eval set -- "${FLAGS_ARGV}"
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode
 
-CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
 do_cleanup=${FLAGS_FALSE}

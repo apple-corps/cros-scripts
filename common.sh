@@ -329,6 +329,7 @@ SRC_ROOT="${GCLIENT_ROOT}/src"
 SRC_INTERNAL="${GCLIENT_ROOT}/src-internal"
 SCRIPTS_DIR="${SRC_ROOT}/scripts"
 BUILD_LIBRARY_DIR="${SCRIPTS_DIR}/build_library"
+CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 
 # Load developer's custom settings.  Default location is in scripts dir,
 # since that's available both inside and outside the chroot.  By convention,
@@ -538,7 +539,7 @@ restart_in_chroot_if_needed() {
   if [[ ${INSIDE_CHROOT} -ne 1 ]]; then
     # Get inside_chroot path for script.
     local chroot_path="$(reinterpret_path_for_chroot "$0")"
-    exec ${GCLIENT_ROOT}/chromite/bin/cros_sdk -- "${chroot_path}" "$@"
+    exec "${CHROMITE_BIN}/cros_sdk" -- "${chroot_path}" "$@"
   fi
 }
 

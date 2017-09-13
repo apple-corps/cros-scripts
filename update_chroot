@@ -86,7 +86,6 @@ fi
 info "Updating the SDK"
 
 # Perform an update of all the sdk packages in the chroot.
-CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
 EMERGE_FLAGS=( -uNv --with-bdeps=y --select )
