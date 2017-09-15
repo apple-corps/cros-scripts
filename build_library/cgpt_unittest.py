@@ -112,6 +112,81 @@ class JSONLoadingTest(unittest.TestCase):
     layout = cgpt._LoadStackedPartitionConfig(self.layout_json)
     self.assertEqual(parent_layout, layout)
 
+  def testGetStartSectorIsAccurate(self):
+    """Test that primary_entry_array_lba results in a valid start sector."""
+    test_params = (
+        # block_size, primary_entry_array_lba, expected start
+        (512,  2,     64),
+        (512,  32768, 32768 + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY),
+        (1024, 32768, 32768 + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY),
+    )
+    for i in test_params:
+      with open(self.layout_json, 'w') as f:
+        f.write("""{
+  "metadata": {
+    "block_size": %d,
+    "fs_block_size": 4096,
+    "primary_entry_array_lba": %d
+  },
+  "layouts": {
+    "base": [
+      {
+        "type": "blank",
+        "size": "32 MiB"
+      }
+    ]
+  }
+}""" % (i[0], i[1]))
+
+      config = cgpt.LoadPartitionConfig(self.layout_json)
+      class Options(object):
+        adjust_part = ''
+      partitions = cgpt.GetPartitionTable(Options(), config, 'base')
+      start_sector = cgpt._GetStartSector(config, partitions)
+      self.assertEqual(start_sector, i[2])
+
+  def testGetTableTotalsBlockCountIsAccurate(self):
+    """Test that primary_entry_array_lba results in an accurate block count."""
+    test_params = (
+        # block_size, primary_entry_array_lba, partition size (MiB)
+        (512,  2,     32),
+        (1024, 2,     32),
+        (512,  2,     64),
+        (512,  32768, 32),
+        (1024, 32768, 32),
+        (1024, 32768, 64),
+    )
+    for i in test_params:
+      with open(self.layout_json, 'w') as f:
+        f.write("""{
+  "metadata": {
+    "block_size": %d,
+    "fs_block_size": 4096,
+    "primary_entry_array_lba": %d
+  },
+  "layouts": {
+    "base": [
+      {
+        "type": "blank",
+        "size": "%d MiB"
+      }
+    ]
+  }
+}""" % (i[0], i[1], i[2]))
+
+      config = cgpt.LoadPartitionConfig(self.layout_json)
+      class Options(object):
+        adjust_part = ''
+      partitions = cgpt.GetPartitionTable(Options(), config, 'base')
+      totals = cgpt.GetTableTotals(config, partitions)
+
+      # Calculate the expected image block size.
+      block_count = (
+          cgpt._GetStartSector(config, partitions) +
+          sum([i['blocks'] for i in partitions]) +
+          cgpt.SIZE_OF_GPT_HEADER + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY)
+      self.assertEqual(totals['block_count'], block_count)
+
   def testGapPartitionsAreIncluded(self):
     """Test that empty partitions (gaps) can be included in the child layout."""
     with open(self.layout_json, 'w') as f:

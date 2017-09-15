@@ -541,7 +541,7 @@ def GetTableTotals(config, partitions):
   ret = {
       'expand_count': 0,
       'expand_min': 0,
-      'block_count': start_sector * config['metadata']['block_size']
+      'block_count': start_sector,
   }
 
   # Total up the size of all non-expanding partitions to get the minimum
@@ -554,6 +554,9 @@ def GetTableTotals(config, partitions):
       ret['expand_min'] += partition['blocks']
     else:
       ret['block_count'] += partition['blocks']
+
+  # Account for the secondary GPT header and table.
+  ret['block_count'] += SIZE_OF_GPT_HEADER + SIZE_OF_PARTITION_ENTRY_ARRAY
 
   # At present, only one expanding partition is permitted.
   # Whilst it'd be possible to have two, we don't need this yet
