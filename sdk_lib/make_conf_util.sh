@@ -97,10 +97,14 @@ _create_host_setup() {
   local use_clang="$3"
   local cc_string=""
   local cxx_string=""
+  local build_cc_string=""
+  local build_cxx_string=""
 
   if [[ "${use_clang}" == "true" ]];  then
       cc_string='CC=${CHOST}-clang'
       cxx_string='CXX=${CHOST}-clang++'
+      build_cc_string='BUILD_CC=${CHOST}-clang'
+      build_cxx_string='BUILD_CXX=${CHOST}-clang++'
   fi
 
   ( echo "# Automatically generated.  EDIT THIS AND BE SORRY."
@@ -110,7 +114,9 @@ _create_host_setup() {
     _make_conf_prebuilt
     echo 'MAKEOPTS="-j'${NUM_JOBS}'"'
     echo "${cc_string}"
-    echo "${cxx_string}" ) | sudo_clobber "$host_setup"
+    echo "${cxx_string}"
+    echo "${build_cc_string}"
+    echo "${build_cxx_string}" ) | sudo_clobber "$host_setup"
   sudo chmod 644 "$host_setup"
 }
 
