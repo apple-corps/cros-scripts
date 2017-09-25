@@ -31,6 +31,7 @@ BINARY_EXECUTABLES = [
     '/usr/bin/bsdiff',
     '/usr/bin/bspatch',
     '/usr/bin/unsquashfs',
+    '/usr/bin/puffin',
     ]
 EXECUTABLE_FILES = BINARY_EXECUTABLES + [
     '~/trunk/src/scripts/common.sh',
