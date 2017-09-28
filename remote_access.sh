@@ -243,7 +243,7 @@ remote_reboot() {
       sleep ${step_remaining_time}
    fi
   done
-  die "Reboot has not completed after ${timeout} seconds; giving up."
+  die_notrace "Reboot has not completed after ${timeout} seconds; giving up."
 }
 
 # Called by clients before exiting.
