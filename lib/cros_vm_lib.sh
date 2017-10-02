@@ -168,7 +168,7 @@ start_kvm() {
 
   # Use virtio-gpu instead of cirrus if the board supports it.
   case "${board}" in
-    amd64-generic|betty|newbie|novato)
+    amd64-generic|betty*|newbie|novato*)
       video_card="virtio"
       ;;
     *)
