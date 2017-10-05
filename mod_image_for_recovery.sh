@@ -423,7 +423,7 @@ maybe_resize_stateful  # Also copies the image if needed.
 
 if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
   stateful_mnt=$(mktemp -d)
-  local partition_num_state=$(get_image_partition_number \
+  partition_num_state=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "STATE")
   offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_state}")
   sudo mount -o loop,offset=$(( offset * 512 )) \
