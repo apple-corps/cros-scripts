@@ -254,6 +254,24 @@ case ${TARGET} in
 esac
 
 EOF
+
+    if [[ "${x}" != "${umount}" ]]; then
+      cat >>"${x}" <<\EOF
+# If losetup is new enough to create the partition table, use that instead.
+LOOPDEV=''
+cleanup() {
+  if [[ -n "${LOOPDEV}" ]]; then
+    sudo losetup -d "${LOOPDEV}"
+  fi
+}
+trap cleanup EXIT
+if sudo losetup --help |& grep -q -e--partscan; then
+  LOOPDEV=$(sudo losetup -P -f --show "${TARGET}") || exit 1
+fi
+
+EOF
+    fi
+
     echo "${gpt_layout}" >> "${x}"
   done
 
@@ -275,18 +293,31 @@ EOF
     done
 
     cat <<EOF >> "${unpack}"
-dd if=${target} of=${file} ${dd_args} skip=${start}
+if [[ -n "\${LOOPDEV}" ]]; then
+  sudo dd if="\${LOOPDEV}p${part}" of="${file}"
+else
+  dd if=${target} of="${file}" ${dd_args} skip=${start}
+fi
 ln -sfT ${file} "${file}_${label}"
 EOF
     cat <<EOF >> "${pack}"
-dd if=${file} of=${target} ${dd_args} seek=${start} conv=notrunc
+if [[ -n "\${LOOPDEV}" ]]; then
+  sudo dd if="${file}" of="\${LOOPDEV}p${part}"
+else
+  dd if="${file}" of=${target} ${dd_args} seek=${start} conv=notrunc
+fi
 EOF
 
     if [[ ${size} -gt 1 ]]; then
       cat <<-EOF >>"${mount}"
 (
-mkdir -p ${dir}
-m=( sudo mount -o loop,offset=${start_b},sizelimit=${size_b} ${target} ${dir} )
+mkdir -p "${dir}"
+m=( sudo mount )
+if [[ -n "\${LOOPDEV}" ]]; then
+  m+=( "\${LOOPDEV}p${part}" "${dir}" )
+else
+  m+=( -o loop,offset=${start_b},sizelimit=${size_b} "${target}" "${dir}" )
+fi
 if ! "\${m[@]}"; then
   if ! "\${m[@]}" -o ro; then
     rmdir ${dir}
