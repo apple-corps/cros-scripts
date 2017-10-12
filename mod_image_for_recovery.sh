@@ -400,7 +400,7 @@ fi
 
 # Build the recovery kernel.
 FACTORY_ROOT="${BOARD_ROOT}/factory-root"
-RECOVERY_KERNEL_FLAGS="fbconsole vtconsole recovery_ramfs tpm i2cdev vfat"
+RECOVERY_KERNEL_FLAGS="fbconsole vtconsole recovery_ramfs tpm i2cdev vfat -kernel_afdo"
 USE="${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
   failboat "Cannot emerge custom kernel"
 
