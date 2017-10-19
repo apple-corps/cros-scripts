@@ -32,6 +32,8 @@ DEFINE_boolean skip_toolchain_update $FLAGS_FALSE \
   "Don't update the toolchains."
 DEFINE_string toolchain_boards "" \
   "Extra toolchains to setup for the specified boards."
+DEFINE_boolean eclean ${FLAGS_TRUE} \
+  "Run eclean to delete old binpkgs after updating the chroot."
 
 # Parse command line flags
 FLAGS "$@" || exit 1
@@ -125,5 +127,11 @@ printf '%s\nYES\n' -9 | sudo etc-update
 
 # If the user still has old perl modules installed, update them.
 "${SCRIPTS_DIR}/build_library/perl_rebuild.sh"
+
+# Finally clean out any stale binpkgs we've accumulated.
+if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
+  info "Running 'eclean -d packages' to clean up stale binpkgs"
+  sudo eclean -d packages
+fi
 
 command_completed
