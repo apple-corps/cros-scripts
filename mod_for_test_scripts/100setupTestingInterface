@@ -25,7 +25,7 @@ mv -f ${TEMP_CONF} ${ORIG_CONF}
 # installation as a host route.
 cat > ${ROOT_FS_DIR}/etc/udev/rules.d/50-backchannel-network.rules <<EOF
 KERNEL=="eth*", SUBSYSTEMS=="usb", ACTION=="add", RUN+="/sbin/backchannel-setup %k"
-KERNEL=="${testif}", SUBSYSTEMS=="usb", ACTION=="remove", RUN+="kill \$(cat /var/run/dhclient-%k.pid)"
+KERNEL=="${testif}", SUBSYSTEMS=="usb", ACTION=="remove", RUN+="kill \$(cat /run/dhclient-%k.pid)"
 EOF
 
 cat > ${ROOT_FS_DIR}/sbin/backchannel-setup <<EOF
@@ -38,7 +38,7 @@ if [ ! -f /mnt/stateful_partition/etc/enable_backchannel_network ]; then
     exit
 fi
 
-if [ -f /var/run/dhclient-\${testif}.pid ]; then
+if [ -f /run/dhclient-\${testif}.pid ]; then
     # Something else is already going on - perhaps a second
     # USB Ethernet device has been inserted. Let's not mess with it.
     exit
@@ -62,8 +62,8 @@ if [ "\$1" != "\${testif}" ]; then
 fi
 
 # Bring up the backchannel interface
-dhclient -q -pf /var/run/dhclient-\${testif}.pid \\
-            -lf /var/run/dhclient-\${testif}.leases \\
+dhclient -q -pf /run/dhclient-\${testif}.pid \\
+            -lf /run/dhclient-\${testif}.leases \\
             -cf /etc/dhclient-backchannel.conf \\
             -sf /sbin/dhclient-backchannel-script \\
          \${testif}
@@ -119,9 +119,9 @@ case "\$reason" in
             # Since this script is for the backchannel testing interface,
             # we don't set the default route from here, but we do stash
             # it for possible later use in setting up a host route.
-            cp /dev/null /var/run/dhclient-\${interface}.routers
+            cp /dev/null /run/dhclient-\${interface}.routers
             for router in \$new_routers; do
-                echo \$router >> /var/run/dhclient-\${interface}.routers
+                echo \$router >> /run/dhclient-\${interface}.routers
             done
         fi
         ;;
