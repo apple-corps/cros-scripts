@@ -447,6 +447,7 @@ COMMON_INSTALL_MASK="
   /lib/modules/*/vdso
   /lib/rc
   /opt/google/containers/android/vendor/lib*/pkgconfig
+  /opt/google/containers/android/build
   /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
