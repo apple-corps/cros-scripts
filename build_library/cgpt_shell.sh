@@ -21,8 +21,8 @@ create_image() {
   if [ -b "${dev}" ]; then
     # Zap any old partitions (otherwise gpt complains).
     dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=32
-    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 \
-      seek=$(( min_disk_size - 1 - 33 )) count=33
+    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=33 \
+      seek=$(( min_disk_size * block_size / 512 - 1 - 33 ))
   else
     if [ ! -e "${dev}" ]; then
       truncate -s "$(( min_disk_size * block_size ))" "${dev}"
