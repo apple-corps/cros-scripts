@@ -25,8 +25,7 @@ create_image() {
       seek=$(( min_disk_size - 1 - 33 )) count=33
   else
     if [ ! -e "${dev}" ]; then
-      dd if=/dev/zero of="${dev}" bs="${block_size}" count=1 \
-        seek=$(( min_disk_size - 1 ))
+      truncate -s "$(( min_disk_size * block_size ))" "${dev}"
     fi
   fi
 }
