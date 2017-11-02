@@ -29,24 +29,6 @@ check_full_disk() {
   set -e
 }
 
-zero_free_space() {
-  local fs_mount_point=$1
-
-  if ! mountpoint -q "${fs_mount_point}"; then
-    info "Not zeroing freespace in ${fs_mount_point} since it isn't a mounted" \
-        "filesystem. This is normal for squashfs and ubifs partitions."
-    return 0
-  fi
-
-  info "Zeroing freespace in ${fs_mount_point}"
-  # dd is a silly thing and will produce a "No space left on device" message
-  # that cannot be turned off and is confusing to unsuspecting victims.
-  info "${fs_mount_point}/filler"
-  ( sudo dd if=/dev/zero of="${fs_mount_point}/filler" bs=4096 conv=fdatasync \
-      status=noxfer || true ) 2>&1 | grep -v "No space left on device"
-  sudo rm "${fs_mount_point}/filler"
-}
-
 # create_dev_install_lists updates package lists used by
 # chromeos-base/dev-install
 create_dev_install_lists() {
@@ -396,7 +378,7 @@ create_base_image() {
 
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller
-  zero_free_space "${root_fs_dir}"
+  sudo fstrim -v "${root_fs_dir}"
 
   unmount_image
   trap - EXIT
