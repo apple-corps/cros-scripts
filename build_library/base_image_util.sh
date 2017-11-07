@@ -29,6 +29,19 @@ check_full_disk() {
   set -e
 }
 
+zero_free_space() {
+  local fs_mount_point=$1
+
+  if ! mountpoint -q "${fs_mount_point}"; then
+    info "Not zeroing freespace in ${fs_mount_point} since it isn't a mounted" \
+        "filesystem. This is normal for squashfs and ubifs partitions."
+    return 0
+  fi
+
+  info "Zeroing freespace in ${fs_mount_point}"
+  sudo fstrim -v "${fs_mount_point}"
+}
+
 # create_dev_install_lists updates package lists used by
 # chromeos-base/dev-install
 create_dev_install_lists() {
@@ -377,8 +390,8 @@ create_base_image() {
   fi
 
   # Zero rootfs free space to make it more compressible so auto-update
-  # payloads become smaller
-  sudo fstrim -v "${root_fs_dir}"
+  # payloads become smaller.
+  zero_free_space "${root_fs_dir}"
 
   unmount_image
   trap - EXIT
