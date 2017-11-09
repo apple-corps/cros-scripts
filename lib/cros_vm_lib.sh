@@ -166,16 +166,6 @@ start_kvm() {
       ;;
   esac
 
-  # Use virtio-gpu instead of cirrus if the board supports it.
-  case "${board}" in
-    amd64-generic|betty*|newbie|novato*)
-      video_card="virtio"
-      ;;
-    *)
-      video_card="cirrus"
-      ;;
-  esac
-
   # Override default pid file.
   local start_vm=0
   [ -n "${FLAGS_kvm_pid}" ] && KVM_PID_FILE=${FLAGS_kvm_pid}
@@ -304,7 +294,7 @@ start_kvm() {
     local cmd=(
       "${KVM_BINARY}" ${kvm_flag} -m 2G
       -smp 4
-      -vga "${video_card}"
+      -vga virtio
       -pidfile "${KVM_PID_FILE}"
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}"
       -serial "file:${KVM_SERIAL_FILE}"
