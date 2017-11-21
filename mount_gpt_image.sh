@@ -52,6 +52,9 @@ DEFINE_string esp_mountpt "" \
 DEFINE_boolean delete_mountpts ${FLAGS_FALSE} \
   "Delete the mountpoint directories when unmounting."
 DEFINE_boolean most_recent ${FLAGS_FALSE} "Use the most recent image dir" m
+DEFINE_string local_build_dir "/usr/local/build" \
+  "Temporary root directory (under the sysroot) where ebuilds can install "\
+"temporary files during the build."
 
 # Parse flags
 FLAGS "$@" || exit 1
@@ -153,12 +156,28 @@ load_image_partition_numbers() {
     "EFI-SYSTEM")"
 }
 
+unmount_local_build_root() {
+  local build_dir="${FLAGS_rootfs_mountpt}/${FLAGS_local_build_dir}"
+  local rootfs="${build_dir}/rootfs"
+  info "Unmounting temporary rootfs ${rootfs}."
+  if [[ -d "${rootfs}" ]]; then
+    sudo umount "${rootfs}"
+    sudo rmdir "${rootfs}"
+  fi
+  sudo rm -rf "${LOCAL_BUILDROOT_MOUNTPOINT}"
+}
+
 # Common unmounts for either a device or directory
 unmount_image() {
   info "Unmounting image from ${FLAGS_stateful_mountpt}" \
       "and ${FLAGS_rootfs_mountpt}"
   # Don't die on error to force cleanup
   set +e
+
+  if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
+    unmount_local_build_root
+  fi
+
   # Reset symlinks in /usr/local.
   if mount | egrep -q ".* ${FLAGS_stateful_mountpt} .*\(rw,"; then
     setup_symlinks_on_root "." "/var" "${FLAGS_stateful_mountpt}"
@@ -330,6 +349,30 @@ mount_gpt_partitions() {
   done
 }
 
+# Create a local buildroot that can be used by ebuilds that need to install
+# temporary files during the build even though those files should not be in the
+# final image. This is typically the case of ebuilds that install files to
+# Android's /vendor directory before board_specific_setup repacks them to the
+# final vendor image. Those ebuilds can instead install files to
+# /usr/local/build/rootfs/opt/google/containers/.../vendor where
+# board_specific_setup will pick them up and add them to the final vendor image.
+# This local buildroot is in the stateful partition so it can be used even at
+# the stages where the root partition is mounted RO. To avoid running out of
+# space in the stateful partition during the build, use a separate directory
+# outside of the image and bindmount it to the local buildroot.
+mount_local_build_root() {
+  local build_dir="${FLAGS_rootfs_mountpt}/${FLAGS_local_build_dir}"
+  local rootfs="${build_dir}/rootfs"
+  if [[ ! -d "${rootfs}" ]]; then
+    sudo mkdir -p "${rootfs}"
+  fi
+  info "Mounting temporary rootfs ${LOCAL_BUILDROOT_MOUNTPOINT} to ${rootfs}."
+  if [[ ! -d "${LOCAL_BUILDROOT_MOUNTPOINT}" ]]; then
+    sudo mkdir -p "${LOCAL_BUILDROOT_MOUNTPOINT}"
+  fi
+  sudo mount --bind "${LOCAL_BUILDROOT_MOUNTPOINT}" "${rootfs}"
+}
+
 # Mount a gpt based image.
 mount_image() {
   mkdir -p "${FLAGS_rootfs_mountpt}"
@@ -354,8 +397,9 @@ mount_image() {
   sudo mount --bind "${FLAGS_stateful_mountpt}/dev_image" \
     "${FLAGS_rootfs_mountpt}/usr/local"
 
-  # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
+    mount_local_build_root
+    # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
     setup_symlinks_on_root "." \
       "${FLAGS_stateful_mountpt}/var_overlay" "${FLAGS_stateful_mountpt}"
   fi
@@ -414,6 +458,7 @@ ROOT_A_MOUNTPOINT="${FLAGS_rootfs_mountpt}"
 STATE_MOUNTPOINT="${FLAGS_stateful_mountpt}"
 OEM_MOUNTPOINT="${FLAGS_rootfs_mountpt}/usr/share/oem"
 EFI_SYSTEM_MOUNTPOINT="${FLAGS_esp_mountpt}"
+LOCAL_BUILDROOT_MOUNTPOINT="${FLAGS_rootfs_mountpt}-local-build-dir"
 
 # Read the image partition numbers from the GPT.
 load_image_partition_numbers
