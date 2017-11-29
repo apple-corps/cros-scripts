@@ -627,6 +627,16 @@ if [ -n "${INITIALIZE_CHROOT}" ]; then
     "${CHROOT_TRUNK_DIR}/src/scripts/run_chroot_version_hooks" --init_latest
 fi
 
+# Update these packages early because they cause build failures when they're
+# concurrently emerged during the main update below.
+# Specific packages:
+#   sys-apps/sandbox upgrade breaks dev-libs/nss.
+#   sys-devel/patch 2.6 misapplies git patches in dev-embedded/coreboot-sdk.
+#   older sys-devel/automake makes media-libs/freetype build flaky.
+info "Updating preinstalled build tools"
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
+  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake
+
 # Update chroot.
 # Skip toolchain update because it already happened above, and the chroot is
 # not ready to emerge all cross toolchains.
