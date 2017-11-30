@@ -363,6 +363,11 @@ stop_kvm() {
     set_kvm_pipes
     local pid=$(get_pid)
     if [ -n "${pid}" ]; then
+      if ! [ -d "/proc/${pid}" ]; then
+        echo "KVM pid ${pid} no longer running." >&2
+        return 1
+      fi
+
       if [ -n "${FLAGS_mem_path}" ]; then
         local mem_path="${FLAGS_mem_path}"
         local compressor=$(get_compressor "${mem_path}")
