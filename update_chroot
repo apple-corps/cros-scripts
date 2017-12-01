@@ -85,6 +85,10 @@ if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_FALSE}" ]; then
   sudo -E $(type -p cros_setup_toolchains) "${TOOLCHAIN_FLAGS[@]}"
 fi
 
+# Make sure depot_tools is bootstrapped, so that it can build chromeos-chrome.
+info "Bootstrapping depot_tools"
+ensure_bootstrap
+
 info "Updating the SDK"
 
 # Perform an update of all the sdk packages in the chroot.
