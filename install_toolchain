@@ -125,7 +125,7 @@ install_toolchain_in_board() {
   if [[ -z ${gcc_ver} || -z ${libc_ver} ]]; then
     die "Cannot find toolchain to install into board root"
   fi
-  echo "Installing the toolchain into the board root."
+  info "Installing the toolchain into the board root."
   # Untar glibc to get most of the headers required to build.
 
   # Install libc libraries.
