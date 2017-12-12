@@ -52,7 +52,7 @@ DEFINE_string esp_mountpt "" \
 DEFINE_boolean delete_mountpts ${FLAGS_FALSE} \
   "Delete the mountpoint directories when unmounting."
 DEFINE_boolean most_recent ${FLAGS_FALSE} "Use the most recent image dir" m
-DEFINE_string local_build_dir "/usr/local/build" \
+DEFINE_string local_build_dir "/build" \
   "Temporary root directory (under the sysroot) where ebuilds can install "\
 "temporary files during the build."
 
@@ -175,7 +175,9 @@ unmount_image() {
   set +e
 
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
-    unmount_local_build_root
+    if [[ ${FLAGS_safe} -eq ${FLAGS_FALSE} ]]; then
+      unmount_local_build_root
+    fi
   fi
 
   # Reset symlinks in /usr/local.
@@ -354,12 +356,11 @@ mount_gpt_partitions() {
 # final image. This is typically the case of ebuilds that install files to
 # Android's /vendor directory before board_specific_setup repacks them to the
 # final vendor image. Those ebuilds can instead install files to
-# /usr/local/build/rootfs/opt/google/containers/.../vendor where
-# board_specific_setup will pick them up and add them to the final vendor image.
-# This local buildroot is in the stateful partition so it can be used even at
-# the stages where the root partition is mounted RO. To avoid running out of
-# space in the stateful partition during the build, use a separate directory
-# outside of the image and bindmount it to the local buildroot.
+# /build/rootfs/opt/google/containers/.../vendor where board_specific_setup
+# will pick them up and add them to the final vendor image.
+# To avoid running out of space in the root partition during the build, use a
+# separate directory outside of the image and bindmount it to the local
+# buildroot.
 mount_local_build_root() {
   local build_dir="${FLAGS_rootfs_mountpt}/${FLAGS_local_build_dir}"
   local rootfs="${build_dir}/rootfs"
@@ -398,7 +399,9 @@ mount_image() {
     "${FLAGS_rootfs_mountpt}/usr/local"
 
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
-    mount_local_build_root
+    if [[ ${FLAGS_safe} -eq ${FLAGS_FALSE} ]]; then
+      mount_local_build_root
+    fi
     # Setup symlinks in /usr/local so you can emerge packages into /usr/local.
     setup_symlinks_on_root "." \
       "${FLAGS_stateful_mountpt}/var_overlay" "${FLAGS_stateful_mountpt}"
