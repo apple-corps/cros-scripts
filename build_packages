@@ -268,6 +268,10 @@ if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
       equery-${FLAGS_board} -q depends --indirect ${MODIFIED_PACKAGES[*]} |\
       awk '{print $1}' | grep -v ^virtual/ | sort -u) )
 
+    # Remove Chrome as rebuilding it is expensive and almost never makes sense
+    REVERSE_DEPS=( $( echo "${REVERSE_DEPS[*]}" |\
+      sed -e 's/chromeos-base\/chromeos-chrome[^ ]*//' ) )
+
     # If this is a new chroot, there won't be any computed rebuilds
     if [[ ${#REVERSE_DEPS[@]} -ne 0 ]]; then
       # Convert specific versions into base package names
