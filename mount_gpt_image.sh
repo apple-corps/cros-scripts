@@ -164,6 +164,9 @@ unmount_local_build_root() {
     sudo umount "${rootfs}"
     sudo rmdir "${rootfs}"
   fi
+  if [[ -d "${build_dir}" ]]; then
+    sudo rmdir "${build_dir}"
+  fi
   sudo rm -rf "${LOCAL_BUILDROOT_MOUNTPOINT}"
 }
 
