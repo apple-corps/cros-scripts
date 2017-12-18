@@ -1,4 +1,4 @@
-# /bin/bash
+#!/bin/bash
 # Copyright 2017 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -34,16 +34,19 @@ switch_to_strict_mode
 
 update_firmware() {
   local board="$1"
-  local base ebuild
+  local base ebuild srcuris
 
+  set -e
   cros_workon --board="${board}" start chromeos-config-bsp \
       "chromeos-firmware-${board}"
   base="${GCLIENT_ROOT}/src/private-overlays/overlay-${board}-private/chromeos-base"
   ebuild="${base}/chromeos-firmware-${board}/chromeos-firmware-${board}-9999.ebuild"
-  touch "${ebuild}"
+  srcuris="${base}/chromeos-firmware-${board}/files/srcuris"
+  "emerge-${board}" -q chromeos-config-bsp chromeos-config
+  cros_config_host -c "/build/${BOARD?}/usr/share/chromeos-config/config.dtb" \
+    get-firmware-uris > "${srcuris}"
   "ebuild-${board}" "${ebuild}" manifest
-  "emerge-${board}" -q chromeos-config-bsp chromeos-config \
-      "chromeos-firmware-${board}"
+  "emerge-${board}" -q "chromeos-firmware-${board}"
 }
 
 main() {
