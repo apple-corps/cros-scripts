@@ -43,7 +43,7 @@ update_firmware() {
   ebuild="${base}/chromeos-firmware-${board}/chromeos-firmware-${board}-9999.ebuild"
   srcuris="${base}/chromeos-firmware-${board}/files/srcuris"
   "emerge-${board}" -q chromeos-config-bsp chromeos-config
-  cros_config_host -c "/build/${BOARD?}/usr/share/chromeos-config/config.dtb" \
+  cros_config_host -c "/build/${board}/usr/share/chromeos-config/config.dtb" \
     get-firmware-uris > "${srcuris}"
   "ebuild-${board}" "${ebuild}" manifest
   "emerge-${board}" -q "chromeos-firmware-${board}"
