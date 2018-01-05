@@ -50,6 +50,17 @@
 				"nosuid",
 				"noexec"
 			]
+		},
+		{
+			"destination": "/tmp",
+			"type": "tmpfs",
+			"source": "tmpfs",
+			"options": [
+				"mode=755",
+				"nosuid",
+				"noexec",
+				"nodev"
+			]
 		}
 	],
 	"hooks": {},
