@@ -148,6 +148,19 @@ get_decompressor() {
   get_compressor "${1}" "-d"
 }
 
+# Disable ksmd which causes soft kernel lockups on kernel 3.13.
+# For details b/71727384.
+disable_ksmd() {
+  local run_path="/sys/kernel/mm/ksm/run"
+  local ksm=$(<"${run_path}")
+  if [[ "${ksm}" == "1" ]]; then
+    info "Disabling currently enabled ksmd to work around kernel lockups."
+    # This is for interactive use. If a calling script hangs here please set
+    # this environment in advance when you are able to sudo.
+    echo 0 | sudo tee "${run_path}" > /dev/null
+  fi
+}
+
 # $1: Path to the virtual image to start.
 # $2: Name of the board to virtualize.
 start_kvm() {
@@ -155,6 +168,7 @@ start_kvm() {
   local board="$2"
   local extra_args=( "${@:3}" )
 
+  disable_ksmd
   set_kvm
 
   # Determine appropriate qemu CPU for board.
