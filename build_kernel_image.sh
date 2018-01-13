@@ -174,7 +174,6 @@ with --rootfs_image_size."
 
   info "Generating root fs hash tree (salt '${FLAGS_verity_salt}')."
   # Runs as sudo in case the image is a block device.
-  # First argument to verity is reserved/unused and MUST be 0
   table=$(sudo verity mode=create \
                       alg=${FLAGS_verity_hash_alg} \
                       payload=${FLAGS_rootfs_image} \
