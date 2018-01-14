@@ -81,20 +81,29 @@ DUMP_KERNEL_CONFIG=/usr/bin/dump_kernel_config
 KERNEL_CONFIG=$(sudo "${DUMP_KERNEL_CONFIG}" "${KERNEL_IMG}")
 kernel_cfg="$(echo "${KERNEL_CONFIG}" | sed -e 's/.*dm="\([^"]*\)".*/\1/g' |
               cut -f2- -d,)"
-rootfs_sectors=$(echo ${kernel_cfg} | cut -f2 -d' ')
-verity_algorithm=$(echo ${kernel_cfg} | cut -f8 -d' ')
+rootfs_sectors=$(echo "${kernel_cfg}" | cut -f2 -d' ')
+verity_algorithm=$(echo "${kernel_cfg}" | cut -f7 -d' ')
+verity_salt=$(echo "${kernel_cfg}" | cut -f9 -d' ')
 
 # Compute the rootfs hash tree
 VERITY=/bin/verity
-# First argument to verity is reserved/unused and MUST be 0
-table="vroot none ro,"$(sudo "${VERITY}" create 0 \
-        "${verity_algorithm}" \
-        "${ROOTFS_IMG}" \
-        $((rootfs_sectors / 8)) \
-        /dev/null)
 
-expected_hash=$(echo ${kernel_cfg} | cut -f9 -d' ')
-generated_hash=$(echo ${table} | cut -f2- -d, | cut -f9 -d' ')
+verity_cmd=(
+  "${VERITY}"
+  mode=create
+  "${verity_algorithm}"
+  payload="${ROOTFS_IMG}"
+  payload_blocks=$((rootfs_sectors / 8))
+  hashtree=/dev/null
+  "${verity_salt}"
+)
+
+echo "${verity_cmd[@]}"
+
+table="vroot none ro,$(sudo "${verity_cmd[@]}")"
+
+expected_hash=$(echo "${kernel_cfg}" | cut -f8 -d' ')
+generated_hash=$(echo ${table} | cut -f2- -d, | cut -f8 -d' ')
 
 cleanup
 
