@@ -62,8 +62,10 @@ ssh_connect_settings() {
 
 # Copies $1 to $2 on remote host
 remote_cp_to() {
+  local scp_rem
+  scp_rem="$(brackets_enclosed_if_ipv6 "${FLAGS_remote}")"
   REMOTE_OUT=$(scp -P ${FLAGS_ssh_port} $(ssh_connect_settings) \
-    $1 root@$FLAGS_remote:$2)
+    "$1" "root@${scp_rem}:$2")
   return ${PIPESTATUS[0]}
 }
 
