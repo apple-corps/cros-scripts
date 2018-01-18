@@ -30,6 +30,8 @@ DEFINE_string qemu_binary \
   "${DEFAULT_CHROOT_DIR}"/usr/bin/qemu-system-x86_64 \
   "The qemu binary to be used. Defaults to qemu shipped with the SDK."
 DEFINE_string kvm_m 8G "Configure guest RAM"
+DEFINE_integer kvm_smp 0 \
+  "Configure guest CPU counts (0 means auto-detect cpu count)"
 
 KVM_PID_FILE=/tmp/kvm.$$.pid
 LIVE_VM_IMAGE=
@@ -230,6 +232,13 @@ start_kvm() {
       fi
     fi
 
+    local kvm_smp=${FLAGS_kvm_smp}
+    if [[ ${kvm_smp} -eq 0 ]]; then
+      local kvm_smp_default=8
+      info "Set kvm_smp to min(${kvm_smp_default}, ${NUM_JOBS})."
+      kvm_smp=$((kvm_smp_default > NUM_JOBS ? NUM_JOBS : kvm_smp_default))
+    fi
+
     # Qemu-vlans are used by qemu to separate out network traffic on the slirp
     # network bridge. qemu forwards traffic on a slirp vlan to all ports
     # conected on that vlan. By default, slirp ports are on vlan 0.
@@ -308,7 +317,7 @@ start_kvm() {
     # unset. (QEMU chokes on empty arguments).
     local cmd=(
       "${KVM_BINARY}" ${kvm_flag} -m ${FLAGS_kvm_m}
-      -smp 4
+      -smp ${kvm_smp}
       -vga virtio
       -pidfile "${KVM_PID_FILE}"
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}"
