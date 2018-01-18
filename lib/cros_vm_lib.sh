@@ -29,6 +29,7 @@ DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
 DEFINE_string qemu_binary \
   "${DEFAULT_CHROOT_DIR}"/usr/bin/qemu-system-x86_64 \
   "The qemu binary to be used. Defaults to qemu shipped with the SDK."
+DEFINE_string kvm_m 8G "Configure guest RAM"
 
 KVM_PID_FILE=/tmp/kvm.$$.pid
 LIVE_VM_IMAGE=
@@ -306,7 +307,7 @@ start_kvm() {
     # to ensure that it is quoted if set, but _not_ quoted if
     # unset. (QEMU chokes on empty arguments).
     local cmd=(
-      "${KVM_BINARY}" ${kvm_flag} -m 2G
+      "${KVM_BINARY}" ${kvm_flag} -m ${FLAGS_kvm_m}
       -smp 4
       -vga virtio
       -pidfile "${KVM_PID_FILE}"
