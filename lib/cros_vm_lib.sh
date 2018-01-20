@@ -29,6 +29,11 @@ DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
 DEFINE_string qemu_binary \
   "${DEFAULT_CHROOT_DIR}"/usr/bin/qemu-system-x86_64 \
   "The qemu binary to be used. Defaults to qemu shipped with the SDK."
+DEFINE_string kvm_cpu "Haswell-noTSX,-invpcid,-tsc-deadline" \
+    "Configures guest CPU model and features. The default should be the
+     least restrictive option supported by all of Chrome OS infrastructure.
+     Other locally valid choices are for instance 'qemu64' (least features)
+     or 'host' (maximum features)."
 DEFINE_string kvm_m 8G "Configure guest RAM"
 DEFINE_integer kvm_smp 0 \
   "Configure guest CPU counts (0 means auto-detect cpu count)"
@@ -174,14 +179,8 @@ start_kvm() {
   disable_ksmd
   set_kvm
 
-  # Determine appropriate qemu CPU for board.
-  # TODO(spang): Let the overlay provide appropriate options.
-  local cpu_option=""
-  case "${board}" in
-    x86-alex*|x86-mario*|x86-zgb*)
-      cpu_option="-cpu n270"
-      ;;
-  esac
+  # Append 'check' option to warn if requested CPU is not fully supported.
+  local kvm_cpu="${FLAGS_kvm_cpu},check"
 
   # Override default pid file.
   local start_vm=0
@@ -316,15 +315,16 @@ start_kvm() {
     # to ensure that it is quoted if set, but _not_ quoted if
     # unset. (QEMU chokes on empty arguments).
     local cmd=(
-      "${KVM_BINARY}" ${kvm_flag} -m ${FLAGS_kvm_m}
+      "${KVM_BINARY}" ${kvm_flag}
+      -m ${FLAGS_kvm_m}
       -smp ${kvm_smp}
+      -cpu ${kvm_cpu}
       -vga virtio
       -pidfile "${KVM_PID_FILE}"
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}"
       -serial "file:${KVM_SERIAL_FILE}"
       -mon chardev=control_pipe
       -daemonize
-      ${cpu_option}
       ${net_option}
       ${nographics}
       ${snapshot}
