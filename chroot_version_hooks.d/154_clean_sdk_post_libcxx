@@ -1,0 +1,43 @@
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Rebuild host packages after libc++ migration.
+
+REPOS=( $(portageq envvar PORTDIR) $(portageq envvar PORTDIR_OVERLAY) )
+
+package_exists() {
+  local pkg=$1
+  for repo in "${REPOS[@]}"; do
+    [[ -d "${repo}/${pkg}" ]] && return 0
+  done
+  return 1
+}
+
+# Find packages that use libstdc++ and remove their existing
+# binary package.
+PKGS=( $(qdepends -qCN -k NEEDED -Q 'libstdc\+\+\.so\.6') )
+PKGDIR=$(portageq envvar PKGDIR)
+PKGS_TO_REMOVE=()
+cd "${PKGDIR}"
+for pkg in "${PKGS[@]}"; do
+  sudo rm -f "${pkg}-"[0-9]*.tbz2
+  # Collect packages without ebuilds.
+  if ! package_exists "${pkg}"; then
+    PKGS_TO_REMOVE+=( "${pkg}" )
+  fi
+done
+
+# Remove packages no longer present in tree.
+if [[ ${#PKGS_TO_REMOVE[@]} -ne 0 ]]; then
+  echo "Removing non-existent tree packages ${PKGS_TO_REMOVE[*]}"
+  sudo qmerge -Uqy "${PKGS_TO_REMOVE[@]}"
+fi
+
+# New list that can be passed to portage.
+# Ensure that llvm and clang are always pulled in.
+PKGS=( sys-devel/llvm sys-devel/clang )
+PKGS+=( $(qdepends -qCN -k NEEDED -Q 'libstdc\+\+\.so\.6') )
+
+# Reinstall the packages using fresh binary packages.
+sudo ~/trunk/chromite/bin/parallel_emerge --getbinpkg "${PKGS[@]}"
