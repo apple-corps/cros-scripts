@@ -228,8 +228,6 @@ rm -rf "${TEMP_IMG}"
 
 echo "Created image at ${FLAGS_to}"
 
-echo "If you have qemu-kvm installed, you can start the image by:"
-echo "sudo kvm -m ${DEFAULT_MEM} -vga virtio -pidfile /tmp/kvm.pid" \
-  "-net nic,model=virtio -net user,hostfwd=tcp:127.0.0.1:9222-:22 \\"
-echo "-hda ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
+echo "You can start the image with:"
+echo "cros_vm --start --image-path ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
 
