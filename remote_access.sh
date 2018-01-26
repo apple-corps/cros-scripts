@@ -10,7 +10,7 @@ ssh_keys/testing_rsa"
 DEFINE_string remote "" "remote hostname/IP of running Chromium OS instance"
 DEFINE_string private_key "$DEFAULT_PRIVATE_KEY" \
   "Private key of root account on remote host"
-DEFINE_integer ssh_port -1 \
+DEFINE_integer ssh_port 22 \
   "SSH port of the remote machine running Chromium OS instance"
 DEFINE_integer ssh_connect_timeout 30 \
   "SSH connect timeout in seconds"
@@ -36,10 +36,6 @@ brackets_enclosed_if_ipv6() {
 }
 
 ssh_connect_settings() {
-  local port_option="$1"
-  if [[ ${FLAGS_ssh_port} != -1 ]]; then
-    printf -- '%s %s ' "${port_option}" "${FLAGS_ssh_port}"
-  fi
   if [[ -n "$SSH_CONNECT_SETTINGS" ]]; then
     # If connection settings were fixed in an environment variable, just return
     # those values.
@@ -68,7 +64,7 @@ ssh_connect_settings() {
 remote_cp_to() {
   local scp_rem
   scp_rem="$(brackets_enclosed_if_ipv6 "${FLAGS_remote}")"
-  REMOTE_OUT=$(scp $(ssh_connect_settings -P) \
+  REMOTE_OUT=$(scp -P ${FLAGS_ssh_port} $(ssh_connect_settings) \
     "$1" "root@${scp_rem}:$2")
   return ${PIPESTATUS[0]}
 }
@@ -76,7 +72,7 @@ remote_cp_to() {
 # Raw rsync access to the remote
 # Use like: remote_rsync_raw -a /path/from/ root@${FLAGS_remote}:/path/to/
 remote_rsync_raw() {
-  rsync -e "ssh $(ssh_connect_settings -p)" "$@"
+  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings)" "$@"
 }
 
 # Copies a list of remote files specified in file $1 to local location
@@ -109,7 +105,7 @@ remote_send_to() {
 }
 
 _remote_sh() {
-  REMOTE_OUT=$(ssh $(ssh_connect_settings -p) \
+  REMOTE_OUT=$(ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
     root@$FLAGS_remote "$@")
   return ${PIPESTATUS[0]}
 }
@@ -129,7 +125,7 @@ remote_sh() {
 }
 
 remote_sh_raw() {
-  ssh $(ssh_connect_settings -p) \
+  ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
     $EXTRA_REMOTE_SH_ARGS root@$FLAGS_remote "$@"
   return $?
 }
