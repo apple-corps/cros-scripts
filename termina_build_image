@@ -108,8 +108,8 @@ repack_rootfs() {
   sudo rm -rf "${rootfs}/lib/firmware"
   # Get rid of stateful, it's not needed on termina.
   sudo rm -rf "${rootfs}/mnt/stateful_partition"
-  # Create container rootfs and private dirs.
-  sudo mkdir "${rootfs}"/mnt/{container_rootfs,container_private}
+  # Create container stateful and shared dirs.
+  sudo mkdir "${rootfs}"/mnt/{stateful,shared}
   # Copy the dev_image into its location at /usr/local.
   sudo cp -aT "${stateful}"/dev_image "${rootfs}/usr/local"
 
@@ -121,6 +121,8 @@ repack_rootfs() {
   sudo rm -rf "${rootfs}"/boot/vmlinuz*
 
   sudo cp "${rootfs}/etc/lsb-release" "${output_dir}/lsb-release"
+  sudo cp "${rootfs}/opt/google/chrome/resources/about_os_credits.html" \
+      "${output_dir}/about_os_credits.html"
 
   case "${fs_type}" in
   squashfs)
