@@ -30,6 +30,9 @@ DEFINE_string workspace_root "" \
 DEFINE_string cache_dir "" "Directory to use for caching."
 DEFINE_string goma_dir "" "Goma installed directory."
 DEFINE_string goma_client_json "" "Service account json file for goma."
+DEFINE_string working_dir "" \
+  "The working directory relative to ${CHROOT_TRUNK_DIR} for the command in \
+chroot, must start with '/' if set."
 
 DEFINE_boolean ssh_agent $FLAGS_TRUE "Import ssh agent."
 DEFINE_boolean early_make_chroot $FLAGS_FALSE \
@@ -604,6 +607,10 @@ CHROOT_PASSTHRU=(
   "BUILDBOT_BUILD=$FLAGS_build_number"
   "CHROMEOS_RELEASE_APPID=${CHROMEOS_RELEASE_APPID:-{DEV-BUILD}}"
   "EXTERNAL_TRUNK_PATH=${FLAGS_trunk}"
+
+  # The default ~/.bash_profile in chroot will cd to $CHROOT_CWD instead of
+  # ~/trunk/src/script if that environment variable is set.
+  "CHROOT_CWD=${FLAGS_working_dir}"
 )
 
 # Translate C.UTF-8 into something we support. Remove this when our glibc
