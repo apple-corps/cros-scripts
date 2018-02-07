@@ -31,13 +31,13 @@ DRIVERS="mali-drivers img-ddk"
 
 PARAMS_mali_drivers=(
   "daisy daisy daisy overlay-daisy"
-  "gru gru gru baseboard-gru"
+  "kevin gru gru baseboard-gru"
   "peach_pit peach peach overlay-peach"
   "veyron_jerry veyron veyron overlay-veyron"
 )
 
 PARAMS_img_ddk=(
-  "oak oak oak chipset-mt8173"
+  "elm oak oak chipset-mt8173"
 )
 
 # Script must run inside the chroot
