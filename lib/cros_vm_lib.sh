@@ -29,7 +29,9 @@ DEFINE_boolean moblab ${FLAGS_FALSE} "Setup environment for moblab"
 DEFINE_string qemu_binary \
   "${DEFAULT_CHROOT_DIR}"/usr/bin/qemu-system-x86_64 \
   "The qemu binary to be used. Defaults to qemu shipped with the SDK."
-DEFINE_string kvm_cpu "Haswell-noTSX,-invpcid,-tsc-deadline" \
+# TODO(pwang): replace SandyBridge with Haswell-noTSX once all builders
+# running VMTest are switched to GCE.
+DEFINE_string kvm_cpu "SandyBridge,-invpcid,-tsc-deadline" \
     "Configures guest CPU model and features. The default should be the
      least restrictive option supported by all of Chrome OS infrastructure.
      Other locally valid choices are for instance 'qemu64' (least features)
