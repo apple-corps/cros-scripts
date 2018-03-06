@@ -22,7 +22,8 @@ DEFINE_string boot_args "noinitrd" \
 DEFINE_boolean enable_bootcache ${FLAGS_FALSE} \
   "Default all bootloaders to NOT use boot cache."
 DEFINE_boolean enable_rootfs_verification ${FLAGS_TRUE} \
-  "Default all bootloaders to use kernel-based root fs integrity checking."
+  "Default all bootloaders to use kernel-based root fs integrity checking." \
+  r
 DEFINE_string output_root "${DEFAULT_BUILD_ROOT}/images" \
   "Directory in which to place image result directories (named by version)"
 DEFINE_string disk_layout "default" \
