@@ -6,3 +6,9 @@
 
 mkdir -p "${ROOT_FS_DIR}/usr/share/power_manager"
 echo 1 > "${ROOT_FS_DIR}/usr/share/power_manager/disable_dark_resume"
+
+# This file is only present on link currently. Presence of this file will
+# automatically enable legacy_dark_resume.cc. Enabling legacy_dark_resume.cc
+# will hinder tests that use wakeup alarm for waking up for suspend.
+# So deleting the file.
+rm -f "${ROOT_FS_DIR}/usr/share/power_manager/board_specific/dark_resume_suspend_durations"
