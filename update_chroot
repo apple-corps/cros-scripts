@@ -122,7 +122,8 @@ done
 
 # Second pass, update everything else.
 EMERGE_FLAGS+=( --deep )
-sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
+sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk \
+  virtual/target-sdk-post-cross world
 
 # Automatically discard all CONFIG_PROTECT'ed files. Those that are
 # protected should not be overwritten until the variable is changed.
