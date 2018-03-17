@@ -207,7 +207,7 @@ build_img() {
     --board="${FLAGS_board}" \
     --arch="${FLAGS_arch}" \
     --to="${FLAGS_output_dir}/${image_name}" \
-    --vmlinuz="${IMAGE_DIR}/boot_images/vmlinuz" \
+    --vmlinuz="${FLAGS_rootfs_mountpoint}/boot/vmlinuz" \
     --working_dir="${FLAGS_output_dir}" \
     --boot_args="${FLAGS_boot_args}" \
     --keep_work \
@@ -394,8 +394,7 @@ make_image_bootable() {
       --image_type="${FLAGS_image_type}" \
       --to="${bootloader_to}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \
-      --vmlinuz="${IMAGE_DIR}"/boot_images/vmlinuz \
-      --zimage="${IMAGE_DIR}"/boot_images/zImage \
+      --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
       ${bootloader_to_flags} \
       ${kernel_part}
   fi

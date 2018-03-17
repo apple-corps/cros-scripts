@@ -389,21 +389,6 @@ create_base_image() {
     sudo /sbin/setfiles -r "${root_fs_dir}" "${file_contexts}" "${root_fs_dir}"
   fi
 
-  # Move the bootable kernel images out of the /boot directory to save
-  # space.  We put them in the $BUILD_DIR so they can be used to write
-  # the bootable partitions later.
-  mkdir "${BUILD_DIR}/boot_images"
-  [ -e "${root_fs_dir}"/boot/Image-* ] && \
-    sudo mv "${root_fs_dir}"/boot/Image-* "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/zImage* ] && \
-    sudo mv "${root_fs_dir}"/boot/zImage* "${BUILD_DIR}/boot_images"
-  [ -e "${root_fs_dir}"/boot/vmlinuz-* ] && \
-    sudo mv "${root_fs_dir}"/boot/vmlinuz-* "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/vmlinuz ] && \
-    sudo mv "${root_fs_dir}"/boot/vmlinuz "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/vmlinux.uimg ] && \
-    sudo mv "${root_fs_dir}"/boot/vmlinux.uimg "${BUILD_DIR}/boot_images"
-
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.
   zero_free_space "${root_fs_dir}"
