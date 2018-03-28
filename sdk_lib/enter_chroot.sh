@@ -272,6 +272,29 @@ setup_git() {
   chown ${SUDO_UID}:${SUDO_GID} "${chroot_gitconfig}"
 }
 
+setup_gclient_cache_dir_mount() {
+  # Mount "cache_dir" if a glient checkout depends on it.
+  # Otherwise, git command inside chroot fails. See https://crbug.com/747349
+  local checkout_root="$1"
+
+  if [[ ! -e "${checkout_root}/.gclient" ]]; then
+    return 0
+  fi
+
+  local cache_dir=$(sed -n -E "s/^ *cache_dir *= *'(.*)'/\1/p" \
+                    "${checkout_root}/.gclient")
+  if [[ -z "${cache_dir}" ]]; then
+    return 0
+  fi
+
+  if [[ ! -d "${cache_dir}" ]]; then
+    warn "Gclient cache dir \"${cache_dir}\" is not a directory."
+    return 0
+  fi
+
+  setup_mount "${cache_dir}" "--bind" "${cache_dir}"
+}
+
 setup_env() {
   (
     flock 200
@@ -496,6 +519,7 @@ setup_env() {
         debug "Mounting chrome source at: $INNER_CHROME_ROOT"
         echo $CHROME_ROOT > "${FLAGS_chroot}${CHROME_ROOT_CONFIG}"
         setup_mount "$CHROME_ROOT" --bind "$INNER_CHROME_ROOT"
+        setup_gclient_cache_dir_mount "$CHROME_ROOT"
       fi
     fi
 
