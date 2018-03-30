@@ -68,7 +68,7 @@ learn_partition_and_ro() {
         warn "System is using verity: First remove rootfs verification using"
         warn "/usr/share/vboot/bin/make_dev_ssd.sh --remove_rootfs_verification"
         warn "on the DUT, or add --ignore_verity parameter to this command."
-        die
+        die_notrace
     fi
   else
     REMOTE_VERITY=${FLAGS_FALSE}
@@ -81,12 +81,12 @@ learn_partition_and_ro() {
     FLAGS_partition="${FLAGS_device}${PARTITION_NUM_KERN_B}"
   fi
   if [ -z "${FLAGS_partition}" ]; then
-    die "Partition required"
+    die_notrace "Partition required"
   fi
   if [ ${REMOTE_VERITY} -eq ${FLAGS_TRUE} ]; then
     info "Target reports kernel partition is ${FLAGS_partition}"
     if [ ${FLAGS_vboot} -eq ${FLAGS_FALSE} ]; then
-      die "Must update vboot when target is using verity"
+      die_notrace "Must update vboot when target is using verity"
     fi
   fi
 }
