@@ -443,6 +443,7 @@ COMMON_INSTALL_MASK="
   */.keep*
   /etc/init.d
   /etc/runlevels
+  /etc/selinux/intermediates
   /firmware
   /lib/modules/*/vdso
   /lib/rc
