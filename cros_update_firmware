@@ -34,7 +34,7 @@ switch_to_strict_mode
 
 update_firmware() {
   local board="$1"
-  local base ebuild srcuris cfg_bsp_pkg
+  local base ebuild srcuris cfg_bsp_pkg cfg_bsp_baseboard_pkg
 
   set -e
 
@@ -42,14 +42,18 @@ update_firmware() {
   cfg_bsp_pkg="chromeos-config-bsp"
   equery-${board} w chromeos-base/chromeos-config-bsp > /dev/null 2>&1 \
     || cfg_bsp_pkg="chromeos-config-bsp-${board}-private"
-  cros_workon --board="${board}" start "${cfg_bsp_pkg}" \
+  # check if chromeos-config-bsp-baseboard is in use
+  cfg_bsp_baseboard_pkg="chromeos-config-bsp-baseboard"
+  equery-${board} w chromeos-base/chromeos-config-bsp-baseboard > /dev/null 2>&1 \
+    || cfg_bsp_baseboard_pkg=
+  cros_workon --board="${board}" start ${cfg_bsp_baseboard_pkg} "${cfg_bsp_pkg}" \
       "chromeos-firmware-${board}"
 
   base="${GCLIENT_ROOT}/src/private-overlays/overlay-${board}-private/chromeos-base"
   ebuild="${base}/chromeos-firmware-${board}/chromeos-firmware-${board}-9999.ebuild"
   srcuris="${base}/chromeos-firmware-${board}/files/srcuris"
 
-  "emerge-${board}" "${cfg_bsp_pkg}" chromeos-config
+  "emerge-${board}" ${cfg_bsp_baseboard_pkg} "${cfg_bsp_pkg}" chromeos-config
   cros_config_host -c "/build/${board}/usr/share/chromeos-config/config.dtb" \
     get-firmware-uris > "${srcuris}"
   touch "${ebuild}"
