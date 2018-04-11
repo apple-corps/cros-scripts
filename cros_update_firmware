@@ -32,22 +32,58 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
+start_workon() {
+  local board="$1"
+  local pkg workon_list
+  if [ -z "$2" ]; then
+    echo "Empty package.  Skipping..."
+    return 1
+  fi
+  pkg=$(cros_workon --board="${board}" info "$2" | cut -d ' ' -f 1)
+  shift 2
+  workon_list=("$@")
+  for item in "${workon_list[@]}"; do
+    if [ "${pkg}" == "${item}" ]; then
+      echo "Already workon ${pkg}.  Skipping..."
+      return 1
+    fi
+  done
+  cros_workon --board="${board}" start "${pkg}"
+  return $?
+}
+
+stop_workon() {
+  cros_workon --board="$1" stop "$2"
+}
+
 update_firmware() {
   local board="$1"
   local base ebuild srcuris cfg_bsp_pkg cfg_bsp_baseboard_pkg
+  local current_workon_pkg_list start_pkg result
 
   set -e
 
+  # query the current working package
+  mapfile -t current_workon_pkg_list < <(cros_workon --board="${board}" list)
+
   # check if chromeos-config-bsp is a virtual package
   cfg_bsp_pkg="chromeos-config-bsp"
-  equery-${board} w chromeos-base/chromeos-config-bsp > /dev/null 2>&1 \
+  equery-"${board}" w chromeos-base/chromeos-config-bsp > /dev/null 2>&1 \
     || cfg_bsp_pkg="chromeos-config-bsp-${board}-private"
   # check if chromeos-config-bsp-baseboard is in use
   cfg_bsp_baseboard_pkg="chromeos-config-bsp-baseboard"
-  equery-${board} w chromeos-base/chromeos-config-bsp-baseboard > /dev/null 2>&1 \
-    || cfg_bsp_baseboard_pkg=
-  cros_workon --board="${board}" start ${cfg_bsp_baseboard_pkg} "${cfg_bsp_pkg}" \
-      "chromeos-firmware-${board}"
+  equery-"${board}" w chromeos-base/chromeos-config-bsp-baseboard \
+    > /dev/null 2>&1 || cfg_bsp_baseboard_pkg=
+
+  start_pkg=("${cfg_bsp_pkg}")
+  start_pkg+=("chromeos-firmware-${board}")
+  start_pkg+=("${cfg_bsp_baseboard_pkg}")
+
+  for i in "${!start_pkg[@]}"; do
+    result[i]=0
+    start_workon "${board}" "${start_pkg[i]}" "${current_workon_pkg_list[@]}" \
+       || result[i]=$?
+  done
 
   base="${GCLIENT_ROOT}/src/private-overlays/overlay-${board}-private/chromeos-base"
   ebuild="${base}/chromeos-firmware-${board}/chromeos-firmware-${board}-9999.ebuild"
@@ -59,6 +95,12 @@ update_firmware() {
   touch "${ebuild}"
   "ebuild-${board}" "${ebuild}" manifest
   "emerge-${board}" "chromeos-firmware-${board}"
+
+  for i in "${!result[@]}"; do
+    if [ "${result[i]}" -eq "0" ]; then
+      stop_workon "${board}" "${start_pkg[i]}"
+    fi
+  done
 }
 
 main() {
