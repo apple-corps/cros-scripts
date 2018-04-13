@@ -128,6 +128,16 @@ done
 EMERGE_FLAGS+=( --deep )
 sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
 
+# Install post cross packages if binary pkgs are available.
+if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
+  # Use --usepkgonly to ensure that packages are not built from source.
+  EMERGE_FLAGS=( -uNv --with-bdeps=y --select --getbinpkg --deep --usepkgonly )
+  EMERGE_FLAGS+=(
+    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host-post-cross)
+  )
+  sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}"
+fi
+
 # Automatically discard all CONFIG_PROTECT'ed files. Those that are
 # protected should not be overwritten until the variable is changed.
 # Autodiscard is option "-9" followed by the "YES" confirmation.
