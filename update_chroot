@@ -106,6 +106,10 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   )
   # Sanity check we got some valid results.
   [[ ${#PACKAGES[@]} -eq 0 ]] && die_notrace "cros_setup_toolchains failed"
+  # Update post cross-packages. This is needed to update rust.
+  PACKAGES+=(
+    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host-post-cross)
+  )
   EMERGE_FLAGS+=(
     $(printf ' --useoldpkg-atoms=%s' "${PACKAGES[@]}")
   )
