@@ -418,7 +418,9 @@ mk_fs() {
     if [[ "${fs_uuid}" != "random" ]]; then
       uuid_option=( -U "${fs_uuid}" )
     fi
-    sudo mkfs.${fs_format} -F -q -O ext_attr \
+    # Disable metadata_csum for compatibility with 3.8 kernels
+    # (crbug.com/833643).
+    sudo mkfs.${fs_format} -F -q -O ext_attr,^metadata_csum \
         "${uuid_option[@]}" \
         -E lazy_itable_init=0 \
         -b ${fs_block_size} \
