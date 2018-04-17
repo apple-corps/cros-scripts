@@ -34,6 +34,8 @@ DEFINE_string toolchain_boards "" \
   "Extra toolchains to setup for the specified boards."
 DEFINE_boolean eclean ${FLAGS_TRUE} \
   "Run eclean to delete old binpkgs after updating the chroot."
+DEFINE_string save_install_plan "" \
+  "Save install plan to filename for correct reverse dependency calculation."
 
 # Parse command line flags
 FLAGS "$@" || exit 1
@@ -114,7 +116,12 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
     $(printf ' --useoldpkg-atoms=%s' "${PACKAGES[@]}")
   )
 fi
-
+SAVE_INSTALL_PLAN_FLAGS=()
+if [[ ! -z "${FLAGS_save_install_plan}" ]]; then
+  SAVE_INSTALL_PLAN_FLAGS=(
+    $(printf ' --install-plan-filename=%s' "${FLAGS_save_install_plan}") )
+  EMERGE_FLAGS+=( ${SAVE_INSTALL_PLAN_FLAGS[@]} )
+fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   EMERGE_FLAGS+=( --jobs="${FLAGS_jobs}" )
 fi
@@ -135,6 +142,7 @@ if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   EMERGE_FLAGS+=(
     $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host-post-cross)
   )
+  EMERGE_FLAGS+=( ${SAVE_INSTALL_PLAN_FLAGS[@]} )
   sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}"
 fi
 

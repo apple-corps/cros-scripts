@@ -63,6 +63,8 @@ DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
 DEFINE_string board_root "" \
   "Board root."
 DEFINE_string brick "" "Brick to set up."
+DEFINE_string save_install_plan "" \
+  "Save install plan to filename for correct reverse dependency calculation."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -104,6 +106,12 @@ if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]] \
   || [[ -n "${FLAGS_brick}" ]]; then
   UPDATE_ARGS+=" --skip_toolchain_update"
 fi
+SAVE_INSTALL_PLAN_ARGS=""
+if [[ ! -z "${FLAGS_save_install_plan}" ]]; then
+  SAVE_INSTALL_PLAN_ARGS=" --save_install_plan=${FLAGS_save_install_plan}"
+  UPDATE_ARGS+="${SAVE_INSTALL_PLAN_ARGS}"
+fi
+
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_FALSE}" ] ; then
   "${SRC_ROOT}/scripts"/update_chroot ${UPDATE_ARGS}
 fi
@@ -244,6 +252,7 @@ if ${HOST_BOARD}; then
   # Next, install our rebuilt packages into our separate root.
   HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
   HOST_FLAGS+=" --with-bdeps=y --newuse --jobs=$NUM_JOBS --usepkgonly"
+  HOST_FLAGS+="${SAVE_INSTALL_PLAN_ARGS[*]}"
   sudo -E $EMERGE_CMD $HOST_FLAGS --select=y "${PACKAGES[@]}"
   sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 

@@ -34,6 +34,10 @@ DEFINE_boolean withevents "${FLAGS_FALSE}" \
   "Generate events during parallel_emerge step"
 DEFINE_string eventfile "${DEFAULT_EVENT_FILE}" \
   "Define the file that event logs will be written."
+DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
+  "Generate install plan filename if not provided to calc reverse deps."
+DEFINE_string save_install_plan "" \
+  "Save install plan filename for correct reverse dependency calculation."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -157,6 +161,18 @@ if [[ ${FLAGS_unpackonly} -eq ${FLAGS_TRUE} ]]; then
 fi
 if [[ -n ${FLAGS_board_root} ]]; then
   UPDATE_ARGS+=( --board_root "${FLAGS_board_root}" )
+fi
+
+if [[ -z "${FLAGS_save_install_plan}" ]]; then
+  if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
+    # No explicit install plan filename (cbuildbot generated)
+    # so generate a temporary filename and reset the flag.
+    FLAGS_save_install_plan=$(mktemp)
+  fi
+fi
+info "saving install plan to ${FLAGS_save_install_plan}"
+if [[ -n "${FLAGS_save_install_plan}" ]]; then
+  UPDATE_ARGS+=( --save_install_plan="${FLAGS_save_install_plan}" )
 fi
 
 "${SCRIPTS_DIR}"/setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
@@ -294,6 +310,57 @@ fi
 # cros_workon packages always have to be rebuilt.
 FORCE_LOCAL_BUILD_PKGS+=( "${CROS_WORKON_PKGS[@]}" )
 
+if [[ -n "${FLAGS_board_root}" ]]; then
+  export ROOT="${FLAGS_board_root}"
+  export PORTAGE_CONFIGROOT="${ROOT}"
+  export SYSROOT="${ROOT}"
+  export PKGDIR="${ROOT}"/packages
+fi
+
+# Temporarily modify the emerge flags so we can calculate the revdeps
+# on the modified packages.
+SIM_EMERGE_FLAGS=( "${EMERGE_FLAGS[@]}" )
+if [[ ${#PACKAGES[@]} -gt 0 ]]; then
+  SIM_EMERGE_FLAGS+=(
+    --reinstall-atoms="${PACKAGES[*]}"
+    --usepkg-exclude="${PACKAGES[*]}"
+  )
+fi
+
+sudo -E "${EMERGE_CMD[@]}" "${SIM_EMERGE_FLAGS[@]}" --pretend "${PACKAGES[@]}"
+
+MOD_PKGS=()
+if [[ -n "${FLAGS_save_install_plan}" ]]; then
+  [ -f ${FLAGS_save_install_plan} ] \
+    || die "${FLAGS_save_install_plan} does not exist"
+  readarray NEW_DEPS < ${FLAGS_save_install_plan}
+  if [[ ${#NEW_DEPS[@]} -gt 0 ]]; then
+    # Convert specific versions into base package names
+    MOD_PKGS+=( $(\
+      equery-${FLAGS_board} list -p -o --format='$category/$name' \
+          ${NEW_DEPS[*]}) )
+  fi
+  FORCE_LOCAL_BUILD_PKGS+=( ${MOD_PKGS[@]} )
+fi
+
+if [[ ${#MOD_PKGS[@]} -gt 0 ]]; then
+  info "calculating reverse dependencies on packages: ${MOD_PKGS[*]}"
+  REV_DEPS=( $(\
+        equery-${FLAGS_board} -q depends --indirect ${MOD_PKGS[@]} |\
+        awk '{print $1}' | grep -v ^virtual/ | sort -u) )
+  if [[ ${#REV_DEPS[@]} -gt 0 ]]; then
+    # Convert specific versions into base package names
+    RMOD_PKGS=( $(\
+        equery-${FLAGS_board} -q list -p -o --format='$category/$name' \
+        ${REV_DEPS[*]}) )
+    # Remove Chrome as rebuilding it is expensive and almost never makes sense
+    RMOD_PKGS=( $( echo "${RMOD_PKGS[*]}" |\
+        sed -e 's/chromeos-base\/chromeos-chrome[^ ]*//' ) )
+    info "final reverse dependencies that will be rebuilt: ${RMOD_PKGS[*]}"
+    FORCE_LOCAL_BUILD_PKGS+=( ${RMOD_PKGS[@]} )
+  fi
+fi
+
 if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
   EMERGE_FLAGS+=(
     --reinstall-atoms="${FORCE_LOCAL_BUILD_PKGS[*]}"
@@ -304,13 +371,6 @@ fi
 # Prepare tmp file to capture emerge output from tee.
 tmpfile=$(mktemp --tmpdir tmp.build_packages-emerge.XXXXXX)
 trap "rm -f '${tmpfile}'" EXIT
-
-if [[ -n "${FLAGS_board_root}" ]]; then
-  export ROOT="${FLAGS_board_root}"
-  export PORTAGE_CONFIGROOT="${ROOT}"
-  export SYSROOT="${ROOT}"
-  export PKGDIR="${ROOT}"/packages
-fi
 
 info "Merging board packages now"
 (
@@ -332,6 +392,10 @@ info "Merging board packages now"
 package_count=$(awk '$0 ~ /^Total: [0-9]+ packages/ { print $2 }' "${tmpfile}")
 rm "${tmpfile}"
 trap - EXIT
+
+if [[ -n "${FLAGS_save_install_plan}" ]]; then
+  sudo -E rm ${FLAGS_save_install_plan}
+fi
 
 echo "Builds complete"
 
