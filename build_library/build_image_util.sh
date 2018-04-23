@@ -322,5 +322,5 @@ run_depmod() {
 # the version of udevadm found on the host should suffice.
 run_udevadm_hwdb() {
   local root_fs_dir="$1"
-  sudo udevadm hwdb --update -r "${root_fs_dir}"
+  sudo udevadm hwdb --strict --update -r "${root_fs_dir}"
 }
