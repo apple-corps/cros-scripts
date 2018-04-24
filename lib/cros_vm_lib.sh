@@ -240,14 +240,9 @@ start_kvm() {
       kvm_smp=$((kvm_smp_default > NUM_JOBS ? NUM_JOBS : kvm_smp_default))
     fi
 
-    # Qemu-vlans are used by qemu to separate out network traffic on the slirp
-    # network bridge. qemu forwards traffic on a slirp vlan to all ports
-    # conected on that vlan. By default, slirp ports are on vlan 0.
-    # We explicitly set a vlan here so that another qemu VM using slirp doesn't
-    # conflict with our network traffic.
-    local net_option="-net nic,model=virtio,vlan=${FLAGS_ssh_port}"
-    local net_user="-net user,hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22"
-    net_user+=",vlan=${FLAGS_ssh_port}"
+    local net_option="-device virtio-net,netdev=eth0"
+    local net_user="-netdev user,id=eth0,net=10.0.2.0/27"
+    net_user+=",hostfwd=tcp:127.0.0.1:${FLAGS_ssh_port}-:22"
 
     local incoming=""
     local incoming_option=""
