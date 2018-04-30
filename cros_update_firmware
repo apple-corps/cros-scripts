@@ -34,16 +34,15 @@ switch_to_strict_mode
 
 start_workon() {
   local board="$1"
-  local pkg workon_list
-  if [ -z "$2" ]; then
+  local pkg item
+  if [[ -z "$2" ]]; then
     echo "Empty package.  Skipping..."
     return 1
   fi
   pkg=$(cros_workon --board="${board}" info "$2" | cut -d ' ' -f 1)
   shift 2
-  workon_list=("$@")
-  for item in "${workon_list[@]}"; do
-    if [ "${pkg}" == "${item}" ]; then
+  for item in "$@"; do
+    if [[ "${pkg}" == "${item}" ]]; then
       echo "Already workon ${pkg}.  Skipping..."
       return 1
     fi
@@ -59,7 +58,7 @@ stop_workon() {
 update_firmware() {
   local board="$1"
   local base ebuild srcuris cfg_bsp_pkg cfg_bsp_baseboard_pkg
-  local current_workon_pkg_list start_pkg result
+  local current_workon_pkg_list start_pkg result i
 
   set -e
 
@@ -102,7 +101,7 @@ update_firmware() {
   "emerge-${board}" "chromeos-firmware-${board}"
 
   for i in "${!result[@]}"; do
-    if [ "${result[i]}" -eq "0" ]; then
+    if [[ "${result[i]}" -eq "0" ]]; then
       stop_workon "${board}" "${start_pkg[i]}"
     fi
   done
