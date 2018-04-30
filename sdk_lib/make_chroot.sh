@@ -332,6 +332,12 @@ EOF
      sudo -u "${SUDO_USER}" -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
        "${FLAGS_chroot}"
    fi
+
+   # Update nsswitch.conf to make glibc-2.26 and after builds. See
+   # https://wiki.gentoo.org/wiki/Project:Toolchain/nsswitch.conf_in_glibc-2.26
+   if ! grep compat "${FLAGS_chroot}/etc/nsswitch.conf" | grep -q files; then
+     sed -i 's/\<compat\>/compat files/g' "${FLAGS_chroot}/etc/nsswitch.conf"
+   fi
 }
 
 unpack_tarball() {
@@ -633,9 +639,10 @@ fi
 #   sys-apps/sandbox upgrade breaks dev-libs/nss.
 #   sys-devel/patch 2.6 misapplies git patches in dev-embedded/coreboot-sdk.
 #   older sys-devel/automake makes media-libs/freetype build flaky.
+#   sys-devel/bison glibc 2.27 requires bison to be 2.7 or newer.
 info "Updating preinstalled build tools"
 early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
-  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake
+  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake sys-devel/bison
 
 # Update chroot.
 # Skip toolchain update because it already happened above, and the chroot is
