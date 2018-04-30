@@ -89,39 +89,6 @@ if [[ -f "${FLAGS_from}" ]]; then
   FLAGS_from="$(dirname "${FLAGS_from}")"
 fi
 
-# Usage: get_partition_size <filename> <part_num>
-#
-# Print the partition size for the given partition number by looking either
-# at the partition_script values (if loaded) or the GPT in the passed image.
-#
-# This function fails (returns 1) if the partition is empty, not present in the
-# GPT image or failed to get the size for any other reason.
-get_partition_size() {
-  local filename="$1"
-  local part_num="$2"
-  if [[ -z "${part_num}" ]]; then
-      error "Skipping blank partition number."
-      return 1
-  fi
-  local part_size var_name
-
-  var_name="PARTITION_SIZE_${part_num}"
-  part_size="${!var_name}"
-  if [[ -z "${part_size}" ]]; then
-    part_size=$(partsize "${filename}" ${part_num}) || true
-    if [[ -z "${part_size}" ]]; then
-      info "Skipping unknown partition ${part_num}."
-      return 1
-    fi
-  fi
-  if [[ ${part_size} -eq 0 ]]; then
-    info "Skipping empty partition ${part_num}."
-    return 1
-  fi
-  echo "${part_size}"
-  return 0
-}
-
 load_image_partition_numbers() {
   local partition_script="${FLAGS_from}/${FLAGS_partition_script}"
   # Attempt to load the partition script from the rootfs when not found in the
@@ -201,9 +168,11 @@ unmount_image() {
     fi
   fi
 
+  local loopdev="$(loopback_partscan "${filename}")"
+
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
-  local part_label part_num part_offset part_size data_size
+  local part_label part_num part_loop
   for part_label in EFI_SYSTEM OEM STATE ROOT_A; do
     var_name="${part_label}_MOUNTPOINT"
     mountpoint="${!var_name}"
@@ -211,8 +180,7 @@ unmount_image() {
     var_name="PARTITION_NUM_${part_label}"
     part_num="${!var_name}"
     [[ -n "${part_num}" ]] || continue
-
-    part_size=$(get_partition_size "${filename}" "${part_num}") || continue
+    part_loop="${loopdev}p${part_num}"
 
     if [[ -z "${filename}" ]]; then
       # TODO(deymo): Remove this legacy umount.
@@ -224,23 +192,16 @@ unmount_image() {
       continue
     fi
 
-    part_offset=$(partoffset "${filename}" ${part_num}) || \
-      die "Failed to get partition offset for partition ${part_num}"
     # Get the variables loaded with load_partition_vars during mount_*.
     var_name="FS_FORMAT_${part_num}"
     fs_format="${!var_name}"
     var_name="FS_OPTIONS_${part_num}"
     fs_options="${!var_name}"
-    var_name="DATA_SIZE_${part_num}"
-    data_size="${!var_name}"
 
-    mount_options="offset=$(( part_offset * 512 ))"
-    if [[ -n "${data_size}" ]]; then
-      mount_options+=",sizelimit=${data_size}"
-    fi
-    fs_umount "${filename}" "${mountpoint}" "${fs_format}" "${fs_options}" \
-      "${mount_options}"
+    fs_umount "${part_loop}" "${mountpoint}" "${fs_format}" "${fs_options}"
   done
+
+  sudo losetup -d "${loopdev}"
 
   # We need to remove the mountpoints after we unmount all the partitions since
   # there could be nested mounts.
@@ -304,18 +265,11 @@ mount_gpt_partitions() {
     load_partition_vars
   fi
 
-  if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} && \
-        ${FLAGS_safe} -eq ${FLAGS_FALSE} ]]; then
-    local rootfs_offset=$(partoffset "${filename}" ${PARTITION_NUM_ROOT_A})
-    # Make sure any callers can actually mount and modify the fs
-    # if desired.
-    # cros_make_image_bootable should restore the bit if needed.
-    enable_rw_mount "${filename}" "$(( rootfs_offset * 512 ))"
-  fi
+  local loopdev="$(loopback_partscan "${filename}")"
 
   # Mount in order: rootfs, stateful, OEM and EFI.
   local var_name mountpoint fs_format
-  local part_label part_num part_offset part_size part_ro_rw
+  local part_label part_num part_loop part_ro_rw
   for part_label in ROOT_A STATE OEM EFI_SYSTEM; do
     var_name="${part_label}_MOUNTPOINT"
     mountpoint="${!var_name}"
@@ -324,30 +278,35 @@ mount_gpt_partitions() {
     var_name="PARTITION_NUM_${part_label}"
     part_num="${!var_name}"
     [[ -n "${part_num}" ]] || continue
+    part_loop="${loopdev}p${part_num}"
 
-    part_size=$(get_partition_size "${filename}" ${part_num}) || continue
-    part_offset=$(partoffset "${filename}" ${part_num}) ||
-        die "Failed to get partition offset for partition ${part_num}"
     var_name="FS_FORMAT_${part_num}"
     fs_format="${!var_name}"
 
-    # The "safe" flags tells if the rootfs should be mounted as read-only,
-    # otherwise we use ${ro_rw}.
+    # For the rootfs, make sure it's writable so callers can modify it,
+    # unless the caller explicitly requested otherwise.
+    # cros_make_image_bootable should restore the bit if needed.
     part_ro_rw="${ro_rw}"
-    if [[ ${part_num} -eq ${PARTITION_NUM_ROOT_A} && \
-          ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
-      part_ro_rw="ro"
+    if [[ "${part_label}" == ROOT_* ]]; then
+      if [[ ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
+        part_ro_rw="ro"
+      elif [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
+        enable_rw_mount "${part_loop}"
+      fi
     fi
-    mount_options="offset=$(( part_offset * 512 ))"
 
-    if ! fs_mount "${filename}" "${mountpoint}" "${fs_format}" \
-        "${part_ro_rw}" "${mount_options}"; then
-      error "mount failed: device=${filename}" \
-        "target=${mountpoint} format=${fs_format} ro/rw=${part_ro_rw}" \
-        "options=${mount_options}"
+    if ! fs_mount "${part_loop}" "${mountpoint}" "${fs_format}" \
+        "${part_ro_rw}"; then
+      error "mount failed: image=${filename} device=${part_loop}" \
+        "target=${mountpoint} format=${fs_format} ro/rw=${part_ro_rw}"
+      sudo losetup -d "${loopdev}"
       return 1
     fi
   done
+
+  # Detach the loopback now even though we have mounts.  This way when the last
+  # mount is freed, the kernel will automatically release the loopback.
+  sudo losetup -d "${loopdev}"
 }
 
 # Create a local buildroot that can be used by ebuilds that need to install
