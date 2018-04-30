@@ -60,6 +60,11 @@ eval set -- "${FLAGS_ARGV}"
 # Die on error
 switch_to_strict_mode
 
+# We don't accept any positional args, so reject to catch typos.
+if [[ $# -ne 0 ]]; then
+  die_notrace "${SCRIPT_NAME} takes no arguments; given: $*"
+fi
+
 # Find the last image built on the board.
 if [[ ${FLAGS_most_recent} -eq ${FLAGS_TRUE} ]] ; then
   FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board="${FLAGS_board}")"
