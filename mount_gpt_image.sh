@@ -34,10 +34,7 @@ DEFINE_boolean read_only ${FLAGS_FALSE} \
 DEFINE_boolean safe ${FLAGS_FALSE} \
   "Mount rootfs in read only mode."
 DEFINE_boolean unmount ${FLAGS_FALSE} \
-  "Unmount previously mounted image. Can't be used with --remount." u
-DEFINE_boolean remount ${FLAGS_FALSE} \
-  "Remount a previously mounted image. This is useful when changing the "\
-"--read_only and --safe settings. Can't be used with --unmount."
+  "Unmount previously mounted image." u
 DEFINE_string from "" \
   "Directory, image, or device with image on it" f
 DEFINE_string image "${DEFAULT_IMAGE}" \
@@ -66,12 +63,6 @@ switch_to_strict_mode
 # Find the last image built on the board.
 if [[ ${FLAGS_most_recent} -eq ${FLAGS_TRUE} ]] ; then
   FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board="${FLAGS_board}")"
-fi
-
-# Check for conflicting args.
-if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} &&
-      ${FLAGS_remount} -eq ${FLAGS_TRUE} ]]; then
-  die_notrace "Can't use --unmount with --remount."
 fi
 
 # If --from is a block device, --image can't also be specified.
@@ -413,47 +404,6 @@ mount_image() {
     "${FLAGS_rootfs_mountpt} successfully."
 }
 
-# Remount a previously mounted gpt based image.
-remount_image() {
-  local ro_rw="rw"
-  if [[ ${FLAGS_read_only} -eq ${FLAGS_TRUE} ]]; then
-    ro_rw="ro"
-  fi
-
-  # If all the filesystems are mounted via the kernel, just issue the remount
-  # command with the proper flags.
-  local var_name mountpoint
-  local part_label part_num part_ro_rw part_size
-  for part_label in ROOT_A STATE OEM EFI_SYSTEM; do
-    var_name="${part_label}_MOUNTPOINT"
-    mountpoint="${!var_name}"
-    [[ -n "${mountpoint}" ]] || continue
-
-    var_name="PARTITION_NUM_${part_label}"
-    part_num="${!var_name}"
-
-    part_size=$(get_partition_size "${filename}" ${part_num}) || continue
-
-    if ! mountpoint -q "${mountpoint}"; then
-      # Fallback to unmount everything and re-mount everything.
-      info "Fallback --remount to --unmount and then --remount."
-      unmount_image
-      mount_image
-      return
-    fi
-
-    # The "safe" flags tells if the rootfs should be mounted as read-only,
-    # otherwise we use ${ro_rw}.
-    part_ro_rw="${ro_rw}"
-    if [[ ${part_num} -eq ${PARTITION_NUM_ROOT_A} && \
-          ${FLAGS_safe} -eq ${FLAGS_TRUE} ]]; then
-      part_ro_rw="ro"
-    fi
-
-    sudo mount "${mountpoint}" -o "remount,${part_ro_rw}"
-  done
-}
-
 # Turn paths into absolute paths.
 [[ -n "${FLAGS_from}" ]] && FLAGS_from="$(readlink -f "${FLAGS_from}")"
 FLAGS_rootfs_mountpt="$(readlink -f "${FLAGS_rootfs_mountpt}")"
@@ -472,8 +422,6 @@ load_image_partition_numbers
 # Perform desired operation.
 if [[ ${FLAGS_unmount} -eq ${FLAGS_TRUE} ]]; then
   unmount_image
-elif [[ ${FLAGS_remount} -eq ${FLAGS_TRUE} ]]; then
-  remount_image
 else
   mount_image
 fi

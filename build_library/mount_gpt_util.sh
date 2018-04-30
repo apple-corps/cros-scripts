@@ -38,8 +38,7 @@ _check_mount_image_flags() {
 #    --read-only mounts all partitions as read-only.
 #    --safe, mounts only the rootfs as read-only and the rest as read/write.
 #    If omitted, the image will be mounted read-write. See mount_gpt_image.sh
-#    for details on these flags, and remount_image to modify this flag after it
-#    is mounted.
+#    for details on these flags.
 mount_image() {
   MOUNT_GPT_OPTIONS=(
     --from "$1"
@@ -56,18 +55,6 @@ mount_image() {
 
   "${SCRIPTS_DIR}/mount_gpt_image.sh" "${MOUNT_GPT_OPTIONS[@]}" \
     "${mode_flag[@]:+${mode_flag[@]}}"
-}
-
-# Usage: remount_image [mode_flag]
-#
-# Remount the file systems mounted in the previous call to mount_image with the
-# passed extra flags.
-# Args:
-#   mode_flag: Optional flag to control how the image is mounted. See
-#     mount_image for details.
-remount_image() {
-  _check_mount_image_flags "$@"
-  "${SCRIPTS_DIR}/mount_gpt_image.sh" --remount "${MOUNT_GPT_OPTIONS[@]}" "$@"
 }
 
 # Usage: unmount_image
