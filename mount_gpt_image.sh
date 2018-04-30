@@ -179,7 +179,11 @@ unmount_image() {
     [[ -n "${mountpoint}" ]] || continue
     var_name="PARTITION_NUM_${part_label}"
     part_num="${!var_name}"
-    [[ -n "${part_num}" ]] || continue
+    if [[ -z "${part_num}" ]]; then
+      # Depending on how it was mounted, clear all existing mounts.
+      sudo umount -R "${mountpoint}"
+      continue
+    fi
     part_loop="${loopdev}p${part_num}"
 
     if [[ -z "${filename}" ]]; then
