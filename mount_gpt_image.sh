@@ -13,8 +13,8 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/build_library/filesystem_util.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1
 
-if [[ $INSIDE_CHROOT -ne 1 ]]; then
-  INSTALL_ROOT="$SRC_ROOT/platform2/installer/share"
+if [[ ${INSIDE_CHROOT} -ne 1 ]]; then
+  INSTALL_ROOT="${SRC_ROOT}/platform2/chromeos-common-script/share"
 else
   INSTALL_ROOT=/usr/share/misc
 fi
