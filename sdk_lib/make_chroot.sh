@@ -606,6 +606,10 @@ done
 info "Updating ncurses"
 early_enter_chroot emerge -uNvq sys-libs/ncurses
 
+# The stage3 contains an old version of bison and glibc 2.26+ wants a newer one.
+info "Updating bison"
+early_enter_chroot emerge -uNvq sys-devel/bison
+
 info "Updating host toolchain"
 if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
   early_enter_chroot $EMERGE_CMD -uNv crossdev
@@ -639,10 +643,9 @@ fi
 #   sys-apps/sandbox upgrade breaks dev-libs/nss.
 #   sys-devel/patch 2.6 misapplies git patches in dev-embedded/coreboot-sdk.
 #   older sys-devel/automake makes media-libs/freetype build flaky.
-#   sys-devel/bison glibc 2.27 requires bison to be 2.7 or newer.
 info "Updating preinstalled build tools"
 early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
-  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake sys-devel/bison
+  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake
 
 # Update chroot.
 # Skip toolchain update because it already happened above, and the chroot is
