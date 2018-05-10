@@ -252,7 +252,6 @@ if ${HOST_BOARD}; then
   # Next, install our rebuilt packages into our separate root.
   HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
   HOST_FLAGS+=" --with-bdeps=y --newuse --jobs=$NUM_JOBS --usepkgonly"
-  HOST_FLAGS+="${SAVE_INSTALL_PLAN_ARGS[*]}"
   sudo -E $EMERGE_CMD $HOST_FLAGS --select=y "${PACKAGES[@]}"
   sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 
