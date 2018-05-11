@@ -5,6 +5,7 @@
 . "${SRC_ROOT}/platform/dev/toolchain_utils.sh" || exit 1
 
 CHROMEOS_MASTER_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.dtb"
+CHROMEOS_MASTER_JSON_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.json"
 
 check_full_disk() {
   local prev_ret=$?
@@ -261,7 +262,11 @@ create_base_image() {
 
   # For unified builds, include a list of models, e.g. with --models "reef pyro"
   local model_flags=()
-  if [[ -f "${CHROMEOS_MASTER_CONFIG_FILE}" ]]; then
+  if [[ -f "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" ]]; then
+    models=$(grep '"name":' "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" \
+      | uniq | sed -e 's/.*"name": "\(.*\)".*/\1/' | tr '\n' ' ')
+    [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
+  elif [[ -f "${CHROMEOS_MASTER_CONFIG_FILE}" ]]; then
     models=$(fdtget "${CHROMEOS_MASTER_CONFIG_FILE}" -l /chromeos/models \
       | tr '\n' ' ')
     [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
