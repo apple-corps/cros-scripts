@@ -106,10 +106,10 @@ if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]] \
   || [[ -n "${FLAGS_brick}" ]]; then
   UPDATE_ARGS+=" --skip_toolchain_update"
 fi
-SAVE_INSTALL_PLAN_ARGS=""
 if [[ ! -z "${FLAGS_save_install_plan}" ]]; then
-  SAVE_INSTALL_PLAN_ARGS=" --save_install_plan=${FLAGS_save_install_plan}"
-  UPDATE_ARGS+="${SAVE_INSTALL_PLAN_ARGS}"
+  # If we are trying to calculate reverse dependencies pass the install
+  # plan filename to update_chroot.
+  UPDATE_ARGS+=" --save_install_plan=${FLAGS_save_install_plan}"
 fi
 
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_FALSE}" ] ; then
