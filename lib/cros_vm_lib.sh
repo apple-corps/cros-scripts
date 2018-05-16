@@ -39,6 +39,8 @@ DEFINE_string kvm_cpu "SandyBridge,-invpcid,-tsc-deadline" \
 DEFINE_string kvm_m 8G "Configure guest RAM"
 DEFINE_integer kvm_smp 0 \
   "Configure guest CPU counts (0 means auto-detect cpu count)"
+DEFINE_string serial "" \
+  "Configure qemu serial output. By default, serial is output to a file"
 
 KVM_PID_FILE=/tmp/kvm.$$.pid
 LIVE_VM_IMAGE=
@@ -297,8 +299,14 @@ start_kvm() {
       sudo chmod 600 "${pipe}"
     done
 
-    sudo touch "${KVM_SERIAL_FILE}"
-    sudo chmod a+r "${KVM_SERIAL_FILE}"
+    local serial=""
+    if [[ -n "${FLAGS_serial}" ]]; then
+      serial="${FLAGS_serial}"
+    else
+      sudo touch "${KVM_SERIAL_FILE}"
+      sudo chmod a+r "${KVM_SERIAL_FILE}"
+      serial="file:${KVM_SERIAL_FILE}"
+    fi
 
     local drive
     drive="-drive file=${vm_image},index=0,media=disk,cache=unsafe"
@@ -319,7 +327,7 @@ start_kvm() {
       -vga virtio
       -pidfile "${KVM_PID_FILE}"
       -chardev pipe,id=control_pipe,path="${KVM_PIPE_PREFIX}"
-      -serial "file:${KVM_SERIAL_FILE}"
+      -serial "${serial}"
       -mon chardev=control_pipe
       -daemonize
       ${net_option}
@@ -336,7 +344,9 @@ start_kvm() {
     sudo "${cmd[@]}"
 
     info "KVM started with pid stored in ${KVM_PID_FILE}"
-    info "Serial output, if available, can be found here in ${KVM_SERIAL_FILE}"
+    if [[ -z "${FLAGS_serial}" ]]; then
+      info "Serial output, if available, can be found in ${KVM_SERIAL_FILE}"
+    fi
     LIVE_VM_IMAGE="${vm_image}"
   fi
 }
