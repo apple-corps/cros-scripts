@@ -50,4 +50,8 @@ mod_image_for_test () {
          ${image_name} --force_developer_mode
     fi
   fi
+
+  if type board_test_setup &>/dev/null; then
+    board_test_setup "${BUILD_DIR}/${image_name}"
+  fi
 }
