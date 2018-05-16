@@ -95,3 +95,18 @@ generate_imageloader_image() {
   generate_imageloader_manifest "${version}" "${output}"
   return 0
 }
+
+# Creates a tar archive that contains imageloder supported image of a
+# directory. See |generate_imageloader_image| for more info.
+generate_and_tar_imageloader_image() {
+  local version="$1"
+  local src="$2"
+  local output="$3"
+
+  local image=$(mktemp -d)
+
+  generate_imageloader_image "0.0.1" "${src}" "${image}"
+  tar caf "${output}" -C "${image}" \
+      image.squash table imageloader.json imageloader.sig.2
+  rm -rf "${image}"
+}
