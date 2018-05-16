@@ -6,6 +6,7 @@
 
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
+. "${SCRIPT_ROOT}/build_library/imageloader_util.sh" || exit 1
 
 assert_inside_chroot "$@"
 
@@ -45,41 +46,6 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
-# Sign the container!
-sign_manifest() {
-  "${VBOOT_SIGNING_DIR}"/sign_official_build.sh \
-    oci-container "$1" "${VBOOT_DEVKEYS_DIR}" "$1"
-}
-
-# Generate the imageloader.json for this container.
-generate_imageloader_manifest() {
-  local pkg_version="$1"
-  local output="$2"
-  local manifest="${output}/imageloader.json"
-  local image="${output}/image.squash"
-  local table="${output}/table"
-
-  (
-    gethash() {
-      local file="$1"
-      echo $(sha256sum <"${file}" | awk '{print $1}')
-    }
-
-    cd "${output}"
-    printf '{\n'
-    printf '"manifest-version": 1,\n'
-    printf '"version": "%s",\n' "${pkg_version}"
-    printf '"image-sha256-hash": "%s",\n' "$(gethash "${image}")"
-    printf '"table-sha256-hash": "%s"\n' "$(gethash "${table}")"
-    printf '}\n'
-  ) >"${manifest}"
-
-  # Sanity check the generated manifest.
-  python -mjson.tool <"${manifest}" >/dev/null
-
-  sign_manifest "${output}"
-}
-
 # Generate the manifest for this one container.
 generate_container_manifest() {
   local container_name="$1"
@@ -97,20 +63,6 @@ generate_container_manifest() {
 
   # Sanity check the generated manifest.
   python -mjson.tool <"${manifest}" >/dev/null
-}
-
-# Sign the specified disk image using verity so we can load it with dm-verity
-# at runtime.  We don't allow algorithm selection -- sha256 should be good
-# enough for everyone! :)
-# Note: We write the verity command line to the "verity" variable as an output.
-sign_disk_image() {
-  local img="$1"
-  local hashtree="${img}.hashtree"
-  # TODO: Add "salt=random" here.
-  verity=$(verity mode=create alg=sha256 payload="${img}" \
-                  hashtree="${hashtree}")
-  cat "${hashtree}" >>"${img}"
-  rm "${hashtree}"
 }
 
 # Produce the container image.
@@ -156,22 +108,7 @@ build_container_image() {
     -e "s:@ARGV@:${argv// /\", \"}:g" \
     generic_container_files/config.json >"${IMAGEDIR}/config.json"
 
-  info "Generating squashfs file ... "
-  local args=(
-    -all-root
-    -noappend
-  )
-  local img="${output}/image.squash"
-  # We need to run through sudo because some files might be read-only by root.
-  sudo mksquashfs "${IMAGEDIR}" "${img}" "${args[@]}"
-  sudo chown $(id -u):$(id -g) "${img}"
-  info "Signing squashfs file ... "
-  local verity
-  sign_disk_image "${img}"
-  echo "${verity}" > "${output}/table"
-
-  info "Generating imageloader manifest ..."
-  generate_imageloader_manifest "${version}" "${output}"
+  generate_imageloader_image "${version}" "${IMAGEDIR}" "${output}"
 
   info "Generating container manifest ..."
   generate_container_manifest "${container_name}" "${version}"
