@@ -13,52 +13,41 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 # Script must be run inside the chroot.
 restart_in_chroot_if_needed "$@"
 
-# Flags.
-DEFINE_string yaml "model.yaml" "Source YAML file to generate JSON from." y
-DEFINE_string json "model_auto_generated.json" "Target JSON file to check against." j
-
-FLAGS_HELP="Check that a generated JSON file matches the source YAML for cros_config
-
-USAGE: $0 [flags] args
-
-For example:
-$  ../../../../../scripts/check_json_from_yaml -y model.yaml -j model_auto_generated.json
-"
-# Parse command line.
-FLAGS "$@" || exit 1
-eval set -- "${FLAGS_ARGV}"
-switch_to_strict_mode
-
 main() {
-  local tmp_json=$(mktemp)
+  local yaml_files_changed=$(echo "${PRESUBMIT_FILES}" \
+    | grep chromeos-config-bsp.*yaml)
+  [[ -z "${yaml_files_changed}" ]] && exit 0
+  local build=$(pwd | sed 's#.*overlay-\([^-/]*\).*#\1#')
+  [[ -z "${build}" ]] && exit 0
+  local src_root="../../private-overlays/overlay-${build}-private/chromeos-base"
+  local gend_file="files/model_auto_generated.json"
 
-  if [[ "$#" -ne 0 ]]; then
-    flags_help
-    exit 1
+  local generated="/build/${build}/usr/share/chromeos-config/yaml/config.yaml"
+  local source_ctl_file="${src_root}/chromeos-config-bsp-${build}-private/${gend_file}"
+  if [[ ! -f "${source_ctl_file}" ]]; then
+    src_root="~/trunk/src/overlays/overlay-${build}/chromeos-base"
+    source_ctl_file="${src_root}/chromeos-config-bsp/${gend_file}"
   fi
 
-  if [[ -z "${FLAGS_yaml}" ]]; then
-    die_notrace "-y or --yaml required."
-  fi
-
-  local yaml=${FLAGS_yaml}
-
-  if [[ -z "${FLAGS_json}" ]]; then
-    die_notrace "-j or --json required."
-  fi
-
-  local json=${FLAGS_json}
-
-  cros_config_schema -c ${yaml} -o ${tmp_json}
-  local tmp_cksum="$(cksum "$tmp_json" | cut -d ' ' -f 1)"
-  rm "${tmp_json}"
-  local existing_cksum="$(cksum "$json" | cut -d ' ' -f 1)"
-  if [[ "$tmp_cksum" -ne "$existing_cksum" ]]; then
-    warn "YAML has been updated, but JSON is out of date.\n"\
-      "Updating ... please add to your current patchset.\n"\
-      "git add $(pwd)/${json}"
-    cros_config_schema -c ${yaml} -o ${json}
-    exit 1
+  if [[ -f "${source_ctl_file}" ]]; then
+    if [[ ! -f "${generated}" ]]; then
+      emerge-${build} chromeos-config-bsp chromeos-config
+    fi
+    if [[ ! -f "${generated}" ]]; then
+      warn "Failed to generate ${generated} via emerge-${build} "\
+        "chromeos-config-bsp chromeos-config."
+      exit 1
+    fi
+    local generated_cksum="$(cksum "${generated}" | cut -d ' ' -f 1)"
+    local source_ctl_cksum="$(cksum "${source_ctl_file}" | cut -d ' ' -f 1)"
+    if [[ "${generated_cksum}" -ne "${source_ctl_cksum}" ]]; then
+      cp "${generated}" "${source_ctl_file}"
+      warn "YAML has been updated, but JSON is out of date.\n"\
+        "Updating ... please add to your current patchset.\n"\
+        "git add ${source_ctl_file}"
+      exit 1
+    fi
+    info "Successfully verified ${generated} matches ${source_ctl_file}"
   fi
 }
 
