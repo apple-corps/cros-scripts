@@ -17,8 +17,6 @@ DEFINE_string image "" \
   "Chromium OS disk image to build the Termina image from"
 DEFINE_string output "" \
   "Output directory"
-DEFINE_boolean upload ${FLAGS_FALSE} \
-  "Upload resulting image to Google Storage" u
 DEFINE_boolean test_image ${FLAGS_FALSE} \
   "True if the image is a test image" t
 
@@ -82,10 +80,38 @@ extract_squashfs_partition() {
     count="${part_size_bytes}c" iflag=skip_bytes,count_bytes
 }
 
+can_hardlink() {
+  local file1=$1
+  local file2=$2
+
+  # The file is considered hard-linkable if the access rights, user, and group
+  # are the same.
+  [[ "$(sudo stat -c '%a' ${prev_line})" = "$(sudo stat -c '%a' ${line})" ]] && \
+     [[ "$(sudo stat -c '%u' ${prev_line})" = "$(sudo stat -c '%u' ${line})" ]] && \
+     [[ "$(sudo stat -c '%g' ${prev_line})" = "$(sudo stat -c '%g' ${line})" ]]
+}
+
+do_hardlinks() {
+  local dir=$1
+
+  local line prev_line=""
+  while read line; do
+    # Treat the first file as the original.
+    if [[ -n "${prev_line}" && -n "${line}" ]]; then
+      if can_hardlink "${prev_line}" "${line}"; then
+        sudo ln -f "${prev_line}" "${line}"
+      fi
+    fi
+
+    prev_line="${line}"
+  done < <(sudo fdupes --recurse ${dir})
+}
+
 # Repack termina rootfs.
 repack_rootfs() {
   local output_dir="$1"
   local fs_type="$2"
+  local arch="$3"
   local rootfs_img="${output_dir}/vm_rootfs.img"
   local stateful_img="${output_dir}/vm_stateful.img"
 
@@ -113,12 +139,17 @@ repack_rootfs() {
   # Copy the dev_image into its location at /usr/local.
   sudo cp -aT "${stateful}"/dev_image "${rootfs}/usr/local"
 
-  # TODO(smbarber): Remove vmlinuz once kvmtool is removed.
-  cp "${rootfs}/boot/vmlinuz" "${output_dir}/vmlinuz"
-  "${CHROOT_TRUNK_DIR}"/src/third_party/kernel/v4.4/scripts/extract-vmlinux \
-      "${output_dir}/vmlinuz" > "${output_dir}/vm_kernel"
-  # Remove vmlinuz from the rootfs since it's already on the host rootfs.
+  if [[ "${arch}" == "arm" ]]; then
+    cp "${rootfs}"/boot/Image-* "${output_dir}/vm_kernel"
+  else
+    "${CHROOT_TRUNK_DIR}"/src/third_party/kernel/v4.4/scripts/extract-vmlinux \
+        "${rootfs}"/boot/vmlinuz > "${output_dir}/vm_kernel"
+  fi
+
+  # Remove vmlinuz from the rootfs; it's not necessary.
   sudo rm -rf "${rootfs}"/boot/vmlinuz*
+
+  do_hardlinks "${rootfs}"
 
   sudo cp "${rootfs}/etc/lsb-release" "${output_dir}/lsb-release"
   sudo cp "${rootfs}/opt/google/chrome/resources/about_os_credits.html" \
@@ -150,38 +181,6 @@ repack_rootfs() {
   sudo rm -rf "${rootfs}" "${stateful}"
 }
 
-upload() {
-  local output_dir="$1"
-  local gspath="gs://chromeos-localmirror/distfiles"
-
-  local release="$(get_version "${output_dir}")"
-  release="${release/-/_}"
-  if is_test_image "${output_dir}"; then
-    local pkg_name="termina-vm-image-test_${FLAGS_arch}"
-  else
-    local pkg_name="termina-vm-image_${FLAGS_arch}"
-  fi
-
-  local target_file="${pkg_name}-${release}.tar.xz"
-
-  info "Will upload: '${target_file}'"
-
-  if ! prompt_yesno "Are you sure you want to upload this image?"; then
-    echo "Not uploading image."
-    return
-  fi
-
-  info "Generating tarball..."
-  tar caf "${output_dir}/termina-vm-image.tar.xz" -C "${output_dir}" \
-    vm_kernel vm_rootfs.img
-
-  if ! gsutil cp -a public-read "${output_dir}/termina-vm-image.tar.xz" \
-       "${gspath}/${target_file}"; then
-    die_notrace "Couldn't upload '${gspath}/${target_file}'."
-  fi
-  info "Uploaded to ${gspath}/${target_file}"
-}
-
 main() {
   if [[ -z "${FLAGS_image}" ]]; then
     die_notrace "Please provide an image using --image"
@@ -189,8 +188,8 @@ main() {
     die_notrace "'${FLAGS_image}' does not exist"
   fi
 
-  if [[ "${FLAGS_arch}" != "amd64" && "${FLAGS_arch}" != "armv8" ]]; then
-    die_notrace "Architecture '${FLAGS_arch}' is not valid. Options are 'amd64' and 'armv8'"
+  if [[ "${FLAGS_arch}" != "amd64" && "${FLAGS_arch}" != "arm" ]]; then
+    die_notrace "Architecture '${FLAGS_arch}' is not valid. Options are 'amd64' and 'arm'"
   fi
 
   case "${FLAGS_filesystem}" in
@@ -216,11 +215,7 @@ main() {
   extract_squashfs_partition "${image}" "3" "${rootfs_img}"
   extract_squashfs_partition "${image}" "1" "${stateful_img}"
 
-  repack_rootfs "${output_dir}" "${FLAGS_filesystem}"
-
-  if [[ "${FLAGS_upload}" -eq "${FLAGS_TRUE}" ]]; then
-    upload "${output_dir}"
-  fi
+  repack_rootfs "${output_dir}" "${FLAGS_filesystem}" "${FLAGS_arch}"
 
   info "Done! The resulting image is in '${output_dir}'"
 }
