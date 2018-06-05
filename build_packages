@@ -313,6 +313,7 @@ if [[ -n "${FLAGS_save_install_plan}" ]]; then
     || die "${FLAGS_save_install_plan} does not exist"
   readarray NEW_DEPS < ${FLAGS_save_install_plan}
   if [[ ${#NEW_DEPS[@]} -gt 0 ]]; then
+    echo "Found new deps: '${NEW_DEPS[*]}'. Converting deps to package names."
     # Convert specific versions into base package names
     MOD_PKGS+=( $(\
       equery-${FLAGS_board} list -p -o --format='$category/$name' \
