@@ -20,33 +20,29 @@
         # Unused partition, reserved for software slot C.
         "num": 6,
         "label": "KERN-C",
-        "type": "kernel",
-        "blocks": "1"
+        "type": "kernel"
       },
       {
         # Unused partition, reserved for software slot C.
         "num": 7,
         "label": "ROOT-C",
-        "type": "rootfs",
-        "blocks": "1"
+        "type": "rootfs"
       },
       {
         # Unused partition, reserved for future changes.
         "num": 9,
         "type": "reserved",
-        "label": "reserved",
-        "blocks": "1"
+        "label": "reserved"
       },
       {
         # Unused partition, reserved for future changes.
         "num": 10,
         "type": "reserved",
-        "label": "reserved",
-        "blocks": "1"
+        "label": "reserved"
       },
       {
         # Pad out so Kernel A starts on a 4096 block boundry for
-        #  performance. This is especially important on Daisy.
+        # performance. This is especially important on Daisy.
         "type": "blank",
         "size": "2014 KiB"
       },

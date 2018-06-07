@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -83,10 +84,14 @@ class ExcessPartitionSize(Exception):
 COMMON_LAYOUT = 'common'
 BASE_LAYOUT = 'base'
 # Blocks of the partition entry array.
-SIZE_OF_PARTITION_ENTRY_ARRAY = 32
+SIZE_OF_PARTITION_ENTRY_ARRAY_BYTES = 16 * 1024
 SIZE_OF_PMBR = 1
 SIZE_OF_GPT_HEADER = 1
-
+DEFAULT_SECTOR_SIZE = 512
+MAX_SECTOR_SIZE = 8 * 1024
+START_SECTOR = 4 * MAX_SECTOR_SIZE
+SECONDARY_GPT_BYTES = SIZE_OF_PARTITION_ENTRY_ARRAY_BYTES + \
+  SIZE_OF_GPT_HEADER * MAX_SECTOR_SIZE
 
 def ParseHumanNumber(operand):
   """Parse a human friendly number
@@ -356,8 +361,7 @@ def LoadPartitionConfig(filename):
   config = _LoadStackedPartitionConfig(filename)
   try:
     metadata = config['metadata']
-    for key in ('block_size', 'fs_block_size'):
-      metadata[key] = ParseHumanNumber(metadata[key])
+    metadata['fs_block_size'] = ParseHumanNumber(metadata['fs_block_size'])
 
     unknown_keys = set(config.keys()) - valid_keys
     if unknown_keys:
@@ -388,22 +392,13 @@ def LoadPartitionConfig(filename):
               raise InvalidLayout('Layout "%s" missing "%s"' % (layout_name, s))
 
         if 'size' in part:
-          if 'blocks' in part:
-            raise ConflictingOptions(
-                '%s: Conflicting settings are used. '
-                'Found section sets both \'blocks\' and \'size\'.' %
-                part['label'])
           part['bytes'] = ParseHumanNumber(part['size'])
           if 'size_min' in part:
             size_min = ParseHumanNumber(part['size_min'])
             if part['bytes'] < size_min:
               part['bytes'] = size_min
-          part['blocks'] = part['bytes'] / metadata['block_size']
-
-          if part['bytes'] % metadata['block_size'] != 0:
-            raise InvalidSize(
-                'Size: "%s" (%s bytes) is not an even number of block_size: %s'
-                % (part['size'], part['bytes'], metadata['block_size']))
+        elif part.get('num') != 'metadata':
+          part['bytes'] = 1
 
         if 'fs_size' in part:
           part['fs_bytes'] = ParseHumanNumber(part['fs_size'])
@@ -439,10 +434,6 @@ def LoadPartitionConfig(filename):
                   (part['fs_size'], part['fs_bytes'], ubi_eb_size,
                    ProduceHumanNumber(fs_bytes)))
 
-        if 'blocks' in part:
-          part['blocks'] = ParseHumanNumber(part['blocks'])
-          part['bytes'] = part['blocks'] * metadata['block_size']
-
         if 'fs_blocks' in part:
           max_fs_blocks = part['bytes'] / metadata['fs_block_size']
           part['fs_blocks'] = ParseRelativeNumber(max_fs_blocks,
@@ -469,11 +460,12 @@ def LoadPartitionConfig(filename):
   return config
 
 
-def _GetPrimaryEntryArrayLBA(config):
+def _GetPrimaryEntryArrayPaddingBytes(config):
   """Return the start LBA of the primary partition entry array.
 
   Normally this comes after the primary GPT header but can be adjusted by
-  setting the "primary_entry_array_lba" key under "metadata" in the config.
+  setting the "primary_entry_array_padding_bytes" key under "metadata" in
+  the config.
 
   Args:
     config: The config dictionary.
@@ -482,13 +474,7 @@ def _GetPrimaryEntryArrayLBA(config):
     The position of the primary partition entry array.
   """
 
-  pmbr_and_header_size = SIZE_OF_PMBR + SIZE_OF_GPT_HEADER
-  entry_array = config['metadata'].get('primary_entry_array_lba',
-                                       pmbr_and_header_size)
-  if entry_array < pmbr_and_header_size:
-    raise InvalidLayout('Primary entry array (%d) must be at least %d.' %
-                        entry_array, pmbr_and_header_size)
-  return entry_array
+  return  config['metadata'].get('primary_entry_array_padding_bytes', 0)
 
 
 def _HasBadEraseBlocks(partitions):
@@ -499,21 +485,21 @@ def _HasExternalGpt(partitions):
   return GetMetadataPartition(partitions).get('external_gpt', False)
 
 
-def _GetStartSector(config, partitions):
+def _GetPartitionStartByteOffset(config, partitions):
   """Return the first usable location (LBA) for partitions.
 
-  This value is the first LBA after the PMBR, the primary GPT header, and
+  This value is the byte offset after the PMBR, the primary GPT header, and
   partition entry array.
 
-  We round it up to 64 to maintain the same layout as before in the normal (no
-  padding between the primary GPT header and its partition entry array) case.
+  We round it up to 32K bytes to maintain the same layout as before in the
+  normal (no padding between the primary GPT header and its partition entry
+  array) case.
 
   Args:
-    config: The config dictionary.
     partitions: List of partitions to process
 
   Returns:
-    A suitable LBA for partitions, at least 64.
+    A suitable byte offset for partitions.
   """
 
   if _HasExternalGpt(partitions):
@@ -521,27 +507,25 @@ def _GetStartSector(config, partitions):
     # will be 0, and we don't need to make space at the beginning for the GPT.
     return 0
   else:
-    entry_array = _GetPrimaryEntryArrayLBA(config)
-    start_sector = max(entry_array + SIZE_OF_PARTITION_ENTRY_ARRAY, 64)
-    return start_sector
+    return START_SECTOR + _GetPrimaryEntryArrayPaddingBytes(config);
 
 
 def GetTableTotals(config, partitions):
   """Calculates total sizes/counts for a partition table.
 
   Args:
-    config: Partition configuration file object
     partitions: List of partitions to process
 
   Returns:
     Dict containing totals data
   """
 
-  start_sector = _GetStartSector(config, partitions)
+  fs_block_align_losses = 0
+  start_sector = _GetPartitionStartByteOffset(config, partitions)
   ret = {
       'expand_count': 0,
       'expand_min': 0,
-      'block_count': start_sector,
+      'byte_count': start_sector,
   }
 
   # Total up the size of all non-expanding partitions to get the minimum
@@ -549,14 +533,16 @@ def GetTableTotals(config, partitions):
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
+
+    fs_block_align_losses += 4096
     if 'expand' in partition['features']:
       ret['expand_count'] += 1
-      ret['expand_min'] += partition['blocks']
+      ret['expand_min'] += partition['bytes']
     else:
-      ret['block_count'] += partition['blocks']
+      ret['byte_count'] += partition['bytes']
 
   # Account for the secondary GPT header and table.
-  ret['block_count'] += SIZE_OF_GPT_HEADER + SIZE_OF_PARTITION_ENTRY_ARRAY
+  ret['byte_count'] += SECONDARY_GPT_BYTES
 
   # At present, only one expanding partition is permitted.
   # Whilst it'd be possible to have two, we don't need this yet
@@ -565,7 +551,11 @@ def GetTableTotals(config, partitions):
     raise InvalidLayout('1 expand partition allowed, %d requested'
                         % ret['expand_count'])
 
-  ret['min_disk_size'] = ret['block_count'] + ret['expand_min']
+  # We lose some extra bytes from the alignment which are now not considered in
+  # min_disk_size because partitions are aligned on the fly. Adding
+  # fs_block_align_losses corrects for the loss.
+  ret['min_disk_size'] = ret['byte_count'] + ret['expand_min'] + \
+    fs_block_align_losses
 
   return ret
 
@@ -744,9 +734,18 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     config: Partition configuration file object
   """
 
+  gpt_add = '${GPT} add -i %d -b $(( curr / block_size )) -s ${blocks} -t %s \
+    -l "%s" ${target}'
   partitions = GetPartitionTable(options, config, image_type)
   metadata = GetMetadataPartition(partitions)
   partition_totals = GetTableTotals(config, partitions)
+  align_to_fs_block = [
+      'if [ $(( curr %% %d )) -gt 0 ]; then' %
+      config['metadata']['fs_block_size'],
+      '  : $(( curr += %d - curr %% %d ))' %
+      ((config['metadata']['fs_block_size'],) * 2),
+      'fi',
+  ]
 
   lines = [
       'write_%s_table() {' % func,
@@ -769,57 +768,71 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   else:
     lines += [
         'local target="$1"',
-        'create_image "${target}" %d %s' % (
-            partition_totals['min_disk_size'],
-            config['metadata']['block_size']),
+        'create_image "${target}" %d' % partition_totals['min_disk_size'],
     ]
+
+  lines += [
+      'local blocks',
+      'block_size=$(blocksize "${target}")',
+      'numsecs=$(numsectors "${target}")',
+  ]
 
   # ${target} is referenced unquoted because it may expand into multiple
   # arguments in the case of NAND
   lines += [
-      'local curr=%d' % _GetStartSector(config, partitions),
+      'local curr=%d' % _GetPartitionStartByteOffset(config, partitions),
+      '# Make sure Padding is block_size aligned.',
+      'if [ $(( %d & (block_size - 1) )) -gt 0 ]; then' %
+        _GetPrimaryEntryArrayPaddingBytes(config),
+      '  echo "Primary Entry Array padding is not block aligned." >&2',
+      '  exit 1',
+      'fi',
       '# Create the GPT headers and tables. Pad the primary ones.',
-      '${GPT} create -p %d ${target}' % (_GetPrimaryEntryArrayLBA(config) -
-                                         (SIZE_OF_PMBR + SIZE_OF_GPT_HEADER)),
+      '${GPT} create -p $(( %d / block_size )) ${target}' %
+        _GetPrimaryEntryArrayPaddingBytes(config),
   ]
 
   metadata = GetMetadataPartition(partitions)
-  # Pass 1: Set up the expanding partition size.
+  stateful = None
+  # Set up the expanding partition size and write out all the cgpt add
+  # commands.
   for partition in partitions:
     if partition.get('num') == 'metadata':
       continue
-    partition['var'] = (GetFullPartitionSize(partition, metadata) /
-                        config['metadata']['block_size'])
 
-    if (partition.get('type') != 'blank' and partition['num'] == 1 and
-        'expand' in partition['features']):
+    partition['var'] = GetFullPartitionSize(partition, metadata)
+    if 'expand' in partition['features']:
+      stateful = partition
+      continue
+
+    if (partition.get('type') in ['data', 'rootfs'] and partition['bytes'] > 1):
+      lines += align_to_fs_block
+
+    if partition['var'] != 0 and partition.get('num') != 'metadata':
       lines += [
-          'local stateful_size=%s' % partition['blocks'],
-          'if [ -b "${target}" ]; then',
-          '  stateful_size=$(( $(numsectors "${target}") - %d))' % (
-              partition_totals['block_count']),
+          'blocks=$(( %s / block_size ))' % partition['var'],
+          'if [ $(( %s %% block_size )) -gt 0 ]; then' % partition['var'],
+          '   : $(( blocks += 1 ))',
           'fi',
-          ': $(( stateful_size -= (stateful_size %% %d) ))' % (
-              config['metadata']['fs_block_size']),
       ]
-      partition['var'] = '${stateful_size}'
 
-  # Pass 2: Write out all the cgpt add commands.
-  for partition in partitions:
-    if partition.get('num') == 'metadata':
-      continue
     if partition['type'] != 'blank':
       lines += [
-          '${GPT} add -i %d -b ${curr} -s %s -t %s -l "%s" ${target}' % (
-              partition['num'], str(partition['var']), partition['type'],
-              partition['label']),
+          gpt_add % (partition['num'], partition['type'], partition['label']),
       ]
 
     # Increment the curr counter ready for the next partition.
     if partition['var'] != 0 and partition.get('num') != 'metadata':
       lines += [
-          ': $(( curr += %s ))' % partition['var'],
+          ': $(( curr += blocks * block_size ))',
       ]
+
+  if stateful != None:
+    lines += align_to_fs_block + [
+        'blocks=$(( numsecs - (curr + %d) / block_size ))' %
+            SECONDARY_GPT_BYTES,
+        gpt_add % (stateful['num'], stateful['type'], stateful['label']),
+    ]
 
   # Set default priorities and retry counter on kernel partitions.
   tries = 15

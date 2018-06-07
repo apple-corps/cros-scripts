@@ -11,21 +11,32 @@ if ! type numsectors >/dev/null 2>&1; then
 fi
 locate_gpt
 
-# Usage: create_image <device> <min_disk_size> <block_size>
+# Usage: create_image <device> <min_disk_size>
 # If <device> is a block device, wipes out the GPT
 # If it's not, it creates a new file of the requested size
 create_image() {
   local dev="$1"
   local min_disk_size="$2"
-  local block_size="$3"
+
   if [ -b "${dev}" ]; then
+    # Make sure block size is not greater than 8K. Otherwise the partition
+    # start calculation won't fit.
+    block_size=$(blocksize "${dev}")
+    if [ "${block_size}" -gt 8192 ]; then
+      echo "Destination blocksize too large. Only blocksizes of 8192 bytes and \
+        smaller are supported." >&2
+      exit 1
+    fi
+
     # Zap any old partitions (otherwise gpt complains).
-    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=32
-    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=33 \
-      seek=$(( min_disk_size * block_size / 512 - 1 - 33 ))
+    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=64
+    dd if=/dev/zero of="${dev}" conv=notrunc bs=512 count=64 \
+      seek=$(( min_disk_size / 512 - 64 ))
   else
     if [ ! -e "${dev}" ]; then
-      truncate -s "$(( min_disk_size * block_size ))" "${dev}"
+      # Align to 512 bytes
+      min_disk_size=$(( (min_disk_size + 511) & ~511 ))
+      truncate -s "${min_disk_size}" "${dev}"
     fi
   fi
 }
