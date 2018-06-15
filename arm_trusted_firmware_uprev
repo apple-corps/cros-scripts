@@ -134,7 +134,10 @@ to fix this repository.
       "${PREV_REMOTE}2":"${PREV}3" \
       "${PREV_REMOTE}1":"${PREV}2" \
       "${MASTER_REMOTE}":"${PREV}1" \
-      "${commit}":"${MASTER}" || die_notrace "Push failed (see above)"
+      "${commit}":"${MASTER}" || die_notrace "Push failed (see above).
+If you are seeing authorization errors ('update access denied'), you are
+probably not a member of the chromeos-arm-trusted-firmware-pushers Ganpati
+group. You can reach out to any current member of the group to add you."
   fi
 
   echo "Push successful!"
