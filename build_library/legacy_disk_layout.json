@@ -241,6 +241,19 @@
         "size": "4096 MiB",
         "fs_size": "4000 MiB"
       }
+    ],
+    # Huge rootfs, suitable for VM only images, should not be used
+    # for actual hardware devices.
+    "16gb-rootfs": [
+      {
+        "num": 5,
+        "size": "2 MiB"
+      },
+      {
+        "num": 3,
+        "size": "16384 MiB",
+        "fs_size": "16000 MiB"
+      }
     ]
   }
 }
