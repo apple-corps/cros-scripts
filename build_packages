@@ -298,6 +298,10 @@ fi
 # Temporarily modify the emerge flags so we can calculate the revdeps
 # on the modified packages.
 SIM_EMERGE_FLAGS=( "${EMERGE_FLAGS[@]}" )
+if [[ -n "${FLAGS_save_install_plan}" ]]; then
+  SIM_EMERGE_FLAGS+=( --install-plan-filename="${FLAGS_save_install_plan}" )
+fi
+
 if [[ ${#PACKAGES[@]} -gt 0 ]]; then
   SIM_EMERGE_FLAGS+=(
     --reinstall-atoms="${PACKAGES[*]}"
@@ -318,6 +322,9 @@ if [[ -n "${FLAGS_save_install_plan}" ]]; then
     MOD_PKGS+=( $(\
       equery-${FLAGS_board} list -p -o --format='$category/$name' \
           ${NEW_DEPS[*]}) )
+    # Remove Chrome as rebuilding it is expensive and almost never makes sense
+    MOD_PKGS=( $( echo "${MOD_PKGS[*]}" |\
+        sed -e 's/chromeos-base\/chromeos-chrome[^ ]*//' ) )
   fi
   FORCE_LOCAL_BUILD_PKGS+=( ${MOD_PKGS[@]} )
 fi
