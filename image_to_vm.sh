@@ -37,7 +37,7 @@ DEFINE_string disk_layout "2gb-rootfs-updatable" \
 DEFINE_string state_image "" \
   "Stateful partition image (defaults to creating new statful partition)"
 DEFINE_boolean test_image "${FLAGS_FALSE}" \
-  "Copies normal image to ${CHROMEOS_TEST_IMAGE_NAME}, modifies it for test."
+  "Fetches image from ${CHROMEOS_TEST_IMAGE_NAME}."
 DEFINE_string to "" \
   "Destination folder for VM output file(s)"
 
