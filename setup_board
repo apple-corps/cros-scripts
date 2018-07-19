@@ -62,7 +62,6 @@ DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
   "Don't emerge any packages during setup_board into the board root."
 DEFINE_string board_root "" \
   "Board root."
-DEFINE_string brick "" "Brick to set up."
 DEFINE_string save_install_plan "" \
   "Save install plan to filename for correct reverse dependency calculation."
 
@@ -82,15 +81,11 @@ eval set -- "${FLAGS_ARGV}"
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode
 
-if [[ -z "${FLAGS_board}" ]] && [[ -z "${FLAGS_brick}" ]]; then
-  die "--board or --brick required."
-elif [[ -n "${FLAGS_brick}" ]]; then
-  # Clear the board value if brick was provided (backward compatibility).
-  [[ -z "${FLAGS_board}" ]] || warn "--brick was used, ignoring --board value"
-  FLAGS_board=
+if [[ -z "${FLAGS_board}" ]]; then
+  die "--board required."
 fi
 
-get_board_and_variant "${FLAGS_board}" "${FLAGS_variant}" "${FLAGS_brick}"
+get_board_and_variant "${FLAGS_board}" "${FLAGS_variant}"
 
 # Before we can run any tools, we need to update chroot
 UPDATE_ARGS="--toolchain_boards=${BOARD}"
@@ -102,8 +97,7 @@ fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   UPDATE_ARGS+=" --jobs=${FLAGS_jobs}"
 fi
-if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]] \
-  || [[ -n "${FLAGS_brick}" ]]; then
+if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]]; then
   UPDATE_ARGS+=" --skip_toolchain_update"
 fi
 if [[ ! -z "${FLAGS_save_install_plan}" ]]; then
@@ -190,13 +184,8 @@ sudo_multi "${cmds[@]}"
 
 # Generating the standard configuration file (make.conf.board_setup) for the
 # sysroot.
-if [[ -n "${FLAGS_brick}" ]]; then
-  cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
-    --brick="${FLAGS_brick}" --out-file="${BOARD_SETUP}"
-else
-  cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
-    --board="${FLAGS_board}" --out-file="${BOARD_SETUP}"
-fi
+cros_sysroot_utils generate-config --sysroot="${BOARD_ROOT}" \
+  --board="${FLAGS_board}" --out-file="${BOARD_SETUP}"
 
 # Generate wrappers for portage helpers (equery, portageq, emerge, etc...).
 # Those are used to generate make.conf.board.
