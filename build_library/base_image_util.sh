@@ -371,14 +371,6 @@ create_base_image() {
     board_finalize_base_image
   fi
 
-  # Don't test the factory install shim
-  if ! should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
-    if [[ ${skip_test_image_content} -ne 1 ]]; then
-      # Check that the image has been correctly created.
-      test_image_content "$root_fs_dir"
-    fi
-  fi
-
   generate_demo_mode_resources_images \
       "${root_fs_dir}/build/rootfs/chromeos-assets/demo_resources"
 
