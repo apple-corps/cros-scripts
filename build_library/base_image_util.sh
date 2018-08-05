@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-. "${SRC_ROOT}/platform/dev/toolchain_utils.sh" || exit 1
-
 CHROMEOS_MASTER_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.dtb"
 CHROMEOS_MASTER_JSON_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.json"
 

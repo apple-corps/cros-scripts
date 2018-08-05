@@ -5,7 +5,6 @@
 # found in the LICENSE file.
 
 . "$(dirname "$0")/common.sh" || exit 1
-. "${SRC_ROOT}/platform/dev/toolchain_utils.sh" || exit 1
 
 # Script must run inside the chroot
 restart_in_chroot_if_needed "$@"
