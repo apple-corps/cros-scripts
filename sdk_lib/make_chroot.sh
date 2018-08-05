@@ -216,7 +216,7 @@ EOF
 
    # Use the standardized upgrade script to setup proxied vars.
    load_environment_whitelist
-   bash -e "${SCRIPT_ROOT}/chroot_version_hooks.d/45_rewrite_sudoers.d" \
+   bash "${SCRIPT_ROOT}/chroot_version_hooks.d/153_rewrite_sudoers.d" \
      "${FLAGS_chroot}" "${SUDO_USER}" "${ENVIRONMENT_WHITELIST[@]}"
 
    find "${FLAGS_chroot}/etc/"sudoers* -type f -exec chmod 0440 {} +
