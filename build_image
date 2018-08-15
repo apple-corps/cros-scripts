@@ -120,6 +120,7 @@ OVERLAY_CHROMEOS_DIR="${SRC_ROOT}/third_party/chromiumos-overlay/chromeos"
 . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/dev_image_util.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/test_image_util.sh" || exit 1
+. "${BUILD_LIBRARY_DIR}/selinux_util.sh" || exit 1
 
 parse_build_image_args
 

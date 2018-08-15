@@ -401,19 +401,7 @@ create_base_image() {
     create_dev_install_lists "${root_fs_dir}"
   fi
 
-  # Restore the extended attributes of necessary files.
-  local selinux_config="${BOARD_ROOT}/etc/selinux/config"
-  if [[ -e "${selinux_config}" ]]; then
-    local selinux_type="$(source "${selinux_config}" && echo "${SELINUXTYPE}")"
-    local file_contexts="${BOARD_ROOT}/etc/selinux/${selinux_type}/contexts/files/file_contexts"
-    # If the selinux_config file exists, file_contexts must also.
-    if ! [[ -e "${file_contexts}" ]]; then
-      local err_msg="The SELinux config file exists at ${selinux_config}, "
-      err_msg+="but an SELinux context file not found at ${file_contexts}."
-      die_notrace "${err_msg}"
-    fi
-    sudo /sbin/setfiles -r "${root_fs_dir}" "${file_contexts}" "${root_fs_dir}"
-  fi
+  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}"
 
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.

@@ -40,6 +40,8 @@ mod_image_for_test () {
   # Re-run ldconfig to fix /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
 
+  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}"
+
   unmount_image
   trap - EXIT
 
