@@ -351,7 +351,7 @@ def LoadPartitionConfig(filename):
 
   valid_keys = set(('_comment', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = set((
-      '_comment', 'num', 'blocks', 'block_size', 'fs_blocks', 'fs_block_size',
+      '_comment', 'num', 'fs_blocks', 'fs_block_size', 'bytes',
       'uuid', 'label', 'format', 'fs_format', 'type', 'features',
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
       'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
@@ -496,6 +496,7 @@ def _GetPartitionStartByteOffset(config, partitions):
   array) case.
 
   Args:
+    config: The config dictionary.
     partitions: List of partitions to process
 
   Returns:
@@ -507,13 +508,14 @@ def _GetPartitionStartByteOffset(config, partitions):
     # will be 0, and we don't need to make space at the beginning for the GPT.
     return 0
   else:
-    return START_SECTOR + _GetPrimaryEntryArrayPaddingBytes(config);
+    return START_SECTOR + _GetPrimaryEntryArrayPaddingBytes(config)
 
 
 def GetTableTotals(config, partitions):
   """Calculates total sizes/counts for a partition table.
 
   Args:
+    config: The config dictionary.
     partitions: List of partitions to process
 
   Returns:
@@ -622,20 +624,12 @@ def ApplyPartitionAdjustment(partitions, metadata, label, operator, operand):
   partition = GetPartitionByLabel(partitions, label)
 
   operand_bytes = ParseHumanNumber(operand)
-  if operand_bytes % metadata['block_size'] == 0:
-    operand_blocks = operand_bytes / metadata['block_size']
-  else:
-    raise InvalidAdjustment('Adjustment size %s not divisible by block size %s'
-                            % (operand_bytes, metadata['block_size']))
 
   if operator == '+':
-    partition['blocks'] += operand_blocks
     partition['bytes'] += operand_bytes
   elif operator == '-':
-    partition['blocks'] -= operand_blocks
     partition['bytes'] -= operand_bytes
   elif operator == '=':
-    partition['blocks'] = operand_blocks
     partition['bytes'] = operand_bytes
   else:
     raise ValueError('unknown operator %s' % operator)
@@ -646,9 +640,7 @@ def ApplyPartitionAdjustment(partitions, metadata, label, operator, operand):
     # the hashpad.
     partition['fs_bytes'] = partition['bytes']
     partition['fs_blocks'] = partition['fs_bytes'] / metadata['fs_block_size']
-    partition['blocks'] = int(partition['blocks'] * 1.15)
-    partition['bytes'] = partition['blocks'] * metadata['block_size']
-
+    partition['bytes'] = int(partition['bytes'] * 1.15)
 
 def GetPartitionTableFromConfig(options, layout_filename, image_type):
   """Loads a partition table and returns a given partition table type
@@ -783,13 +775,13 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       'local curr=%d' % _GetPartitionStartByteOffset(config, partitions),
       '# Make sure Padding is block_size aligned.',
       'if [ $(( %d & (block_size - 1) )) -gt 0 ]; then' %
-        _GetPrimaryEntryArrayPaddingBytes(config),
+      _GetPrimaryEntryArrayPaddingBytes(config),
       '  echo "Primary Entry Array padding is not block aligned." >&2',
       '  exit 1',
       'fi',
       '# Create the GPT headers and tables. Pad the primary ones.',
       '${GPT} create -p $(( %d / block_size )) ${target}' %
-        _GetPrimaryEntryArrayPaddingBytes(config),
+      _GetPrimaryEntryArrayPaddingBytes(config),
   ]
 
   metadata = GetMetadataPartition(partitions)
@@ -830,7 +822,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   if stateful != None:
     lines += align_to_fs_block + [
         'blocks=$(( numsecs - (curr + %d) / block_size ))' %
-            SECONDARY_GPT_BYTES,
+        SECONDARY_GPT_BYTES,
         gpt_add % (stateful['num'], stateful['type'], stateful['label']),
     ]
 
