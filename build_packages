@@ -35,7 +35,8 @@ DEFINE_boolean withevents "${FLAGS_FALSE}" \
 DEFINE_string eventfile "${DEFAULT_EVENT_FILE}" \
   "Define the file that event logs will be written."
 DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
-  "Generate install plan filename if not provided to calc reverse deps."
+  "Calculate reverse dependencies on changed ebuilds."
+# Temporarily keep this flag until removed from rest of build system.
 DEFINE_string save_install_plan "" \
   "Save install plan filename for correct reverse dependency calculation."
 
@@ -163,18 +164,6 @@ if [[ -n ${FLAGS_board_root} ]]; then
   UPDATE_ARGS+=( --board_root "${FLAGS_board_root}" )
 fi
 
-if [[ -z "${FLAGS_save_install_plan}" ]]; then
-  if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
-    # No explicit install plan filename (cbuildbot generated)
-    # so generate a temporary filename and reset the flag.
-    FLAGS_save_install_plan=$(mktemp)
-  fi
-fi
-info "saving install plan to ${FLAGS_save_install_plan}"
-if [[ -n "${FLAGS_save_install_plan}" ]]; then
-  UPDATE_ARGS+=( --save_install_plan="${FLAGS_save_install_plan}" )
-fi
-
 "${SCRIPTS_DIR}"/setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
 
 sudo_clear_shadow_locks "/build/${FLAGS_board}"
@@ -297,55 +286,56 @@ fi
 
 # Temporarily modify the emerge flags so we can calculate the revdeps
 # on the modified packages.
-SIM_EMERGE_FLAGS=( "${EMERGE_FLAGS[@]}" )
-if [[ -n "${FLAGS_save_install_plan}" ]]; then
-  SIM_EMERGE_FLAGS+=( --install-plan-filename="${FLAGS_save_install_plan}" )
-fi
+if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
+  info "starting reverse dependecy calculations ..."
+  SIM_EMERGE_FLAGS=( "${EMERGE_FLAGS[@]}" --pretend --columns )
 
-if [[ ${#PACKAGES[@]} -gt 0 ]]; then
-  SIM_EMERGE_FLAGS+=(
-    --reinstall-atoms="${PACKAGES[*]}"
-    --usepkg-exclude="${PACKAGES[*]}"
-  )
-fi
+  if [[ ${#PACKAGES[@]} -gt 0 ]]; then
+    SIM_EMERGE_FLAGS+=(
+      --reinstall-atoms="${PACKAGES[*]}"
+      --usepkg-exclude="${PACKAGES[*]}"
+    )
+  fi
 
-sudo -E "${EMERGE_CMD[@]}" "${SIM_EMERGE_FLAGS[@]}" --pretend "${PACKAGES[@]}"
+  # Calculate only the ebuild changes from the emerge simulation ignoring
+  # the virtual packages and the forced rebuild of autotest-all package.
+  BASE_INSTALL_PKGS=( $( \
+    sudo -E "${EMERGE_CMD[@]}" "${SIM_EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
+    sed -n -E '/^\[ebuild /{s:^[^]]+\] +::;s: .*::;p}' | \
+    grep -v -e '^virtual/' -e '^chromeos-base/autotest-all' | sort -u ) )
 
-MOD_PKGS=()
-if [[ -n "${FLAGS_save_install_plan}" ]]; then
-  [ -f ${FLAGS_save_install_plan} ] \
-    || die "${FLAGS_save_install_plan} does not exist"
-  readarray NEW_DEPS < ${FLAGS_save_install_plan}
-  if [[ ${#NEW_DEPS[@]} -gt 0 ]]; then
-    echo "Found new deps: '${NEW_DEPS[*]}'. Converting deps to package names."
+  MOD_PKGS=()
+  if [[ "${#BASE_INSTALL_PKGS[@]}" -gt 0 ]]; then
+    info "New packages being installed: ${BASE_INSTALL_PKGS[*]}."
     # Convert specific versions into base package names
     MOD_PKGS+=( $(\
-      equery-${FLAGS_board} list -p -o --format='$category/$name' \
-          ${NEW_DEPS[*]}) )
+    equery-${FLAGS_board} list -p -o --format='$category/$name' \
+      "${BASE_INSTALL_PKGS[@]}" | sort -u ) )
     # Remove Chrome as rebuilding it is expensive and almost never makes sense
-    MOD_PKGS=( $( echo "${MOD_PKGS[*]}" |\
-        sed -e 's/chromeos-base\/chromeos-chrome[^ ]*//' ) )
+    MOD_PKGS=( $(printf '%s\n' "${MOD_PKGS[@]}" | \
+      grep -v 'chromeos-base/chromeos-chrome') )
   fi
-  FORCE_LOCAL_BUILD_PKGS+=( ${MOD_PKGS[@]} )
-fi
 
-if [[ ${#MOD_PKGS[@]} -gt 0 ]]; then
-  info "calculating reverse dependencies on packages: ${MOD_PKGS[*]}"
-  REV_DEPS=( $(\
-        equery-${FLAGS_board} -q depends --indirect ${MOD_PKGS[@]} |\
-        awk '{print $1}' | grep -v ^virtual/ | sort -u) )
-  if [[ ${#REV_DEPS[@]} -gt 0 ]]; then
-    # Convert specific versions into base package names
-    RMOD_PKGS=( $(\
+  FORCE_LOCAL_BUILD_PKGS+=( "${MOD_PKGS[@]}" )
+
+  if [[ "${#MOD_PKGS[@]}" -gt 0 ]]; then
+    info "calculating reverse dependencies on packages: ${MOD_PKGS[*]}"
+    REV_DEPS=( $(\
+      equery-${FLAGS_board} -q depends --indirect "${MOD_PKGS[@]}" |\
+      awk '{print $1}' | grep -v ^virtual/ | sort -u) )
+    if [[ "${#REV_DEPS[@]}" -gt 0 ]]; then
+      # Convert specific versions into base package names
+      RMOD_PKGS=( $(\
         equery-${FLAGS_board} -q list -p -o --format='$category/$name' \
-        ${REV_DEPS[*]}) )
-    # Remove Chrome as rebuilding it is expensive and almost never makes sense
-    RMOD_PKGS=( $( echo "${RMOD_PKGS[*]}" |\
-        sed -e 's/chromeos-base\/chromeos-chrome[^ ]*//' ) )
-    info "final reverse dependencies that will be rebuilt: ${RMOD_PKGS[*]}"
-    FORCE_LOCAL_BUILD_PKGS+=( ${RMOD_PKGS[@]} )
+        "${REV_DEPS[@]}" | sort -u ) )
+      # Remove Chrome as rebuilding it is expensive and almost never makes sense
+      RMOD_PKGS=( $(printf '%s\n' "${RMOD_PKGS[@]}" | \
+        grep -v 'chromeos-base/chromeos-chrome') )
+      info "final reverse dependencies that will be rebuilt: ${RMOD_PKGS[*]}"
+      FORCE_LOCAL_BUILD_PKGS+=( "${RMOD_PKGS[@]}" )
+    fi
   fi
-fi
+fi # end FLAGS_withrevdeps
 
 if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
   EMERGE_FLAGS+=(
@@ -378,10 +368,6 @@ info "Merging board packages now"
 package_count=$(awk '$0 ~ /^Total: [0-9]+ packages/ { print $2 }' "${tmpfile}")
 rm "${tmpfile}"
 trap - EXIT
-
-if [[ -n "${FLAGS_save_install_plan}" ]]; then
-  sudo -E rm ${FLAGS_save_install_plan}
-fi
 
 echo "Builds complete"
 
