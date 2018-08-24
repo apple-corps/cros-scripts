@@ -188,7 +188,7 @@ cros_sysroot_utils create-wrappers --sysroot="${BOARD_ROOT}" \
 # setup_board.  The developer can later change profiles by running
 # cros_choose_profile manually.
 if ! cros_choose_profile --profile "${FLAGS_profile}" \
-      --board_root "${BOARD_ROOT}" --board "${FLAGS_board}"; then
+      --board-root "${BOARD_ROOT}" --board "${FLAGS_board}"; then
   sudo rm -rf --one-file-system "${BOARD_ROOT}"
   die "Selecting profile failed, removing incomplete board directory!"
 fi
