@@ -61,8 +61,6 @@ DEFINE_boolean skip_board_pkg_init ${FLAGS_FALSE} \
   "Don't emerge any packages during setup_board into the board root."
 DEFINE_string board_root "" \
   "Board root."
-DEFINE_string save_install_plan "" \
-  "Save install plan to filename for correct reverse dependency calculation."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -98,11 +96,6 @@ if [[ "${FLAGS_jobs}" -ne -1 ]]; then
 fi
 if [[ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]]; then
   UPDATE_ARGS+=" --skip_toolchain_update"
-fi
-if [[ ! -z "${FLAGS_save_install_plan}" ]]; then
-  # If we are trying to calculate reverse dependencies pass the install
-  # plan filename to update_chroot.
-  UPDATE_ARGS+=" --save_install_plan=${FLAGS_save_install_plan}"
 fi
 
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_FALSE}" ] ; then

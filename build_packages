@@ -36,9 +36,6 @@ DEFINE_string eventfile "${DEFAULT_EVENT_FILE}" \
   "Define the file that event logs will be written."
 DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
   "Calculate reverse dependencies on changed ebuilds."
-# Temporarily keep this flag until removed from rest of build system.
-DEFINE_string save_install_plan "" \
-  "Save install plan filename for correct reverse dependency calculation."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
