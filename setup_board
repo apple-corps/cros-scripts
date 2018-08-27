@@ -273,7 +273,7 @@ else
   # and BOARD_ETC directories have been created.
   if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
     if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
-      "${GCLIENT_ROOT}/src/scripts/install_toolchain" --sysroot="${BOARD_ROOT}"
+      install_toolchain --sysroot="${BOARD_ROOT}"
     fi
 
     # If the sysroot already existed and we are not regenerating configuration,
