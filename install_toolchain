@@ -43,14 +43,7 @@ cross_get_version() {
   local toolchain=${2:-${FLAGS_toolchain}}
   local cpv
   if [[ "${CHOST}" != "${toolchain}" ]]; then
-    if [[ "${pkg}" == "gcc" ]]; then
-      # Users can install multiple versions of gcc at once, so we need to call
-      # gcc-config to find out which installed version is selected.
-      local path=$(CTARGET="${toolchain}" gcc-config -B || true)
-      cpv=$(portageq owners / "${path}" | sed -e '/^\t/d')
-    else
-      cpv=$(portageq match / "cross-${toolchain}/${pkg}" || true)
-    fi
+    cpv=$(portageq match / "cross-${toolchain}/${pkg}" || true)
   else
     if [[ "${pkg}" == glibc ]] ; then
       cpv=$(portageq match / sys-libs/glibc || true)
