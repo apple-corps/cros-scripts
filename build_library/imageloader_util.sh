@@ -26,7 +26,6 @@ generate_imageloader_manifest() {
       echo $(sha256sum <"${file}" | awk '{print $1}')
     }
 
-    cd "${output}"
     printf '{\n'
     printf '"manifest-version": 1,\n'
     printf '"version": "%s",\n' "${pkg_version}"
