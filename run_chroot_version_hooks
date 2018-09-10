@@ -15,12 +15,8 @@ assert_inside_chroot
 # May not be run as root.
 assert_not_root_user
 
-DEFINE_string version "" \
-  "Assume current chroot version is this."
 DEFINE_boolean init_latest "${FLAGS_FALSE}" \
   "Create the version file with the latest version if it doesn't exist"
-DEFINE_boolean skipfirst "${FLAGS_FALSE}" \
-  "Skip the first upgrade. This may be dangerous."
 
 FLAGS "$@" || exit 1
 
@@ -33,21 +29,6 @@ update_version() {
 }
 
 ######################################################################
-
-# Sanity checks:
-if [ -n "${FLAGS_version}" ] && \
-    ( [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ] || \
-    [ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ] ); then
-  error "The option --version cannot be combined with either"
-  error "--skipfirst or --init_latest."
-  exit 1
-fi
-
-if [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ] &&
-    [ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ]; then
-  error "--skipfirst and --init_latest cannot be combined."
-  exit 1
-fi
 
 # Latest version is the version of last upgrade.d file.
 # Name format is ${number}_${short_description}
@@ -80,33 +61,6 @@ if [[ "${FLAGS_init_latest}" == "${FLAGS_TRUE}" ]]; then
   fi
   exit 0
 fi
-
-if [ "${FLAGS_skipfirst}" == "${FLAGS_TRUE}" ]; then
-  if [ "${CHROOT_VERSION}" -lt "${LATEST_VERSION}" ]; then
-    # if the new one is latest, this becomes noop
-    CHROOT_VERSION=$(expr ${CHROOT_VERSION} + 1)
-    update_version "${CHROOT_VERSION}"
-  else
-    error "Nothing to skip"
-    exit 1
-  fi
-fi
-
-if [ -n "${FLAGS_version}" ]; then
-  # Check if it's a number.
-  if ! [ "${FLAGS_version}" -ge "0" ] &> /dev/null; then
-    error "Trying to force invalid version: ${FLAGS_version}"
-    exit 1
-  fi
-
-  if [ "${FLAGS_version}" -gt "${LATEST_VERSION}" ]; then
-    error "Forcing nonexistant version: ${FLAGS_version}"
-    exit 1
-  fi
-
-  CHROOT_VERSION="${FLAGS_version}"
-fi
-
 
 if [ "${LATEST_VERSION}" -gt "${CHROOT_VERSION}" ]; then
   info "Old chroot version (${CHROOT_VERSION}) found, running upgrade hooks"
