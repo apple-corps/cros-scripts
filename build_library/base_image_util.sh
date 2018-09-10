@@ -303,6 +303,7 @@ create_base_image() {
     --board="${BOARD}" \
     "${model_flags[@]}" \
     ${builder_path} \
+    --keyset="devkeys" \
     --version_string="${CHROMEOS_VERSION_STRING}" \
     --auserver="${CHROMEOS_VERSION_AUSERVER}" \
     --devserver="${CHROMEOS_VERSION_DEVSERVER}" \
