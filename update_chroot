@@ -46,7 +46,7 @@ switch_to_strict_mode
 . ${SCRIPTS_DIR}/sdk_lib/make_conf_util.sh
 
 # Run version hooks as pre-update
-${SCRIPTS_DIR}/run_chroot_version_hooks
+run_chroot_version_hooks
 
 info "Updating chroot"
 

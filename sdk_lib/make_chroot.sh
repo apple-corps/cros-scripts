@@ -635,8 +635,7 @@ early_enter_chroot \
 if [ -n "${INITIALIZE_CHROOT}" ]; then
   # If we're creating a new chroot, we also want to set it to the latest
   # version.
-  enter_chroot \
-    "${CHROOT_TRUNK_DIR}/src/scripts/run_chroot_version_hooks" --init_latest
+  enter_chroot run_chroot_version_hooks --init-latest
 fi
 
 # Update chroot.
