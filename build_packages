@@ -82,8 +82,6 @@ DEFINE_boolean withfactory "${FLAGS_TRUE}" \
   "Build factory installer."
 DEFINE_boolean withtest "${FLAGS_TRUE}" \
   "Build packages required for testing."
-DEFINE_boolean chrome_binhost_only "${FLAGS_FALSE}" \
-  "Only fetch packages from the Chrome binhost."
 DEFINE_boolean buildretry "${FLAGS_TRUE}" \
   "Retry failed packages."
 
@@ -141,9 +139,6 @@ else
 fi
 if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )
-fi
-if [ "${FLAGS_chrome_binhost_only}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --chrome_binhost_only )
 fi
 if [ "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]; then
   UPDATE_ARGS+=( --reuse_pkgs_from_local_boards )

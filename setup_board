@@ -256,9 +256,6 @@ else
   # We need to create make.conf.board in two steps as we need make.conf.board to
   # exist before we can generate the binhost list.
   EXTRA_ARGS=()
-  if [[ ${FLAGS_chrome_binhost_only} -eq ${FLAGS_TRUE} ]]; then
-    EXTRA_ARGS+=( --chrome-only )
-  fi
   if [[ ${FLAGS_reuse_pkgs_from_local_boards} -eq ${FLAGS_TRUE} ]]; then
     EXTRA_ARGS+=( --local-only )
   fi
