@@ -18,6 +18,6 @@ restore_fs_contexts() {
       err_msg+="but an SELinux context file not found at ${file_contexts}."
       die_notrace "${err_msg}"
     fi
-    sudo /sbin/setfiles -r "${rootfs}" "${file_contexts}" "${rootfs}"
+    sudo /sbin/setfiles -m -r "${rootfs}" "${file_contexts}" "${rootfs}"
   fi
 }
