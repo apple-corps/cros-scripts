@@ -89,23 +89,6 @@ parse_build_image_args() {
   fi
 }
 
-check_blacklist() {
-  info "Verifying that the base image does not contain a blacklisted package."
-  info "Generating list of packages for ${BASE_PACKAGE}."
-  local package_blacklist_file="${BUILD_LIBRARY_DIR}/chromeos_blacklist"
-  if [ ! -e "${package_blacklist_file}" ]; then
-    warn "Missing blacklist file."
-    return
-  fi
-  local blacklisted_packages=$(${SCRIPTS_DIR}/get_package_list \
-      --board="${BOARD}" "${BASE_PACKAGE}" \
-      | grep -x -f "${package_blacklist_file}")
-  if [ -n "${blacklisted_packages}" ]; then
-    die "Blacklisted packages found: ${blacklisted_packages}."
-  fi
-  info "No blacklisted packages found."
-}
-
 make_salt() {
   # It is not important that the salt be cryptographically strong; it just needs
   # to be different for each release. The purpose of the salt is just to ensure

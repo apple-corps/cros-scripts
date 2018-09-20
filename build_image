@@ -169,10 +169,6 @@ if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
   "${BOARD_ROOT}/build/bin/eclean" -d packages
 fi
 
-if [[ ${skip_blacklist_check} -ne ${FLAGS_FALSE} ]]; then
-  check_blacklist
-fi
-
 # Handle existing directory.
 if [[ -e "${BUILD_DIR}" ]]; then
   if [[ ${FLAGS_replace} -eq ${FLAGS_TRUE} ]]; then
