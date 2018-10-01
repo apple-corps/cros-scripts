@@ -190,21 +190,24 @@ mark_boot_once() {
 
 update_syslinux_kernel() {
   # ARM does not have the syslinux directory, so skip it when the
-  # partition or the syslinux vmlinuz target is missing.
+  # partition is missing, the file system fails to mount, or the syslinux
+  # vmlinuz target is missing.
   echo "updating syslinux kernel"
   remote_sh grep $(echo ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} | cut -d/ -f3) /proc/partitions
   if [ $(echo "$REMOTE_OUT" | wc -l) -eq 1 ]; then
     remote_sh mkdir -p /tmp/${PARTITION_NUM_EFI_SYSTEM}
-    remote_sh mount ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} /tmp/${PARTITION_NUM_EFI_SYSTEM}
+    if remote_sh mount ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} \
+                       /tmp/${PARTITION_NUM_EFI_SYSTEM}; then
 
-    if [ "$FLAGS_partition" = "${FLAGS_device}${PARTITION_NUM_KERN_A}" ]; then
-      target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.A"
-    else
-      target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.B"
+      if [ "$FLAGS_partition" = "${FLAGS_device}${PARTITION_NUM_KERN_A}" ]; then
+        target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.A"
+      else
+        target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.B"
+      fi
+      remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
+
+      remote_sh umount /tmp/${PARTITION_NUM_EFI_SYSTEM}
     fi
-    remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
-
-    remote_sh umount /tmp/${PARTITION_NUM_EFI_SYSTEM}
     remote_sh rmdir /tmp/${PARTITION_NUM_EFI_SYSTEM}
   fi
 }
