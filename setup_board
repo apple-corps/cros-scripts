@@ -227,13 +227,20 @@ if ${HOST_BOARD}; then
   # First, rebuild all packages from scratch. This is needed to make sure
   # we rebuild all chroot packages.
   sudo -E $EMERGE_CMD --emptytree --with-bdeps=y \
-    "${TOOLCHAIN_PACKAGES[@]}" "${PACKAGES[@]}"
+    "${TOOLCHAIN_PACKAGES[@]}" "${PACKAGES[@]}" \
+    virtual/target-sdk-nobdeps
   sudo eclean -d packages
 
   # Next, install our rebuilt packages into our separate root.
   HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
-  HOST_FLAGS+=" --with-bdeps=y --newuse --jobs=$NUM_JOBS --usepkgonly"
-  sudo -E $EMERGE_CMD $HOST_FLAGS --select=y "${PACKAGES[@]}"
+  HOST_FLAGS+=" --newuse --jobs=$NUM_JOBS --usepkgonly"
+  sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=y --select=y "${PACKAGES[@]}"
+  # Install our rebuilt packages from the nobdeps target into our separate root
+  # without their build-time deps.  We also avoid adding this target to the
+  # world set so that subsequent update_chroot commands won't re-import the
+  # build deps.
+  sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=n --oneshot \
+    virtual/target-sdk-nobdeps
   sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 
   # Copy our chroot version into the newly packaged chroot.
