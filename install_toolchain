@@ -104,6 +104,12 @@ EOF
 dev-lang/go-${go_ver}
 EOF
   fi
+  local rpcsvc_proto=$(portageq match / net-libs/rpcsvc-proto)
+  if [[ -n ${rpcsvc_proto} ]]; then
+    sudo_append "$BOARD_PROFILE/package.provided" << EOF
+${rpcsvc_proto}
+EOF
+  fi
 }
 
 # Install all of the stuff that depends on the toolchain versions
