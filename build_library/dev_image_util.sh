@@ -129,7 +129,7 @@ EOF
 
   setup_etc_shadow "${root_fs_dir}"
 
-  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}"
+  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
   info "Developer image built and stored at ${image_name}"
 

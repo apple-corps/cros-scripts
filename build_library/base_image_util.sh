@@ -402,7 +402,7 @@ create_base_image() {
     create_dev_install_lists "${root_fs_dir}"
   fi
 
-  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}"
+  restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
   # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.
