@@ -76,7 +76,7 @@ trap 'ret=$?; cleanup; die_err_trap ${ret}' INT TERM EXIT
 
 # Default to the most recent image
 if [ -z "${FLAGS_from}" ] ; then
-  FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board=${FLAGS_board})"
+  FLAGS_from="${IMAGES_DIR}/${FLAGS_board}/latest"
 fi
 if [ -z "${FLAGS_to}" ] ; then
   FLAGS_to="${FLAGS_from}"

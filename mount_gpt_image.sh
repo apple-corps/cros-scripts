@@ -67,7 +67,7 @@ fi
 
 # Find the last image built on the board.
 if [[ ${FLAGS_most_recent} -eq ${FLAGS_TRUE} ]] ; then
-  FLAGS_from="$(${SCRIPT_ROOT}/get_latest_image.sh --board="${FLAGS_board}")"
+  FLAGS_from="${IMAGES_DIR}/${FLAGS_board}/latest"
 fi
 
 # If --from is a block device, --image can't also be specified.

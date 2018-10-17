@@ -349,8 +349,7 @@ set -u
 
 # No image was provided, use standard latest image path.
 if [ -z "$FLAGS_image" ]; then
-  DEFAULT_IMAGE_DIR="$($SCRIPT_ROOT/get_latest_image.sh --board=$BOARD)"
-  FLAGS_image="$DEFAULT_IMAGE_DIR/$CHROMEOS_IMAGE_NAME"
+  FLAGS_image="${IMAGES_DIR}/${BOARD}/latest/${CHROMEOS_IMAGE_NAME}"
 fi
 
 # Turn path into an absolute path.

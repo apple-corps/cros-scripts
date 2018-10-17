@@ -64,8 +64,10 @@ info "Loading baselines from ${FLAGS_baselines}"
 
 # No image was provided.  Use the standard latest image.
 if [[ -z ${FLAGS_image} ]]; then
-  DEFAULT_IMAGE_DIR=$("${SCRIPT_ROOT}"/get_latest_image.sh \
-                        --board="${FLAGS_board}")
+  DEFAULT_IMAGE_DIR="${IMAGES_DIR}/${FLAGS_board}/latest"
+  if [[ ! -L ${DEFAULT_IMAGE_DIR} ]]; then
+    die "No image found; have you run build_image?"
+  fi
   FLAGS_image="${DEFAULT_IMAGE_DIR}/${CHROMEOS_RECOVERY_IMAGE_NAME}"
 fi
 info "Using ${FLAGS_image}"

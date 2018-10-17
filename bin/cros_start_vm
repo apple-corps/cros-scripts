@@ -23,8 +23,7 @@ eval set -- "${FLAGS_ARGV}"
 
 # Use latest if not specified.
 if [ -z "${FLAGS_image_path}" ]; then
-  LATEST_IMAGE="$(${SCRIPTS_DIR}/get_latest_image.sh \
-          --board=${FLAGS_board})/${DEFAULT_QEMU_IMAGE}"
+  LATEST_IMAGE="${IMAGES_DIR}/${FLAGS_board}/latest/${DEFAULT_QEMU_IMAGE}"
   info "Using latest vm image ${LATEST_IMAGE}"
   FLAGS_image_path=${LATEST_IMAGE}
 fi
