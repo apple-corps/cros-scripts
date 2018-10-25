@@ -351,7 +351,7 @@ def LoadPartitionConfig(filename):
 
   valid_keys = set(('_comment', 'metadata', 'layouts', 'parent'))
   valid_layout_keys = set((
-      '_comment', 'num', 'fs_blocks', 'fs_block_size', 'bytes',
+      '_comment', 'num', 'fs_blocks', 'fs_block_size', 'fs_align', 'bytes',
       'uuid', 'label', 'format', 'fs_format', 'type', 'features',
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
       'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
@@ -362,6 +362,14 @@ def LoadPartitionConfig(filename):
   try:
     metadata = config['metadata']
     metadata['fs_block_size'] = ParseHumanNumber(metadata['fs_block_size'])
+    if metadata.get('fs_align') is None:
+      metadata['fs_align'] = metadata['fs_block_size']
+    else:
+      metadata['fs_align'] = ParseHumanNumber(metadata['fs_align'])
+
+    if (metadata['fs_align'] < metadata['fs_block_size']) or \
+       (metadata['fs_align'] % metadata['fs_block_size']):
+      raise InvalidLayout('fs_align must be a multiple of fs_block_size')
 
     unknown_keys = set(config.keys()) - valid_keys
     if unknown_keys:
@@ -414,11 +422,11 @@ def LoadPartitionConfig(filename):
             raise InvalidSize(
                 'Filesystem may not be larger than partition: %s %s: %d > %d' %
                 (layout_name, part['label'], part['fs_bytes'], part['bytes']))
-          if part['fs_bytes'] % metadata['fs_block_size'] != 0:
+          if part['fs_bytes'] % metadata['fs_align'] != 0:
             raise InvalidSize(
-                'File system size: "%s" (%s bytes) is not an even number of '
-                'fs blocks: %s' %
-                (part['fs_size'], part['fs_bytes'], metadata['fs_block_size']))
+                'File system size: "%s" (%s bytes) is not an even multiple of '
+                'fs_align: %s' %
+                (part['fs_size'], part['fs_bytes'], metadata['fs_align']))
           if part.get('format') == 'ubi':
             part_meta = GetMetadataPartition(layout)
             page_size = ParseHumanNumber(part_meta['page_size'])
@@ -439,6 +447,11 @@ def LoadPartitionConfig(filename):
           part['fs_blocks'] = ParseRelativeNumber(max_fs_blocks,
                                                   part['fs_blocks'])
           part['fs_bytes'] = part['fs_blocks'] * metadata['fs_block_size']
+          if part['fs_bytes'] % metadata['fs_align'] != 0:
+            raise InvalidSize(
+                'File system size: "%s" (%s bytes) is not an even multiple of '
+                'fs_align: %s' %
+                (part['fs_blocks'], part['fs_bytes'], metadata['fs_align']))
 
           if part['fs_bytes'] > part['bytes']:
             raise InvalidLayout(
@@ -731,11 +744,10 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   partitions = GetPartitionTable(options, config, image_type)
   metadata = GetMetadataPartition(partitions)
   partition_totals = GetTableTotals(config, partitions)
-  align_to_fs_block = [
-      'if [ $(( curr %% %d )) -gt 0 ]; then' %
-      config['metadata']['fs_block_size'],
+  fs_align_snippet = [
+      'if [ $(( curr %% %d )) -gt 0 ]; then' % config['metadata']['fs_align'],
       '  : $(( curr += %d - curr %% %d ))' %
-      ((config['metadata']['fs_block_size'],) * 2),
+      ((config['metadata']['fs_align'],) * 2),
       'fi',
   ]
 
@@ -798,7 +810,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       continue
 
     if (partition.get('type') in ['data', 'rootfs'] and partition['bytes'] > 1):
-      lines += align_to_fs_block
+      lines += fs_align_snippet
 
     if partition['var'] != 0 and partition.get('num') != 'metadata':
       lines += [
@@ -820,7 +832,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
       ]
 
   if stateful != None:
-    lines += align_to_fs_block + [
+    lines += fs_align_snippet + [
         'blocks=$(( numsecs - (curr + %d) / block_size ))' %
         SECONDARY_GPT_BYTES,
         gpt_add % (stateful['num'], stateful['type'], stateful['label']),
