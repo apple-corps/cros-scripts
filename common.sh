@@ -455,6 +455,7 @@ COMMON_INSTALL_MASK="
   /usr/bin/Xvfb
   /usr/include/c++
   /usr/include/nspr/*
+  /usr/include/rpcsvc/*.x
   /usr/include/X11/*
   /usr/lib/debug
   /usr/lib/gopath
