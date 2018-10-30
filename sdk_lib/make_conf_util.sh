@@ -78,9 +78,15 @@ _make_conf_private() {
     echo 'RESUMECOMMAND_GS="${FETCHCOMMAND_GS}"'
   fi
 
-  if [[ -d "${chromeos_overlay}" ]]; then
-    echo "PORTDIR_OVERLAY=\"\$PORTDIR_OVERLAY ${chromeos_overlay}\""
-  fi
+  local chromeos_partner_overlay="src/private-overlays/chromeos-partner-overlay"
+  chromeos_partner_overlay="${CHROOT_TRUNK_DIR}/${chromeos_partner_overlay}"
+
+  local overlay
+  for overlay in "${chromeos_partner_overlay}" "${chromeos_overlay}"; do
+    if [[ -d "${overlay}" ]]; then
+      echo "PORTDIR_OVERLAY=\"\$PORTDIR_OVERLAY ${overlay}\""
+    fi
+  done
 }
 
 # Create /etc/make.conf.host_setup according to parameters.
