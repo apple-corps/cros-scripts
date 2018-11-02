@@ -399,7 +399,33 @@ create_base_image() {
 
   restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
-  # Zero rootfs free space to make it more compressible so auto-update
+   # Move the bootable kernel images out of the /boot directory to save
+  # space.  We put them in the $BUILD_DIR so they can be used to write
+  # the bootable partitions later.
+  mkdir "${BUILD_DIR}/boot_images"
+
+  # We either copy or move vmlinuz depending on whether it should be included
+  # in the final built image.  Boards that boot with legacy bioses
+  # need the kernel on the boot image, boards with coreboot/depthcharge
+  # boot from a boot partition.
+  if has "include_vmlinuz" "$(portageq-${FLAGS_board} envvar USE)"; then
+    cpmv="cp"
+  else
+    cpmv="mv"
+  fi
+  [ -e "${root_fs_dir}"/boot/Image-* ] && \
+    sudo "${cpmv}" "${root_fs_dir}"/boot/Image-* "${BUILD_DIR}/boot_images"
+  [ -L "${root_fs_dir}"/boot/zImage-* ] && \
+    sudo "${cpmv}" "${root_fs_dir}"/boot/zImage-* "${BUILD_DIR}/boot_images"
+  [ -e "${root_fs_dir}"/boot/vmlinuz-* ] && \
+    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinuz-* "${BUILD_DIR}/boot_images"
+  [ -L "${root_fs_dir}"/boot/vmlinuz ] && \
+    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinuz "${BUILD_DIR}/boot_images"
+  [ -L "${root_fs_dir}"/boot/vmlinux.uimg ] && \
+    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinux.uimg \
+        "${BUILD_DIR}/boot_images"
+
+# Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.
   zero_free_space "${root_fs_dir}"
 

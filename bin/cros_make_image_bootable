@@ -63,7 +63,6 @@ if [ ! -r "${IMAGE}" ]; then
   die "${IMAGE} cannot be read!"
 fi
 
-
 locate_gpt
 set +e
 
@@ -207,7 +206,7 @@ build_img() {
     --board="${FLAGS_board}" \
     --arch="${FLAGS_arch}" \
     --to="${FLAGS_output_dir}/${image_name}" \
-    --vmlinuz="${FLAGS_rootfs_mountpoint}/boot/vmlinuz" \
+    --vmlinuz="${VMLINUZ}" \
     --working_dir="${FLAGS_output_dir}" \
     --boot_args="${FLAGS_boot_args}" \
     --keep_work \
@@ -394,7 +393,8 @@ make_image_bootable() {
       --image_type="${FLAGS_image_type}" \
       --to="${bootloader_to}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \
-      --vmlinuz="${FLAGS_rootfs_mountpoint}"/boot/vmlinuz \
+      --vmlinuz="${VMLINUZ}" \
+      --zimage="${ZIMAGE}" \
       ${bootloader_to_flags} \
       ${kernel_part}
   fi
@@ -439,6 +439,11 @@ FLAGS_espfs_mountpoint="${IMAGE_DIR}/esp"
 mkdir -p ${FLAGS_rootfs_mountpoint}
 mkdir -p ${FLAGS_statefulfs_mountpoint}
 mkdir -p ${FLAGS_espfs_mountpoint}
+
+# base_image_utils.sh always places the kernel images in
+# ${IMAGE_DIR}/boot_images.
+declare -r VMLINUZ="${IMAGE_DIR}/boot_images/vmlinuz"
+declare -r ZIMAGE="${IMAGE_DIR}/boot_images/zimage"
 
 make_image_bootable "${IMAGE}"
 if type -p board_make_image_bootable; then
