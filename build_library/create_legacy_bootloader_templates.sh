@@ -212,7 +212,7 @@ EOF
   grub_args=(
     -p /efi/boot
     part_gpt gptpriority test fat ext2 hfs hfsplus normal boot chain
-    efi_gop configfile linux search
+    efi_gop configfile linux
   )
   sudo grub-mkimage -O x86_64-efi \
     -o "${FLAGS_to}/efi/boot/bootx64.efi" "${grub_args[@]}"
