@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-CHROMEOS_MASTER_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.dtb"
 CHROMEOS_MASTER_JSON_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.json"
 
 check_full_disk() {
@@ -291,10 +290,6 @@ create_base_image() {
   if [[ -f "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" ]]; then
     models=$(grep '"name":' "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" \
       | uniq | sed -e 's/.*"name": "\(.*\)".*/\1/' | tr '\n' ' ')
-    [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
-  elif [[ -f "${CHROMEOS_MASTER_CONFIG_FILE}" ]]; then
-    models=$(fdtget "${CHROMEOS_MASTER_CONFIG_FILE}" -l /chromeos/models \
-      | tr '\n' ' ')
     [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
   fi
 
