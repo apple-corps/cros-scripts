@@ -444,7 +444,9 @@ mk_fs() {
         "${fs_options_arr[@]}"
     ;;
   fat|vfat)
-    sudo mkfs.vfat -n "${fs_label}" "${part_dev}" "${fs_options_arr[@]}"
+    # -I flag is needed to ignore a (we think) false error about formatting
+    # a device that already has partitions on it
+    sudo mkfs.vfat -I -n "${fs_label}" "${part_dev}" "${fs_options_arr[@]}"
     ;;
   squashfs)
     # Creates an empty squashfs filesystem so unsquashfs works.
