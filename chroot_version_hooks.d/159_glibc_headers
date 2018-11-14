@@ -1,0 +1,47 @@
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# Manually prune headers that glibc no longer provides.  This is a bit hacky
+# since our manually deployed glibc tarball doesn't track contents anywhere.
+#
+# This only applies to board sysroots where we manually inject headers.  The
+# SDK upgrades glibc like a proper package and thus keeps track for us.
+
+update() {
+  local root=$1 board=$2
+
+  # We know these header files have been punted, so forcibly delete them.
+  sudo rm -f \
+    "${root}/usr/include/xlocale.h" \
+    "${root}/usr/include/sys/ultrasound.h"
+
+  # The RPC headers have moved from glibc to a dedicated package.  If that
+  # package has been installed and replaced the headers, we don't want to
+  # delete them.  But if they're still orphaned, prune them.
+  #
+  # We send the output of find to /dev/null in case the rpc dirs have already
+  # been cleaned up (due to a fresh glibc-2.27-only install).
+  local files=() file
+  while read file; do
+    # Newer glibc has one file it still wants to keep, so filter it out.
+    if [[ "${file}" == */rpc/netdb.h ]]; then
+      continue
+    fi
+
+    files+=( "${file}" )
+  done < <(find "${root}"/usr/include/rpc* -type f \
+             -exec qfile-${board} -Ro {} + 2>/dev/null)
+  sudo rm -f "${files[@]}"
+
+  # If the dirs are empty, trim them.  But don't force it in case other packages
+  # have installed real files in there.
+  sudo rmdir "${root}"/usr/include/rpc* 2>/dev/null || :
+}
+
+for board_root in /build/*; do
+  board=${board_root##*/}
+  update "${board_root}" "${board}" &
+done
+
+wait
