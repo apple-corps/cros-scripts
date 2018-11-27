@@ -105,7 +105,9 @@ get_bootargs() {
 
   if [ ${FLAGS_remote_bootargs} -eq ${FLAGS_TRUE} ] ; then
     info "Using remote bootargs"
-    remote_sh cat /proc/cmdline && echo "${REMOTE_OUT}"
+    remote_sh cat /proc/cmdline
+    # Remove multiple instances of cros_secure, https://crbug.com/907772
+    echo "${REMOTE_OUT}" | sed -E 's/\b(cros_secure )+/cros_secure /g'
   else
     if [ -n "${FLAGS_rootoff}" ]; then
       sed "s/PARTNROFF=1/PARTNROFF=${FLAGS_rootoff}/" "${local_config}"
