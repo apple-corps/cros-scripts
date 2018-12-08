@@ -510,8 +510,8 @@ FACTORY_SHIM_INSTALL_MASK="
 
 # Mask for images without systemd.
 SYSTEMD_INSTALL_MASK="
-  /lib/systemd
-  /usr/lib/systemd
+  /lib/systemd/network
+  /usr/lib/systemd/system
 "
 
 # -----------------------------------------------------------------------------
