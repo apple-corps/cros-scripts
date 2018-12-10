@@ -184,119 +184,61 @@ if ! cros_choose_profile --profile "${FLAGS_profile}" \
   die "Selecting profile failed, removing incomplete board directory!"
 fi
 
-if ${HOST_BOARD}; then
-  cmds=(
-    "ln -sf '${CHROMIUMOS_CONFIG}/make.conf.${BOARD}' \
-      '${BOARD_ETC}/make.conf'"
-    "cp -f '/etc/make.conf.host_setup' '${BOARD_ETC}/'"
+conf="${CHROMIUMOS_CONFIG}/make.conf.generic-target"
+sudo ln -sf "${conf}" "${BOARD_ETC}/make.conf"
+EXTRA_ARGS=()
+if [[ -n "${FLAGS_accept_licenses}" ]]; then
+  EXTRA_ARGS+=( --accepted-licenses="${FLAGS_accept_licenses}" )
+fi
+sudo "${CHROMITE_BIN}/cros_sysroot_utils" generate-make-conf \
+  --sysroot="${BOARD_ROOT}" --out-file="${BOARD_ETC}/make.conf.board" \
+  "${EXTRA_ARGS[@]}"
 
-    # Setting up symlinks for bootstrapping multilib.
-    # See http://crosbug.com/14498
-    "mkdir -p '${BOARD_ROOT}'{/usr,}/lib64"
-    "ln -sfT lib64 '${BOARD_ROOT}/lib'"
-    "rm -r '${BOARD_ROOT}/usr/lib'"
-    "ln -sfT lib64 '${BOARD_ROOT}/usr/lib'"
+# We need to create make.conf.board in two steps as we need make.conf.board to
+# exist before we can generate the binhost list.
+EXTRA_ARGS=()
+if [[ ${FLAGS_reuse_pkgs_from_local_boards} -eq ${FLAGS_TRUE} ]]; then
+  EXTRA_ARGS+=( --local-only )
+fi
+cros_sysroot_utils generate-binhosts --sysroot="${BOARD_ROOT}" \
+  "${EXTRA_ARGS[@]}" | sudo_append $BOARD_ETC/make.conf.board
 
-    # Copying some files for bootstrapping empty chroot.
-    # See http://crosbug.com/14499
-    "mkdir -p '${BOARD_ETC}'/{init.d,xml}"
-    "cp /etc/xml/catalog '${BOARD_ETC}'/xml/"
-    "cp /etc/init.d/functions.sh '${BOARD_ETC}'/init.d/"
-  )
-  sudo_multi "${cmds[@]}"
-
-  EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
-  TOOLCHAIN_PACKAGES=(
-    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host)
-  )
-  # Sanity check we got some valid results.
-  if [[ ${#TOOLCHAIN_PACKAGES[@]} -eq 0 ]]; then
-    die_notrace "cros_setup_toolchains failed"
+# We install the toolchain related bits after the BOARD_ROOT, BOARD_PROFILE
+# and BOARD_ETC directories have been created.
+if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
+  if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
+    install_toolchain --sysroot="${BOARD_ROOT}"
   fi
-  PACKAGES=( system virtual/target-sdk world )
 
-  # First, rebuild all packages from scratch. This is needed to make sure
-  # we rebuild all chroot packages.
-  sudo -E $EMERGE_CMD --emptytree --with-bdeps=y \
-    "${TOOLCHAIN_PACKAGES[@]}" "${PACKAGES[@]}" \
-    virtual/target-sdk-nobdeps
-  sudo eclean -d packages
-
-  # Next, install our rebuilt packages into our separate root.
-  HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
-  HOST_FLAGS+=" --newuse --jobs=$NUM_JOBS --usepkgonly"
-  sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=y --select=y "${PACKAGES[@]}"
-  # Install our rebuilt packages from the nobdeps target into our separate root
-  # without their build-time deps.  We also avoid adding this target to the
-  # world set so that subsequent update_chroot commands won't re-import the
-  # build deps.
-  sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=n --oneshot \
-    virtual/target-sdk-nobdeps
-  sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
-
-  # Copy our chroot version into the newly packaged chroot.
-  sudo cp -a "${CHROOT_VERSION_FILE}" "${BOARD_ROOT}${CHROOT_VERSION_FILE}"
-
-  # Now cleanup paths referencing the ROOT from the *.la files.
-  sudo find $BOARD_ROOT -type f -name '*.la' | xargs sudo \
-      sed -i -e "s|$BOARD_ROOT/|/|g"
-else
-  conf="${CHROMIUMOS_CONFIG}/make.conf.generic-target"
-  sudo ln -sf "${conf}" "${BOARD_ETC}/make.conf"
-  EXTRA_ARGS=()
-  if [[ -n "${FLAGS_accept_licenses}" ]]; then
-    EXTRA_ARGS+=( --accepted-licenses="${FLAGS_accept_licenses}" )
+  # If the sysroot already existed and we are not regenerating configuration,
+  # exit early.
+  if ${SYSROOT_EXISTS}; then
+    if [[ ${FLAGS_quiet} -eq ${FLAGS_FALSE} ]]; then
+      warn "Board output directory '$BOARD_ROOT' already exists."
+      warn "Exiting early."
+      warn "Use --force to clobber the board root and start again."
+    fi
+    exit 0
   fi
-  sudo "${CHROMITE_BIN}/cros_sysroot_utils" generate-make-conf \
-    --sysroot="${BOARD_ROOT}" --out-file="${BOARD_ETC}/make.conf.board" \
-    "${EXTRA_ARGS[@]}"
 
-  # We need to create make.conf.board in two steps as we need make.conf.board to
-  # exist before we can generate the binhost list.
-  EXTRA_ARGS=()
-  if [[ ${FLAGS_reuse_pkgs_from_local_boards} -eq ${FLAGS_TRUE} ]]; then
-    EXTRA_ARGS+=( --local-only )
-  fi
-  cros_sysroot_utils generate-binhosts --sysroot="${BOARD_ROOT}" \
-    "${EXTRA_ARGS[@]}" | sudo_append $BOARD_ETC/make.conf.board
+  # Call cros_workon to recreate symlinks to masked/unmasked packages
+  # currently worked on in case S{BOARD_ROOT} has been recreated
+  # (crbug.com/679831).
+  cros_workon --board="${BOARD_VARIANT}" list >/dev/null
 
-  # We install the toolchain related bits after the BOARD_ROOT, BOARD_PROFILE
-  # and BOARD_ETC directories have been created.
-  if [[ ${FLAGS_regen_configs} -eq ${FLAGS_FALSE} ]]; then
-    if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
-      install_toolchain --sysroot="${BOARD_ROOT}"
+  if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
+    # Emerge the kernel headers into the board build root.  Use rdeps to
+    # avoid pulling any spurious DEPEND things in that we don't care about.
+    BASE_EMERGE_FLAGS="--select --quiet --root-deps=rdeps"
+    if [[ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ||
+          "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]]; then
+      BASE_EMERGE_FLAGS+=" --getbinpkg --usepkg"
     fi
 
-    # If the sysroot already existed and we are not regenerating configuration,
-    # exit early.
-    if ${SYSROOT_EXISTS}; then
-      if [[ ${FLAGS_quiet} -eq ${FLAGS_FALSE} ]]; then
-        warn "Board output directory '$BOARD_ROOT' already exists."
-        warn "Exiting early."
-        warn "Use --force to clobber the board root and start again."
-      fi
-      exit 0
-    fi
-
-    # Call cros_workon to recreate symlinks to masked/unmasked packages
-    # currently worked on in case S{BOARD_ROOT} has been recreated
-    # (crbug.com/679831).
-    cros_workon --board="${BOARD_VARIANT}" list >/dev/null
-
-    if [[ ${FLAGS_skip_board_pkg_init} -eq ${FLAGS_FALSE} ]]; then
-      # Emerge the kernel headers into the board build root.  Use rdeps to
-      # avoid pulling any spurious DEPEND things in that we don't care about.
-      BASE_EMERGE_FLAGS="--select --quiet --root-deps=rdeps"
-      if [[ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ||
-            "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]]; then
-        BASE_EMERGE_FLAGS+=" --getbinpkg --usepkg"
-      fi
-
-      sudo -E "emerge-${BOARD_VARIANT}" ${BASE_EMERGE_FLAGS} \
-        sys-kernel/linux-headers sys-libs/gcc-libs sys-libs/libcxxabi \
-          sys-libs/libcxx
-      unset BASE_EMERGE_FLAGS
-    fi
+    sudo -E "emerge-${BOARD_VARIANT}" ${BASE_EMERGE_FLAGS} \
+      sys-kernel/linux-headers sys-libs/gcc-libs sys-libs/libcxxabi \
+        sys-libs/libcxx
+    unset BASE_EMERGE_FLAGS
   fi
 fi
 
@@ -307,8 +249,3 @@ fi
 command_completed
 echo "Done!"
 echo "The SYSROOT is: ${BOARD_ROOT}"
-
-if [[ -n ${FLAGS_board_root} ]]; then
-  # cros_workon do not support board_root.
-  exit 0
-fi
