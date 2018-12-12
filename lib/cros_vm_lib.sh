@@ -353,14 +353,7 @@ start_kvm() {
 
 # Checks to see if we can access the target virtual machine with ssh.
 ssh_ping() {
-  # TODO(sosa): Remove outside chroot use once all callers work inside chroot.
-  local cmd
-  if [ $INSIDE_CHROOT -ne 1 ]; then
-    cmd="${GCLIENT_ROOT}/src/scripts/ssh_test.sh"
-  else
-    cmd=/usr/lib/crosutils/ssh_test.sh
-  fi
-  "${cmd}" \
+  "${GCLIENT_ROOT}/src/scripts/ssh_test.sh" \
     --ssh_port=${FLAGS_ssh_port} \
     --private_key=${FLAGS_ssh_private_key} \
     --remote=127.0.0.1 >&2
