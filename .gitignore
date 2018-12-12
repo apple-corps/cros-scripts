@@ -7,6 +7,5 @@
 # Generated files
 *.pyc
 *~
-/cbuildbot_package.list
 dev_server.log
 *.out
