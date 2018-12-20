@@ -611,7 +611,11 @@ info "Updating preinstalled build tools"
 early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
   sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake sys-devel/bison
 
-
+# Now that many of the fundamental packages should be in a good state, update
+# the host toolchain.  We have to do this step by step ourselves to avoid races
+# when building tools that are actively used (e.g. updating the assembler while
+# also compiling other packages that use the assembler).
+# https://crbug.com/715788
 info "Updating host toolchain"
 if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
   early_enter_chroot $EMERGE_CMD -uNv crossdev
@@ -620,6 +624,16 @@ TOOLCHAIN_ARGS=( --deleteold )
 if [[ "${FLAGS_usepkg}" == "${FLAGS_FALSE}" ]]; then
   TOOLCHAIN_ARGS+=( --nousepkg )
 fi
+# First the low level compiler tools.  These should be fairly independent of
+# the C library, so we can do it first.
+early_enter_chroot ${EMERGE_CMD} -uNv ${EMERGE_JOBS} \
+  sys-devel/binutils
+# Next the C library.  The compilers often use newer features, but the C library
+# is often designed to work with older compilers.
+early_enter_chroot ${EMERGE_CMD} -uNv ${EMERGE_JOBS} \
+  sys-kernel/linux-headers sys-libs/glibc
+# Now we can let the rest of the compiler packages build in parallel as they
+# don't generally rely on each other.
 # Note: early_enter_chroot executes as root.
 early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
