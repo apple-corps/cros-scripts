@@ -344,10 +344,10 @@ unpack_tarball() {
   local decompress
   case "${tarball_path}" in
     *.tbz2|*.tar.bz2) decompress=$(type -p pbzip2 || echo bzip2) ;;
-    *.tar.xz) decompress="xz" ;;
+    *.tar.xz) decompress=$(type -p pixz || echo xz) ;;
     *) die "Unknown tarball compression: ${tarball_path}" ;;
   esac
-  ${decompress} -dc "${tarball_path}" | tar -xp -C "${dest_dir}"
+  ${decompress} -dc <"${tarball_path}" | tar -xp -C "${dest_dir}"
 }
 
 # Find a usable VG name for a given path and device.  If there is an existing
