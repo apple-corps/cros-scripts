@@ -128,9 +128,15 @@ PACKAGES=( system virtual/target-sdk world )
 
 # First, rebuild all packages from scratch. This is needed to make sure
 # we rebuild all chroot packages.
+
+# We build the toolchain by hand to avoid race conditions where the toolchain
+# is used by other packages that we're building.  See https://crbug.com/906289.
+sudo -E ${EMERGE_CMD} "${TOOLCHAIN_PACKAGES[@]}"
+
+# Then build everything else.
 sudo -E $EMERGE_CMD --emptytree --with-bdeps=y \
-  "${TOOLCHAIN_PACKAGES[@]}" "${PACKAGES[@]}" \
-  virtual/target-sdk-nobdeps
+  --exclude "${TOOLCHAIN_PACKAGES[*]}" \
+  "${PACKAGES[@]}" virtual/target-sdk-nobdeps
 sudo eclean -d packages
 
 # Next, install our rebuilt packages into our separate root.
