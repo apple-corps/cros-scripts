@@ -39,8 +39,6 @@ DEFINE_boolean usepkg $FLAGS_TRUE "Use binary packages to bootstrap."
 DEFINE_boolean delete $FLAGS_FALSE "Delete an existing chroot."
 DEFINE_boolean replace $FLAGS_FALSE "Overwrite existing chroot, if any."
 DEFINE_integer jobs -1 "How many packages to build in parallel at maximum."
-DEFINE_string stage3_date "2010.03.09" \
-  "Use the stage3 with the given date."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
 DEFINE_string cache_dir "" "Directory to store caches within."
