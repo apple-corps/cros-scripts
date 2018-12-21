@@ -1,0 +1,16 @@
+# Copyright 2018 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# When portage upgrades in place, it sometimes mixes old & new versions of
+# the python modules.  So the old APIs might be used with new callers who
+# try to pass args it doesn't expect.  We can workaround this by upgrading
+# twice -- the first will fail partially, but the second makes it through.
+
+if qlist -Iq '<portage-2.3' >/dev/null; then
+  echo "Trying upgrade of portage"
+  if ! sudo emerge -qug '>portage-2.3'; then
+    echo "Retrying upgrade"
+    sudo emerge -qug '>portage-2.3'
+  fi
+fi
