@@ -8,8 +8,8 @@
 BOARD=monroe
 
 if [[ -d /build/${BOARD} ]]; then
-  ~/trunk/src/scripts/setup_board \
+  /mnt/host/source/chromite/bin/setup_board \
     --board=${BOARD} \
-    --skip_chroot_upgrade \
-    --regen_configs
+    --skip-chroot-upgrade \
+    --regen-configs
 fi

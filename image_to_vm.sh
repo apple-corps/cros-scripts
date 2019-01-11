@@ -129,8 +129,8 @@ if [[ ! -d "/build/${FLAGS_board}" ]]; then
   # (in order to read kernel and disk-image options).
   # OTOH, we don't actually need to build any packages / update the host
   # sysroot.
-  "${SCRIPT_ROOT}/setup_board" --quiet --board="${FLAGS_board}" \
-    --skip_toolchain_update --skip_chroot_upgrade --skip_board_pkg_init
+  setup_board --quiet --board="${FLAGS_board}" \
+    --skip-toolchain-update --skip-chroot-upgrade --skip-board-pkg-init
 fi
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/disk_layout_util.sh" || exit 1

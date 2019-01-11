@@ -142,7 +142,7 @@ fi
 # Before we can run any tools, we need to update chroot or setup_board.
 UPDATE_ARGS=()
 if [[ -n ${FLAGS_accept_licenses} ]]; then
-  UPDATE_ARGS+=( --accept_licenses "${FLAGS_accept_licenses}" )
+  UPDATE_ARGS+=( --accept-licenses "${FLAGS_accept_licenses}" )
 fi
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   UPDATE_ARGS+=( --usepkg )
@@ -153,19 +153,19 @@ if [[ "${FLAGS_jobs}" -ne -1 ]]; then
   UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )
 fi
 if [ "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --reuse_pkgs_from_local_boards )
+  UPDATE_ARGS+=( --reuse-pkgs-from-local-boards )
 fi
 if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --skip_toolchain_update )
+  UPDATE_ARGS+=( --skip-toolchain-update )
 fi
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --skip_chroot_upgrade )
+  UPDATE_ARGS+=( --skip-chroot-upgrade )
 fi
 if [[ -n ${FLAGS_board_root} ]]; then
-  UPDATE_ARGS+=( --board_root "${FLAGS_board_root}" )
+  UPDATE_ARGS+=( --board-root "${FLAGS_board_root}" )
 fi
 
-"${SCRIPTS_DIR}"/setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
+setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
 
 sudo_clear_shadow_locks "/build/${FLAGS_board}"
 

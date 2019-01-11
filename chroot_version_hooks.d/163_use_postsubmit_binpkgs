@@ -9,11 +9,11 @@
 for board_root in /build/*; do
   board_name=${board_root##*/}
   if [[ -e "/build/${board_name}/etc/make.conf.board" ]]; then
-    ~/trunk/src/scripts/setup_board \
+    /mnt/host/source/chromite/bin/setup_board \
         --board=${board_name} \
-        --skip_board_pkg_init \
-        --skip_chroot_upgrade \
-        --regen_configs &
+        --skip-board-pkg-init \
+        --skip-chroot-upgrade \
+        --regen-configs &
   fi
 done
 wait

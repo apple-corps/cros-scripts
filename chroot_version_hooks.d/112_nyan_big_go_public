@@ -7,9 +7,9 @@
 
 for b in nyan_big; do
   if [[ -d /build/${b} ]]; then
-    ~/trunk/src/scripts/setup_board \
+    /mnt/host/source/chromite/bin/setup_board \
       --board=${b} \
-      --skip_chroot_upgrade \
+      --skip-chroot-upgrade \
       --regen_configs
   fi
 done

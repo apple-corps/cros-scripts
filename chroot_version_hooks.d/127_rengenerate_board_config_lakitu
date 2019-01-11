@@ -6,6 +6,8 @@
 # This broke incremental builds because make.conf.board still points to the
 # non-existent make.conf
 if [ -d /build/lakitu ]; then
-  ~/trunk/src/scripts/setup_board --board lakitu --skip_chroot_upgrade \
-      --regen_configs
+  /mnt/host/source/chromite/bin/setup_board \
+    --board lakitu \
+    --skip-chroot-upgrade \
+    --regen-configs
 fi

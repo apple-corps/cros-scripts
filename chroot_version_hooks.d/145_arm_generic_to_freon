@@ -11,9 +11,9 @@ BOARDS=(
 
 for b in "${BOARDS[@]}"; do
   if [[ -d /build/${b} ]]; then
-    ~/trunk/src/scripts/setup_board \
+    /mnt/host/source/chromite/bin/setup_board \
       --board=${b} \
-      --skip_chroot_upgrade \
-      --regen_configs
+      --skip-chroot-upgrade \
+      --regen-configs
   fi
 done

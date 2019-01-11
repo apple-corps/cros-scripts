@@ -10,9 +10,9 @@
 for sysroot in /build/*; do
   make_conf="${sysroot}/etc/make.conf.board_setup"
   if [[ -f "${make_conf}" ]] && ! grep -q "ARCH=" "${make_conf}"; then
-    ~/trunk/src/scripts/setup_board \
+    /mnt/host/source/chromite/bin/setup_board \
       --board=$(basename "${sysroot}") \
-      --skip_chroot_upgrade \
-      --regen_configs
+      --skip-chroot-upgrade \
+      --regen-configs
   fi
 done
