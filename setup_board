@@ -4,7 +4,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(saklein) Delete this file after 2019-06-01 (crbug.com/922144).
+
 . "$(dirname "$0")/common.sh" || exit 1
+
+# Just in case we need to do a quick switch back to the old script.
+if true; then
+  warn "------------------- SCRIPT DEPRECATED WARNING -------------------"
+  warn "setup_board has moved to chromite/bin!"
+  warn "This version of setup_board is deprecated and will be removed."
+  warn "Just call \`setup_board\` instead to use the new version."
+  warn "All of your favorite setup_board arguments still work as they"
+  warn "always did (please let us know if they don't). However, you will"
+  warn "need to update any underscore_separated arguments to dash-separated"
+  warn "before 2019-06-01. The argument names have not changed, though."
+  warn "For now we'll redirect you, but this won't last forever."
+  warn "See crbug.com/922144 for the argument and redirect removal information."
+  warn "----------------- END SCRIPT DEPRECATED WARNING -----------------"
+
+  "${CHROMITE_BIN}/setup_board" "$@"
+  exit $?
+fi
+
 
 # Script must run inside the chroot
 restart_in_chroot_if_needed "$@"
