@@ -25,5 +25,9 @@ restore_fs_contexts() {
   # of skipping it.
   sudo umount "${rootfs}/var"
   sudo /sbin/setfiles -m -r "${rootfs}" "${file_contexts}" "${rootfs}"
+  sudo /sbin/setfiles -m -r "${rootfs}" "${file_contexts}" "${rootfs}/usr/local"
+  # use ${rootfs}/mnt/stateful_partition instead of ${stateful} in comply with
+  # -r ${rootfs} options.
+  sudo /sbin/setfiles -m -r "${rootfs}" "${file_contexts}" "${rootfs}/mnt/stateful_partition"
   sudo mount --bind "${stateful}/var_overlay" "${rootfs}/var"
 }
