@@ -112,6 +112,22 @@ DEFINE_boolean reuse_pkgs_from_local_boards "${FLAGS_FALSE}" \
 DEFINE_boolean run_goma "${FLAGS_FALSE}" \
   "If set to true, (re)starts goma, builds packages, and then stops goma."
 
+# The above --run_goma option is a configuration flag meant for build bots. It
+# only ensures that goma is running and stops goma when build_packages
+# completes. This step is to ensure that goma is functional for Chrome's build
+# and does *not* cause all packages to be built using goma.
+# If you are trying to build packages locally with goma, the option below is
+# what you want to use. You must either ensure that goma is running before you
+# invoke build_packages with this option by running:
+#   $ python ${GOMA_DIR}/goma_ctl.py ensure_start
+# OR you may run build_packages with --run_goma in addition to this option.
+# Please see the following link for instructions on how to install goma in your
+# local dev environment:
+# https://g3doc.corp.google.com/devtools/goma/g3doc/how-to-use-goma/how-to-use-goma-chromeos.md#how-to-install-goma-in-host-environment-recommended
+
+DEFINE_boolean build_all_with_goma "${FLAGS_FALSE}" \
+  "If set to true, tries to use goma to build all packages. (experimental)"
+
 # Parse command line
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
@@ -354,8 +370,16 @@ info "Merging board packages now"
     trap "'${goma_ctl}' stop" EXIT
   fi
 
+  GOMA_WRAPPER=()
+  if [[ "${FLAGS_build_all_with_goma}" -eq "${FLAGS_TRUE}" ]]; then
+    warn "The build_all_with_goma feature is still under development."
+    warn "This feature is experimental and may potentially break your build."
+    GOMA_WRAPPER=("${GOMA_DIR:-${HOME}/goma}/goma-wrapper" -j600 -l100)
+  fi
+
   set -o pipefail
-  sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
+  sudo -E "${GOMA_WRAPPER[@]}" "${EMERGE_CMD[@]}" \
+          "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
     tee "${tmpfile}"
 )
 
