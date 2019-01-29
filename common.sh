@@ -442,6 +442,8 @@ COMMON_INSTALL_MASK="
   *.h++
   *.hxx
   */.keep*
+  /build/libexec/tast
+  /build/share/tast
   /etc/init.d
   /etc/runlevels
   /etc/selinux/intermediates
