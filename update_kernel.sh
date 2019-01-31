@@ -302,11 +302,9 @@ main() {
     copy_kernelmodules "${remote_basedir}"
 
     if [[ ${FLAGS_firmware} -eq ${FLAGS_TRUE} ]]; then
-      echo "copying firmware"
+      echo "copying firmware (per request)"
       remote_send_to /build/"${FLAGS_board}"/lib/firmware/ \
                      "${remote_basedir}"/lib/firmware/
-    else
-      info "Skipping update of firmware (per request)."
     fi
     if [[ ${REMOTE_NEEDS_ROOTFS_MOUNTED} -eq ${FLAGS_TRUE} ]]; then
       remote_sh umount "${remote_basedir}"
