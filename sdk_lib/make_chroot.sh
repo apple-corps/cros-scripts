@@ -578,7 +578,7 @@ echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 # python-exec depends on eselect-python, update python and related packages
 # before portage.
 info "Updating python"
-early_enter_chroot emerge -uNv --quiet python:2.7 python
+early_enter_chroot emerge -uNv --quiet python:2.7 python setuptools
 
 # New versions of the stage3 have Python 3 set as the default. Make sure we
 # default to 2.x as our scripts are only compatible with Python 2. We leave
