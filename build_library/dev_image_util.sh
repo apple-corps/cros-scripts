@@ -45,7 +45,7 @@ install_dev_packages() {
       ./usr/lib/debug/usr/${CHOST} --strip-components=6
   # Since gdb only looks in /usr/lib/debug, symlink the /usr/local
   # path so that it is found automatically.
-  sudo ln -s /usr/local/usr/lib/debug "${root_fs_dir}/usr/lib/debug"
+  sudo ln -sfT /usr/local/usr/lib/debug "${root_fs_dir}/usr/lib/debug"
 
   # Install the bare necessary files so that the "emerge" command works
   local portage_make_globals_path="/usr/share/portage/config/make.globals"
