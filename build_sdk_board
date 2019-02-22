@@ -155,8 +155,8 @@ sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 sudo cp -a "${CHROOT_VERSION_FILE}" "${BOARD_ROOT}${CHROOT_VERSION_FILE}"
 
 # Now cleanup paths referencing the ROOT from the *.la files.
-sudo find $BOARD_ROOT -type f -name '*.la' | xargs sudo \
-    sed -i -e "s|$BOARD_ROOT/|/|g"
+sudo find "${BOARD_ROOT}" -type f -name '*.la' -exec \
+  sed -i -e "s|${BOARD_ROOT}/|/|g" {} +
 
 command_completed
 echo "Done!"
