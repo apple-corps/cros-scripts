@@ -234,10 +234,7 @@ move_image "${BUILD_DIR}" "${OUTPUT_DIR}"
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
 ln -sfT $(basename ${OUTPUT_DIR}) ${LINK_NAME}
 
-WORKSPACE_PREFIX="//"
-OUTPUT_DIR_NAME="${OUTPUT_DIR/"${_WORKSPACE_DIRS[1]}/"/${WORKSPACE_PREFIX}}"
-
-info "Done. Image(s) created in ${OUTPUT_DIR_NAME}"
+info "Done. Image(s) created in ${OUTPUT_DIR}"
 echo
 
 # Print out the images we generated.
