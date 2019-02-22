@@ -72,8 +72,6 @@ DEFINE_string build_root "${DEFAULT_BUILD_ROOT}/images" \
   "Directory in which to compose the image, before copying it to output_root."
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
-DEFINE_boolean progress_bar ${FLAGS_FALSE} \
-  "Display helper messages to allow progress to be easily measured."
 DEFINE_boolean replace ${FLAGS_FALSE} \
   "Overwrite existing output, if any."
 DEFINE_string symlink "latest" \
@@ -184,25 +182,13 @@ fi
 # Create the output directory and temporary mount points.
 mkdir -p "${BUILD_DIR}"
 
-if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  info 'operation: creating base image'
-fi
-
 # Create the base image.
 create_base_image ${PRISTINE_IMAGE_NAME} ${FLAGS_enable_rootfs_verification} \
   ${FLAGS_enable_bootcache}
 
-if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  info 'operation: done creating base image'
-fi
-
 # Running board-specific setup if any exists.
 if type board_setup &>/dev/null; then
   board_setup "${BUILD_DIR}/${PRISTINE_IMAGE_NAME}"
-fi
-
-if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  info 'operation: creating developer image'
 fi
 
 # Create a developer image if an image that is based on it is requested.
@@ -212,19 +198,10 @@ if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
   install_dev_packages ${CHROMEOS_DEVELOPER_IMAGE_NAME}
 fi
 
-if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  info 'operation: done creating developer image'
-  info 'operation: creating test image'
-fi
-
 # From a developer image create a test image.
 if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
   copy_image  ${CHROMEOS_DEVELOPER_IMAGE_NAME} ${CHROMEOS_TEST_IMAGE_NAME}
   mod_image_for_test  ${CHROMEOS_TEST_IMAGE_NAME}
-fi
-
-if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-  info 'operation: done creating test image'
 fi
 
 # Move the completed image to the output_root.
@@ -239,11 +216,6 @@ echo
 
 # Print out the images we generated.
 summarize() {
-
-  if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-    info 'operation: summarize'
-  fi
-
   local name="$1" img="$2"
   local dir_path
 
@@ -265,10 +237,6 @@ summarize() {
     fi
   fi
   echo
-
-  if [[ ${FLAGS_progress_bar} -eq ${FLAGS_TRUE} ]]; then
-    info 'operation: done summarize'
-  fi
 }
 if should_build_image ${CHROMEOS_BASE_IMAGE_NAME}; then
   summarize "Non-developer Chromium OS" "${PRISTINE_IMAGE_NAME}"
