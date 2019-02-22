@@ -1057,18 +1057,6 @@ get_board_and_variant() {
   fi
 }
 
-# Load a setting from the sysroot's standard configuration file,
-# etc/make.conf.board_setup.
-# $1 - Path to the sysroot.
-# $2 - Variable to get.
-get_sysroot_config() {
-  local sysroot=$1
-  local variable=$2
-  local config_file="${sysroot%/}/etc/make.conf.board_setup"
-
-  get_variable "${config_file}" "${variable}"
-}
-
 # Load a single variable from a bash file.
 # $1 - Path to the file.
 # $2 - Variable to get.
@@ -1087,26 +1075,6 @@ get_variable() {
       fi
     ) 201>"${lockfile}"
   fi
-}
-
-# Set a single variable in a KEY=VALUE file.
-# Note: the file is assumed to be owned by root.
-# $1 - Path to the file.
-# $2 - Variable to set.
-# $3 - Value to set.
-set_variable() {
-  local filepath=$1
-  local variable=$2
-  local value=$3
-  local lockfile="${filepath}.lock"
-
-  userowned_file "${lockfile}"
-  (
-    flock 201
-    sudo touch "${filepath}"
-    sudo sed -i -e "/^${variable}=/d" "${filepath}"
-    printf '\n%s="%s"\n' "${variable}" "${value}" | sudo_append "${filepath}"
-  ) 201>"${lockfile}"
 }
 
 # Creates a user owned file.
