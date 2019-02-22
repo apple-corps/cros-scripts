@@ -149,7 +149,7 @@ create_recovery_kernel_image() {
     ${enable_rootfs_verification_flag} \
     --public="recovery_key.vbpubk" \
     --private="recovery_kernel_data_key.vbprivk" \
-    --keyblock="recovery_kernel.keyblock" 1>&2 || failboat "build_kernel_image"
+    --keyblock="recovery_kernel.keyblock" 1>&2 || die "build_kernel_image"
   #sudo mount | sed 's/^/16651 /'
   #sudo losetup -a | sed 's/^/16651 /'
   trap - RETURN
@@ -401,7 +401,7 @@ fi
 FACTORY_ROOT="${BOARD_ROOT}/factory-root"
 RECOVERY_KERNEL_FLAGS="fbconsole vtconsole recovery_ramfs tpm i2cdev vfat kernel_compress_xz -kernel_afdo"
 USE="${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
-  failboat "Cannot emerge custom kernel"
+  die "Cannot emerge custom kernel"
 
 if [ -z "$FLAGS_kernel_image" ]; then
   create_recovery_kernel_image
@@ -433,8 +433,6 @@ if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
 fi
 
 install_recovery_kernel
-
-okboat
 
 echo "Recovery image created at $RECOVERY_IMAGE"
 print_time_elapsed
