@@ -89,14 +89,6 @@ create_dev_install_lists() {
   grep "virtual/" "${pkgs_out}/target-os.packages" | sort \
     >> "${pkgs_out}/package.installable"
 
-  # Add dhcp to the list of packages installed since its installation will not
-  # complete (can not add dhcp group since /etc is not writeable). Bootstrap it
-  # instead.
-  grep "net-misc/dhcp-" "${pkgs_out}/target-os-dev.packages" \
-    >> "${pkgs_out}/chromeos-base.packages" || true
-  grep "net-misc/dhcp-" "${pkgs_out}/target-os-dev.packages" \
-    >> "${pkgs_out}/bootstrap.packages" || true
-
   # Copy the file over for chromite to process.
   sudo mkdir -p "${BOARD_ROOT}/build/dev-install"
   sudo mv "${pkgs_out}/package.installable" "${BOARD_ROOT}/build/dev-install/"
