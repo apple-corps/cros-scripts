@@ -57,14 +57,20 @@ create_dev_install_lists() {
   local pkgs_out=$(mktemp -d)
 
   for pkg in "${pkgs[@]}" ; do
-    emerge-${BOARD} --color n --pretend --quiet --emptytree \
-      --root-deps=rdeps ${pkg} | \
-      egrep -o ' [[:alnum:]-]+/[^[:space:]/]+\b' | \
-      tr -d ' ' | \
-      sort > "${pkgs_out}/${pkg##*/}.packages"
-    local _pipestatus=${PIPESTATUS[*]}
-    [[ ${_pipestatus// } -eq 0 ]] || error "\`emerge-${BOARD} ${pkg}\` failed"
+    (
+      emerge-${BOARD} --color n --pretend --quiet --emptytree \
+        --root-deps=rdeps ${pkg} | \
+        egrep -o ' [[:alnum:]-]+/[^[:space:]/]+\b' | \
+        tr -d ' ' | \
+        sort > "${pkgs_out}/${pkg##*/}.packages"
+      pipestatus=${PIPESTATUS[*]}
+      [[ ${pipestatus// } -eq 0 ]] || touch "${pkgs_out}/FAILED"
+    ) &
   done
+  wait
+  if [[ -e "${pkgs_out}/FAILED" ]]; then
+    die_notrace "Generating lists failed"
+  fi
 
   # bootstrap = portage - target-os
   comm -13 "${pkgs_out}/target-os.packages" \
