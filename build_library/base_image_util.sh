@@ -82,11 +82,11 @@ create_dev_install_lists() {
      > "${pkgs_out}/chromeos-base.packages"
 
   # package.installable = target-os-dev + target-os-test - target-os + virtuals
-  comm -23 <(cat "${pkgs_out}/target-os-dev.packages" \
-                 "${pkgs_out}/target-os-test.packages" | sort) \
+  comm -23 <(sort -u "${pkgs_out}/target-os-dev.packages" \
+                     "${pkgs_out}/target-os-test.packages") \
     "${pkgs_out}/target-os.packages" \
     > "${pkgs_out}/package.installable"
-  grep "virtual/" "${pkgs_out}/target-os.packages" \
+  grep "virtual/" "${pkgs_out}/target-os.packages" | sort \
     >> "${pkgs_out}/package.installable"
 
   # Add dhcp to the list of packages installed since its installation will not
@@ -97,12 +97,14 @@ create_dev_install_lists() {
   grep "net-misc/dhcp-" "${pkgs_out}/target-os-dev.packages" \
     >> "${pkgs_out}/bootstrap.packages" || true
 
+  # Copy the file over for chromite to process.
+  sudo mkdir -p "${BOARD_ROOT}/build/dev-install"
+  sudo mv "${pkgs_out}/package.installable" "${BOARD_ROOT}/build/dev-install/"
+
   sudo mkdir -p \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
   sudo cp "${pkgs_out}/bootstrap.packages" \
     "${root_fs_dir}/usr/share/dev-install/portage"
-  sudo cp "${pkgs_out}/package.installable" \
-    "${root_fs_dir}/usr/share/dev-install/portage/make.profile"
   sudo cp "${pkgs_out}/chromeos-base.packages" \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
 
