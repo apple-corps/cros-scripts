@@ -104,7 +104,7 @@ create_dev_install_lists() {
   sudo mkdir -p \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
   sudo cp "${pkgs_out}/bootstrap.packages" \
-    "${root_fs_dir}/usr/share/dev-install/portage"
+    "${root_fs_dir}/usr/share/dev-install/"
   sudo cp "${pkgs_out}/chromeos-base.packages" \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
 
