@@ -108,6 +108,10 @@ create_dev_install_lists() {
   sudo cp "${pkgs_out}/chromeos-base.packages" \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided"
 
+  # Copy the toolchain settings which are fixed at build_image time.
+  sudo cp "${BOARD_ROOT}/etc/portage/profile/package.provided" \
+    "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided/"
+
   rm -r "${pkgs_out}"
 }
 
