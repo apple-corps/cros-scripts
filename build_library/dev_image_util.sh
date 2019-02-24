@@ -75,18 +75,6 @@ install_dev_packages() {
     sudo ln -sf vim "${root_fs_dir}/usr/local/bin/vi"
   fi
 
-  # File searches /usr/share by default, so add a wrapper script so it
-  # can find the right path in /usr/local.
-  local path="${root_fs_dir}/usr/local/bin/file"
-  if [[ -x ${path} ]]; then
-    sudo mv "${path}" "${path}.bin"
-    sudo_clobber "${path}" <<EOF
-#!/bin/sh
-exec file.bin -m /usr/local/share/misc/magic.mgc "\$@"
-EOF
-    sudo chmod a+rx "${path}"
-  fi
-
   # If python is installed on stateful-dev, fix python symlinks.
   # Really we need to do this in order to clean up the python-wrapper
   # mess from the eselect-python package.

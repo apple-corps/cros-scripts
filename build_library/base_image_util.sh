@@ -263,6 +263,15 @@ create_base_image() {
   # Run udevadm to generate /etc/udev/hwdb.bin
   run_udevadm_hwdb "${root_fs_dir}"
 
+  # File searches /usr/share even if it's installed in /usr/local.  Add a
+  # symlink so it works in dev images & when using dev_install.  Unless it's
+  # already installed.  https://crbug.com/210493
+  if [[ ! -x "${root_fs_dir}/usr/bin/file" ]]; then
+    sudo mkdir -p "${root_fs_dir}/usr/share/misc"
+    sudo ln -s /usr/local/share/misc/magic.mgc \
+      "${root_fs_dir}/usr/share/misc/magic.mgc"
+  fi
+
   # Set /etc/lsb-release on the image.
   local official_flag=
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
