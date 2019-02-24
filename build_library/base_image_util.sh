@@ -279,6 +279,13 @@ create_base_image() {
       "${root_fs_dir}/usr/share/misc/magic.mgc"
   fi
 
+  # Portage hardcodes /usr/share/portage internally even when it's installed
+  # in /usr/local, so add a symlink as needed so it works in dev images & when
+  # using dev_install.
+  if [[ ! -d "${root_fs_dir}/usr/share/portage" ]]; then
+    sudo ln -s /usr/local/share/portage "${root_fs_dir}/usr/share/portage"
+  fi
+
   # Set /etc/lsb-release on the image.
   local official_flag=
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
