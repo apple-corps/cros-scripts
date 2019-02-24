@@ -57,8 +57,6 @@ install_dev_packages() {
     # other packages may install files in there.
     sudo cp -a ${root_dev_dir}/share/portage ${root_fs_dir}/usr/share
   fi
-  sudo sed -i s,/usr/bin/wget,wget, \
-    ${root_fs_dir}/${portage_make_globals_path}
 
   # Re-run ldconfig to fix /etc/ld.so.cache.
   run_ldconfig "${root_fs_dir}"
