@@ -105,6 +105,12 @@ create_dev_install_lists() {
   sudo cp "${BOARD_ROOT}/etc/portage/profile/package.provided" \
     "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided/"
 
+  # Copy the profile stubbed packages which are always disabled for the board.
+  # TODO(vapier): This doesn't currently respect the profile or its parents.
+  sudo cp \
+    "/usr/local/portage/chromiumos/profiles/targets/chromeos/package.provided" \
+    "${root_fs_dir}/usr/share/dev-install/portage/make.profile/package.provided/"
+
   rm -r "${pkgs_out}"
 }
 
