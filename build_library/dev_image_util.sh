@@ -70,11 +70,6 @@ install_dev_packages() {
   # Release images do not include these, so install it for dev images.
   sudo cp -a "${BOARD_ROOT}"/usr/bin/{getent,ldd} "${root_fs_dir}/usr/bin/"
 
-  # If vim is installed, then a vi symlink would probably help.
-  if [[ -x "${root_fs_dir}/usr/local/bin/vim" ]]; then
-    sudo ln -sf vim "${root_fs_dir}/usr/local/bin/vi"
-  fi
-
   # If python is installed on stateful-dev, fix python symlinks.
   # Really we need to do this in order to clean up the python-wrapper
   # mess from the eselect-python package.
