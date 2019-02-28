@@ -25,8 +25,6 @@ DEFINE_string chrome_root "" \
   "The root of your chrome browser source. Should contain a 'src' subdir."
 DEFINE_string chrome_root_mount "/home/${SUDO_USER}/chrome_root" \
   "The mount point of the chrome broswer source in the chroot."
-DEFINE_string workspace_root "" \
-  "The root of your workspace."
 DEFINE_string cache_dir "" "Directory to use for caching."
 DEFINE_string goma_dir "" "Goma installed directory."
 DEFINE_string goma_client_json "" "Service account json file for goma."
@@ -458,11 +456,6 @@ setup_env() {
     if [ -n "${DEPOT_TOOLS}" ]; then
       debug "Mounting depot_tools"
       setup_mount "${DEPOT_TOOLS}" --bind "${DEPOT_TOOLS_DIR}"
-    fi
-
-    if [ -n "${FLAGS_workspace_root}" ]; then
-      debug "Mounting workspace"
-      setup_mount "${FLAGS_workspace_root}" --bind "${WORKSPACE_DIR}"
     fi
 
     if [[ -n "${FLAGS_goma_dir}" ]]; then
