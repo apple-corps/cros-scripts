@@ -56,9 +56,6 @@ install_dev_packages() {
   # Leave core files for developers to inspect.
   sudo touch "${root_fs_dir}/root/.leave_core"
 
-  # Release images do not include these, so install it for dev images.
-  sudo cp -a "${BOARD_ROOT}"/usr/bin/{getent,ldd} "${root_fs_dir}/usr/bin/"
-
   # If python is installed on stateful-dev, fix python symlinks.
   # Really we need to do this in order to clean up the python-wrapper
   # mess from the eselect-python package.

@@ -408,6 +408,11 @@ create_base_image() {
 
   setup_etc_shadow "${root_fs_dir}"
 
+  # Release images do not include these, so install it for dev images.
+  sudo mkdir -p "${root_fs_dir}/usr/local/bin/"
+  sudo cp -a "${BOARD_ROOT}"/usr/bin/{getent,ldd} \
+    "${root_fs_dir}/usr/local/bin/"
+
   if [[ -d "${root_fs_dir}/usr/share/dev-install" ]]; then
     # Create a package for the dev-only files installed in /usr/local
     # of a base image. This package can later be downloaded with
