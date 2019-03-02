@@ -24,10 +24,6 @@ DEFINE_boolean showoutput "${FLAGS_FALSE}" \
   "Show all output from parallel_emerge."
 DEFINE_boolean withautotest "${FLAGS_TRUE}" \
   "Build autotest client code."
-DEFINE_boolean fetchonly "${FLAGS_FALSE}" \
-  "Don't build anything, instead only fetch what is needed."
-DEFINE_boolean unpackonly "${FLAGS_FALSE}" \
-  "Don't build anything; instead only fetch and unpack what is needed."
 DEFINE_boolean withdebugsymbols "${FLAGS_FALSE}" \
   "Install the debug symbols for all packages"
 DEFINE_boolean withevents "${FLAGS_FALSE}" \
@@ -165,9 +161,6 @@ fi
 if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_TRUE}" ]; then
   UPDATE_ARGS+=( --skip_chroot_upgrade )
 fi
-if [[ ${FLAGS_unpackonly} -eq ${FLAGS_TRUE} ]]; then
-  UPDATE_ARGS+=( --skip_board_pkg_init )
-fi
 if [[ -n ${FLAGS_board_root} ]]; then
   UPDATE_ARGS+=( --board_root "${FLAGS_board_root}" )
 fi
@@ -184,12 +177,6 @@ EMERGE_CMD=(
   --board=${FLAGS_board}
 )
 
-if [[ "${FLAGS_fetchonly}" -eq "${FLAGS_TRUE}" ]]; then
-  EMERGE_CMD+=( --fetchonly )
-fi
-if [[ "${FLAGS_unpackonly}" -eq "${FLAGS_TRUE}" ]]; then
-  EMERGE_CMD+=( --unpackonly )
-fi
 if [[ "${FLAGS_buildretry}" -eq "${FLAGS_FALSE}" ]]; then
   EMERGE_CMD+=( --retries=0 )
 fi
