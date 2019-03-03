@@ -284,6 +284,24 @@ create_base_image() {
     sudo ln -s /usr/local/share/portage "${root_fs_dir}/usr/share/portage"
   fi
 
+  # If python isn't installed into the rootfs, we'll assume it'll be installed
+  # into /usr/local later on.  Create symlinks in the rootfs so python still
+  # works even when not in the rootfs.  This is needed because Gentoo creates
+  # wrappers with hardcoded paths to the rootfs (e.g. python-exec).
+  local path python_paths=(
+    "/etc/env.d/python"
+    "/usr/lib/python-exec"
+    "/usr/lib/portage"
+    "/usr/bin/python"
+    "/usr/bin/python2"
+    "/usr/bin/python3"
+  )
+  for path in "${python_paths[@]}"; do
+    if [[ ! -e "${root_fs_dir}${path}" && ! -L "${root_fs_dir}${path}" ]]; then
+      sudo ln -sf "/usr/local${path}" "${root_fs_dir}${path}"
+    fi
+  done
+
   # Set /etc/lsb-release on the image.
   local official_flag=
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then
