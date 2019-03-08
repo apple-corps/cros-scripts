@@ -17,6 +17,7 @@ DEFINE_string board "" "Override board reported by target"
 DEFINE_string device "" "Override boot device reported by target"
 DEFINE_string partition "" "Override kernel partition reported by target"
 DEFINE_string rootoff "" "Override root offset"
+DEFINE_string rootfs "" "Override rootfs partition reported by target"
 DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean ignore_verity $FLAGS_FALSE "Update kernel even if system is using verity"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
@@ -73,6 +74,15 @@ learn_partition_and_ro() {
   else
     REMOTE_VERITY=${FLAGS_FALSE}
     info "System is not using verity: updating firmware and modules"
+  fi
+  if [[ -z "${FLAGS_rootfs}" ]]; then
+    FLAGS_rootfs="${REMOTE_OUT}"
+  fi
+  # If rootfs is for different partition than we're currently running on
+  # mount it manually to update the right modules, firmware, etc.
+  REMOTE_NEEDS_ROOTFS_MOUNTED=${FLAGS_FALSE}
+  if [[ "${REMOTE_OUT}" != "${FLAGS_rootfs}" ]]; then
+    REMOTE_NEEDS_ROOTFS_MOUNTED=${FLAGS_TRUE}
   fi
   [ -n "${FLAGS_partition}" ] && return
   if [ "${REMOTE_OUT}" == "${FLAGS_device}${PARTITION_NUM_ROOT_A}" ]; then
@@ -150,22 +160,28 @@ make_kernelimage() {
 }
 
 copy_kernelmodules() {
+  local basedir="$1" # rootfs directory (could be in /tmp) or empty string
   echo "copying modules"
   local modules_dir=/build/"${FLAGS_board}"/lib/modules/
   if [ ! -d "${modules_dir}" ]; then
     info "No modules.  Skipping."
     return
   fi
-  remote_send_to "${modules_dir}" /lib/modules/
+  remote_send_to "${modules_dir}" "${basedir}"/lib/modules
   local kernel_release
-  remote_sh "cd /lib/modules; echo *"
+  remote_sh "cd ${basedir}/lib/modules; echo *"
   for kernel_release in "${REMOTE_OUT}"; do
     local system_map="${modules_dir}"/"${kernel_release}"/build/System.map
     if [ -r "${system_map}" ]; then
       remote_sh mktemp -d /tmp/update_kernel_system_map_"${kernel_release}".XXXXXX
       local temp_dir="${REMOTE_OUT}"
       remote_cp_to "${system_map}" "${temp_dir}"
-      remote_sh depmod -ae -F "${temp_dir}"/System.map "${kernel_release}"
+      local b_opt
+      if [ -n "${basedir}" ]; then
+        b_opt="-b ${basedir}"
+      fi
+      remote_sh depmod "${b_opt}" -ae \
+                       -F "${temp_dir}"/System.map "${kernel_release}"
       remote_sh rm -rf "${temp_dir}"
     fi
   done
@@ -267,21 +283,33 @@ main() {
   fi
 
   if [[ ${REMOTE_VERITY} -eq ${FLAGS_FALSE} ]]; then
-    remote_sh mount -o remount,rw /
+    local remote_basedir
+    if [[ ${REMOTE_NEEDS_ROOTFS_MOUNTED} -eq ${FLAGS_TRUE} ]]; then
+      remote_sh mktemp -d /tmp/"${FLAGS_rootfs#$FLAGS_device}".XXXXXX
+      remote_basedir="${REMOTE_OUT}"
+      remote_sh mount "${FLAGS_rootfs}" "${remote_basedir}"
+    else
+      remote_sh mount -o remount,rw /
+    fi
     echo "copying kernel"
-    remote_send_to /build/"${FLAGS_board}"/boot/ /boot/
+    remote_send_to /build/"${FLAGS_board}"/boot/ "${remote_basedir}"/boot/
 
     if [ ${FLAGS_syslinux} -eq ${FLAGS_TRUE} ]; then
       update_syslinux_kernel
     fi
 
-    copy_kernelmodules
+    copy_kernelmodules "${remote_basedir}"
 
     if [[ ${FLAGS_firmware} -eq ${FLAGS_TRUE} ]]; then
       echo "copying firmware"
-      remote_send_to /build/"${FLAGS_board}"/lib/firmware/ /lib/firmware/
+      remote_send_to /build/"${FLAGS_board}"/lib/firmware/ \
+                     "${remote_basedir}"/lib/firmware/
     else
       info "Skipping update of firmware (per request)."
+    fi
+    if [[ ${REMOTE_NEEDS_ROOTFS_MOUNTED} -eq ${FLAGS_TRUE} ]]; then
+      remote_sh umount "${remote_basedir}"
+      remote_sh rmdir "${remote_basedir}"
     fi
   fi
 
