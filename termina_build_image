@@ -160,10 +160,10 @@ repack_rootfs() {
     sudo mksquashfs "${rootfs}" "${rootfs_img}" -comp lzo
     ;;
   ext4)
-    # Start with 400MB, then shrink.
-    local image_size=400
+    # Start with 410MB, then shrink.
+    local image_size=410
     truncate --size "${image_size}M" "${rootfs_img}"
-    /sbin/mkfs.ext4 -F -m 0 -i 16384 -b 1024 -O "^has_journal" "${rootfs_img}"
+    /sbin/mkfs.ext4 -F -m 0 -i 16384 -b 4096 -O "^has_journal" "${rootfs_img}"
     local rootfs_mnt="$(mktemp -d)"
     fs_mount "${rootfs_img}" "${rootfs_mnt}" ext4 rw
     sudo cp -aT "${rootfs}" "${rootfs_mnt}"
