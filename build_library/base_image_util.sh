@@ -295,6 +295,11 @@ create_base_image() {
     "/usr/bin/python"
     "/usr/bin/python2"
     "/usr/bin/python3"
+    # Querying versions is a bit fun.  We don't know precisely what will be
+    # installed in /usr/local, so just query what is available in the sysroot.
+    # The qlist output is: dev-lang/python:2.7
+    $("qlist-${BOARD}" -ICSe dev-lang/python | \
+        tr -d ':' | sed 's:dev-lang:/usr/bin:')
   )
   for path in "${python_paths[@]}"; do
     if [[ ! -e "${root_fs_dir}${path}" && ! -L "${root_fs_dir}${path}" ]]; then
