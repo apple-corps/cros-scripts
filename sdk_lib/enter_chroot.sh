@@ -322,8 +322,7 @@ setup_env() {
     if grep -q configfs /proc/filesystems; then
       setup_mount none "-t configfs" /sys/kernel/config
     fi
-    setup_mount /dev "--bind" /dev
-    setup_mount /dev/pts "--bind" /dev/pts
+    setup_mount /dev "--rbind" /dev
     if [[ -d /run ]]; then
       setup_mount /run "--bind" /run
       if [[ -d /run/shm && ! -L /run/shm ]]; then
