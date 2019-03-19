@@ -26,6 +26,7 @@ DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
 DEFINE_boolean firmware $FLAGS_FALSE "Also update firmwares (/lib/firmware)"
+DEFINE_string boot_command "" "Command to run on remote after update (after reboot if applicable)"
 
 ORIG_ARGS=("$@")
 
@@ -337,6 +338,11 @@ main() {
     info "new kernel: ${REMOTE_OUT}"
   else
     info "Not rebooting (per request)"
+  fi
+
+  if [ -n "${FLAGS_boot_command}" ]; then
+    info "Running boot command on remote"
+    remote_sh "${FLAGS_boot_command}"
   fi
 }
 
