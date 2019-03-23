@@ -451,7 +451,6 @@ COMMON_INSTALL_MASK="
   /usr/bin/*-config
   /usr/bin/Xnest
   /usr/bin/Xvfb
-  /usr/include/*/*.inc
   /usr/include/c++
   /usr/include/nspr/*
   /usr/include/rpcsvc/*.x
