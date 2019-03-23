@@ -390,6 +390,7 @@ make_image_bootable() {
     # Update EFI partition
     ${SCRIPTS_DIR}/update_bootloaders.sh \
       --arch="${FLAGS_arch}" \
+      --board="${BOARD}" \
       --image_type="${FLAGS_image_type}" \
       --to="${bootloader_to}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \

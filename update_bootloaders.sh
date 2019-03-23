@@ -20,6 +20,8 @@ assert_inside_chroot
 # Flags.
 DEFINE_string arch "x86" \
   "The boot architecture: arm, mips, x86, or amd64 (Default: x86)"
+DEFINE_string board "${DEFAULT_BOARD}" \
+  "Board we're building for."
 DEFINE_string image_type "usb" \
   "Type of image we're building for."
 # TODO(wad) once extlinux is dead, we can remove this.
@@ -52,6 +54,9 @@ DEFINE_string kernel_partition_sectors "0" \
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
+
+. "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+load_board_specific_script "board_specific_setup.sh"
 
 part_index_to_uuid() {
   local image="$1"
