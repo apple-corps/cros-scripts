@@ -95,6 +95,9 @@ do_hardlinks() {
   local dir=$1
 
   local line prev_line=""
+  if [ -z $(command -v fdupes) ]; then
+    warn "Please install fdupes for removing dups"
+  fi
   while read line; do
     # Treat the first file as the original.
     if [[ -n "${prev_line}" && -n "${line}" ]]; then
@@ -160,8 +163,9 @@ repack_rootfs() {
     sudo mksquashfs "${rootfs}" "${rootfs_img}" -comp lzo
     ;;
   ext4)
-    # Start with 410MB, then shrink.
-    local image_size=410
+    # Start with 110% rootfs size, then shrink.
+    local image_size=$(sudo du -sxm "${rootfs}" | awk '{print $1}')
+    let image_size=image_size*11/10
     truncate --size "${image_size}M" "${rootfs_img}"
     /sbin/mkfs.ext4 -F -m 0 -i 16384 -b 4096 -O "^has_journal" "${rootfs_img}"
     local rootfs_mnt="$(mktemp -d)"
