@@ -168,6 +168,9 @@ fi
 setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
 
 sudo_clear_shadow_locks "/build/${FLAGS_board}"
+PORTAGE_BINHOST=$(portageq-${FLAGS_board} envvar 'PORTAGE_BINHOST')
+info "PORTAGE_BINHOST: ${PORTAGE_BINHOST}"
+
 
 # Setup all the emerge command/flags.
 EMERGE_FLAGS=( -uDNv --backtrack=30 --select --newrepo )
