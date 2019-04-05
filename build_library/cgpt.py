@@ -549,7 +549,10 @@ def GetTableTotals(config, partitions):
     if partition.get('num') == 'metadata':
       continue
 
-    fs_block_align_losses += 4096
+    if partition.get('type') in ('data', 'rootfs') and partition['bytes'] > 1:
+      fs_block_align_losses += config['metadata']['fs_align']
+    else:
+      fs_block_align_losses += config['metadata']['fs_block_size']
     if 'expand' in partition['features']:
       ret['expand_count'] += 1
       ret['expand_min'] += partition['bytes']
