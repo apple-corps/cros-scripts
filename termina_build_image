@@ -17,8 +17,6 @@ DEFINE_string image "" \
   "Chromium OS disk image to build the Termina image from"
 DEFINE_string output "" \
   "Output directory"
-DEFINE_boolean test_image ${FLAGS_FALSE} \
-  "True if the image is a test image" t
 
 FLAGS_HELP="USAGE: ${SCRIPT_NAME} [flags]
 
@@ -34,11 +32,6 @@ get_version() {
   local output_dir="$1"
   awk -F'=' -v key='CHROMEOS_RELEASE_VERSION' '$1==key { print $2 }' \
     "${output_dir}"/lsb-release
-}
-
-is_test_image() {
-  local output_dir="$1"
-  grep -q testimage-channel "${output_dir}"/lsb-release
 }
 
 read_le_int() {
