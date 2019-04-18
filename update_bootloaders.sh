@@ -35,6 +35,8 @@ DEFINE_integer to_offset 0 \
   "Offset in bytes into 'to' if it is a file (Default: 0)"
 DEFINE_integer to_size -1 \
   "Size in bytes of 'to' to use if it is a file. -1 is ignored. (Default: -1)"
+DEFINE_integer to_partition -1 \
+  "Partition number to use on block device. -1 is ignored. (Default: -1)"
 DEFINE_string vmlinuz "/tmp/vmlinuz" \
   "Path to the vmlinuz file to use (Default: /tmp/vmlinuz)"
 DEFINE_string zimage "/tmp/zImage" \
@@ -122,6 +124,7 @@ if ! type -p update_x86_bootloaders; then
   }
 fi
 
+ESP_DEV_OURS=
 ESP_DEV=
 if [[ ! -e "${FLAGS_to}" ]]; then
   error "The ESP doesn't exist"
@@ -134,6 +137,7 @@ if [[ ! -e "${FLAGS_to}" ]]; then
   ESP_BLOCKS=16384
   /usr/sbin/mkfs.vfat -C "${FLAGS_to}" ${ESP_BLOCKS}
   ESP_DEV=$(sudo losetup --show -f "${FLAGS_to}")
+  ESP_DEV_OURS=y
   if [ -z "${ESP_DEV}" ]; then
     die "No free loop devices."
   fi
@@ -144,13 +148,23 @@ else
     if [ ${FLAGS_to_size} -lt 0 ]; then
       esp_size=
     fi
-    ESP_DEV=$(sudo losetup --show -f ${esp_offset} ${esp_size} "${FLAGS_to}")
+    if [ ${FLAGS_to_offset} -gt 0]; then
+      die "Attempt to use --to-offset. (See crbug/954118)"
+    fi
+    if [ ${FLAGS_to_size} -ge 0]; then
+      die "Attempt to use --to-size. (See crbug/954118)"
+    fi
+    ESP_DEV=$(sudo losetup --show -f "${FLAGS_to}")
+    ESP_DEV_OURS=y
     if [ -z "${ESP_DEV}" ]; then
       die "No free loop devices."
     fi
   else
     # If it is a block device or something else, try to mount it anyway.
     ESP_DEV="${FLAGS_to}"
+    if [ ${FLAGS_to_partition} -ge 0 ]; then
+      ESP_DEV="${ESP_DEV}"p"${FLAGS_to_partition}"
+    fi
   fi
 fi
 
@@ -165,7 +179,7 @@ cleanup() {
       sleep 5
       safe_umount "${ESP_FS_DIR}"
   fi
-  if [[ -n "${ESP_DEV}" && -z "${ESP_DEV//\/dev\/loop*}" ]]; then
+  if [[ -n "${ESP_DEV_OURS}" && -z "${ESP_DEV//\/dev\/loop*}" ]]; then
     sudo losetup -d  "${ESP_DEV}"
   fi
   rm -rf "${ESP_FS_DIR}"

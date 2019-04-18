@@ -396,12 +396,13 @@ mk_fs() {
   fs_uuid=$(get_uuid ${image_type} ${part_num})
   fs_type=$(get_type ${image_type} ${part_num})
 
-  # Mount at the correct place in the file.
-  offset=$(( $(partoffset "${image_file}" "${part_num}") * 512 ))
   # Root is needed to mount on loopback device.
   # sizelimit is used to denote the FS size for mkfs if not specified.
-  local part_dev=$(sudo losetup -f --show --offset=${offset} \
-      --sizelimit=${fs_bytes} "${image_file}")
+  local image_dev=$(sudo losetup --show -f ${image_file})
+  trap "sudo losetup -d ${image_dev}" RETURN
+  sudo partx -d "${image_dev}" 2>/dev/null || true
+  sudo partx -a "${image_dev}"
+  local part_dev=${image_dev}p${part_num}
   if [ ! -e "${part_dev}" ]; then
     die "No free loopback device to create partition."
   fi
@@ -495,6 +496,8 @@ mk_fs() {
   sudo_multi "${cmds[@]}"
   fs_umount "${part_dev}" "${mount_dir}" "${fs_format}" "${fs_options}"
   fs_remove_mountpoint "${mount_dir}"
+  sudo losetup -d ${image_dev}
+  trap - RETURN
 }
 
 # Creates the gpt image for the given disk layout. In addition to creating

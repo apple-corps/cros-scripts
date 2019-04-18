@@ -57,6 +57,12 @@ fs_mount() {
     die "ro_rw must be \"ro\" or \"rw\", not \"${ro_rw}\"."
   fi
 
+  local offset=$(fs_parse_option "${mount_options}" offset UNDEF)
+  if [[ "X${offset}" != XUNDEF ]]; then
+    echo "${mount_options}" # XXXLJ
+    die "Attempt to use offset=${offset}. (See crbug/954118)"
+  fi
+
   local all_options="${ro_rw}"
   [[ -n "${mount_options}" ]] && all_options="${ro_rw},${mount_options}"
 

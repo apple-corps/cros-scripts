@@ -81,17 +81,21 @@ get_install_vblock() {
   # This is the real vblock and not the recovery vblock.
   local partition_num_state=$(get_image_partition_number "${FLAGS_image}" \
     "STATE")
-  local stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
+  IMAGE_DEV=$(sudo losetup --show -f "${FLAGS_image}")
+  trap "sudo losetup -d ${IMAGE_DEV} || true" RETURN
+  sudo partx -d ${IMAGE_DEV} 2>/dev/null || true
+  sudo partx -a ${IMAGE_DEV}
   local stateful_mnt=$(mktemp -d)
   local out=$(mktemp)
 
   set +e
-  sudo mount -o ro,loop,offset=$((stateful_offset * 512)) \
-             "$FLAGS_image" $stateful_mnt
+  sudo mount ${IMAGE_DEV}p${partition_num_state} $stateful_mnt
   sudo cp "$stateful_mnt/vmlinuz_hd.vblock"  "$out"
   sudo chown $USER "$out"
 
   safe_umount "$stateful_mnt"
+  sudo losetup -d ${IMAGE_DEV}
+  trap - RETURN
   rmdir "$stateful_mnt"
   switch_to_strict_mode
   echo "$out"
@@ -158,18 +162,18 @@ create_recovery_kernel_image() {
   # passes.
   local block_size=$(get_block_size)
 
+  RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
+  trap "sudo losetup -d ${RECOVERY_DEV} || true" RETURN
+  sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
+  sudo partx -a ${RECOVERY_DEV}
   local partition_num_efi_system=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "EFI-SYSTEM")
-  local efi_offset=$(partoffset "${RECOVERY_IMAGE}" \
-    "${partition_num_efi_system}")
-  local efi_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_efi_system}")
-  local efi_offset_bytes=$(( $efi_offset * $block_size ))
-  local efi_size_bytes=$(( $efi_size * $block_size ))
 
-  if [[ ${efi_size_bytes} -ne 0 ]]; then
+  local efi_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_efi_system}")
+
+  if [[ ${efi_size} -ne 0 ]]; then
     local efi_dir=$(mktemp -d)
-    sudo mount -o loop,offset=${efi_offset_bytes},sizelimit=${efi_size_bytes} \
-      "${RECOVERY_IMAGE}" "${efi_dir}"
+    sudo mount ${RECOVERY_DEV}p${partition_num_efi_system} "${efi_dir}"
 
     sudo sed  -i -e "s/cros_legacy/cros_legacy kern_b_hash=$kern_hash/g" \
       "$efi_dir/syslinux/usb.A.cfg" || true
@@ -179,9 +183,10 @@ create_recovery_kernel_image() {
       "$efi_dir/efi/boot/grub.cfg" || true
     safe_umount "$efi_dir"
     rmdir "$efi_dir"
+    sudo losetup -d ${RECOVERY_DEV}
   fi
 
-  trap - EXIT
+  trap - RETURN
 }
 
 install_recovery_kernel() {
@@ -233,17 +238,21 @@ install_recovery_kernel() {
   local failed=0
 
   if [ "$ARCH" = "x86" ]; then
+    RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
+    trap "sudo losetup -d ${RECOVERY_DEV} || true" RETURN
+    sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
+    sudo partx -a ${RECOVERY_DEV}
     # There is no syslinux on ARM, so this copy only makes sense for x86.
     set +e
     local partition_num_efi_system=$(get_image_partition_number \
       "${RECOVERY_IMAGE}" "EFI-SYSTEM")
-    local esp_offset=$(partoffset "${RECOVERY_IMAGE}" \
-      "${partition_num_efi_system}")
     local esp_mnt=$(mktemp -d)
-    sudo mount -o loop,offset=$((esp_offset * 512)) "$RECOVERY_IMAGE" "$esp_mnt"
+    sudo mount ${RECOVERY_DEV}p${partition_num_efi_system} "$esp_mnt"
     sudo cp "$vmlinuz" "$esp_mnt/syslinux/vmlinuz.A" || failed=1
     safe_umount "$esp_mnt"
     rmdir "$esp_mnt"
+    sudo losetup -d ${RECOVERY_DEV}
+    trap - RETURN
     switch_to_strict_mode
   fi
 
@@ -289,8 +298,11 @@ maybe_resize_stateful() {
   old_stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
   old_stateful_mnt=$(mktemp -d)
 
-  sudo mount -o ro,loop,offset=$((old_stateful_offset * 512)) \
-    "$FLAGS_image" $old_stateful_mnt
+  IMAGE_DEV=$(sudo losetup --show -f "${FLAGS_image}")
+  trap "sudo losetup -d ${IMAGE_DEV} || true" RETURN
+  sudo partx -d ${IMAGE_DEV} 2>/dev/null || true
+  sudo partx -a ${IMAGE_DEV}
+  sudo mount ${IMAGE_DEV}p${partition_num_state} $old_stateful_mnt
 
   sectors_needed=$(find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}")
 
@@ -298,7 +310,7 @@ maybe_resize_stateful() {
   small_stateful=$(mktemp)
   dd if=/dev/zero of="$small_stateful" bs=512 \
     count="${sectors_needed}" 1>&2
-  trap "rm $small_stateful" RETURN
+  trap "rm $small_stateful; sudo losetup -d ${IMAGE_DEV} || true" RETURN
   # Don't bother with ext3 for such a small image.
   /sbin/mkfs.ext2 -F -b 4096 "$small_stateful" 1>&2
 
@@ -324,6 +336,8 @@ maybe_resize_stateful() {
   safe_umount "$new_stateful_mnt"
   rmdir "$old_stateful_mnt"
   rmdir "$new_stateful_mnt"
+  sudo losetup -d ${IMAGE_DEV}
+  trap - RETURN
   switch_to_strict_mode
 
   # Create a recovery image of the right size
@@ -337,6 +351,9 @@ maybe_resize_stateful() {
 
 cleanup() {
   set +e
+  if [ -n "${RECOVERY_DEV}" ]; then
+    sudo losetup -d ${RECOVERY_DEV}
+  fi
   if [ "$FLAGS_image" != "$RECOVERY_IMAGE" ]; then
     rm "$RECOVERY_IMAGE"
   fi
@@ -367,6 +384,7 @@ RECOVERY_KERNEL_IMAGE=\
 "${FLAGS_kernel_outfile:-$IMAGE_DIR/$RECOVERY_KERNEL_NAME}"
 STATEFUL_DIR="$IMAGE_DIR/stateful_partition"
 SCRIPTS_DIR=${SCRIPT_ROOT}
+RECOVERY_DEV=""
 
 # Mounts gpt image and sets up var, /usr/local and symlinks.
 # If there's a dev payload, mount stateful
@@ -422,14 +440,16 @@ maybe_resize_stateful  # Also copies the image if needed.
 
 if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
   stateful_mnt=$(mktemp -d)
+  RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
+  sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
+  sudo partx -a ${RECOVERY_DEV}
   partition_num_state=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "STATE")
-  offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_state}")
-  sudo mount -o loop,offset=$(( offset * 512 )) \
-    "${RECOVERY_IMAGE}" "${stateful_mnt}"
+  sudo mount ${RECOVERY_DEV}p${partition_num_state} "${stateful_mnt}"
   echo -n "1" | sudo tee "${stateful_mnt}"/decrypt_stateful >/dev/null
   sudo umount "$stateful_mnt"
   rmdir "$stateful_mnt"
+  sudo losetup -d ${RECOVERY_DEV}
 fi
 
 install_recovery_kernel

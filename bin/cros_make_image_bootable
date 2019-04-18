@@ -367,14 +367,16 @@ make_image_bootable() {
   local kernel_part=
 
   # We should update the esp in place in the image.
-  local bootloader_to="${image}"
   local partition_num_efi_system="$(get_layout_partition_number \
     "${FLAGS_image_type}" EFI-SYSTEM)"
-  local esp_offset="$(partoffset ${image} ${partition_num_efi_system})"
-  esp_offset=$((esp_offset * 512))  # sectors to bytes
+  local image_dev=$(loopback_partscan "${image}")
+  trap "loopback_detach ${image_dev}; unmount_image ; \
+    die 'cros_make_image_bootable failed.'" EXIT
+  local bootloader_to="${image_dev}"
+  # Make this writable by the user, it will get deleted by losetup -d.
+  sudo chown $(id -u) ${bootloader_to} ${bootloader_to}p*
   local esp_size="$(partsize ${image} ${partition_num_efi_system})"
   esp_size=$((esp_size * 512))  # sectors to bytes
-  local bootloader_to_flags="--to_offset=${esp_offset} --to_size=${esp_size}"
 
   if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
     # Use the kernel partition to acquire configuration flags.
@@ -393,10 +395,10 @@ make_image_bootable() {
       --board="${BOARD}" \
       --image_type="${FLAGS_image_type}" \
       --to="${bootloader_to}" \
+      --to_partition="${partition_num_efi_system}" \
       --from="${FLAGS_rootfs_mountpoint}"/boot \
       --vmlinuz="${VMLINUZ}" \
       --zimage="${ZIMAGE}" \
-      ${bootloader_to_flags} \
       ${kernel_part}
   fi
 
@@ -405,6 +407,7 @@ make_image_bootable() {
              "${FLAGS_output_dir}/hd_vmlinuz.image" \
              "${FLAGS_output_dir}/vmlinuz_hd.vblock"
 
+  sudo losetup -d ${image_dev}
   unmount_image
   trap - EXIT
 }
