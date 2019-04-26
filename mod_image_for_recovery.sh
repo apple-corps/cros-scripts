@@ -139,6 +139,9 @@ create_recovery_kernel_image() {
   fi
   local kern_hash=$(sha1sum "$kern_tmp" | cut -f1 -d' ')
   rm "$kern_tmp"
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/954188
+  sync
 
   # TODO(wad) add FLAGS_boot_args support too.
   ${SCRIPTS_DIR}/build_kernel_image.sh \
@@ -225,6 +228,9 @@ install_recovery_kernel() {
      seek=$kern_a_offset \
      count=$kern_a_size \
      conv=notrunc
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/954188
+  sync
 
   # Set the 'Success' flag to 1 (to prevent the firmware from updating
   # the 'Tries' flag).
@@ -318,6 +324,9 @@ maybe_resize_stateful() {
   # This is the real vblock and not the recovery vblock.
   new_stateful_mnt=$(mktemp -d)
 
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/954188
+  sync
   sudo mount -o loop $small_stateful $new_stateful_mnt
 
   # Create the directories that are going to be needed below. With correct

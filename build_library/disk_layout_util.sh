@@ -257,7 +257,8 @@ EOF
 
     if [[ "${x}" != "${umount}" ]]; then
       cat >>"${x}" <<\EOF
-# If losetup is new enough to create the partition table, use that instead.
+# Losetup has support for partitions, and offset= has issues.
+# See crbug.com/954188
 LOOPDEV=''
 cleanup() {
   if [[ -n "${LOOPDEV}" ]]; then
@@ -265,9 +266,7 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-if sudo losetup --help |& grep -q -e--partscan; then
-  LOOPDEV=$(sudo losetup -P -f --show "${TARGET}") || exit 1
-fi
+LOOPDEV=$(sudo losetup -P -f --show "${TARGET}") || exit 1
 
 EOF
     fi
@@ -293,31 +292,18 @@ EOF
     done
 
     cat <<EOF >> "${unpack}"
-if [[ -n "\${LOOPDEV}" ]]; then
-  sudo dd if="\${LOOPDEV}p${part}" of="${file}"
-else
-  dd if=${target} of="${file}" ${dd_args} skip=${start}
-fi
+sudo dd if="\${LOOPDEV}p${part}" of="${file}"
 ln -sfT ${file} "${file}_${label}"
 EOF
     cat <<EOF >> "${pack}"
-if [[ -n "\${LOOPDEV}" ]]; then
-  sudo dd if="${file}" of="\${LOOPDEV}p${part}"
-else
-  dd if="${file}" of=${target} ${dd_args} seek=${start} conv=notrunc
-fi
+sudo dd if="${file}" of="\${LOOPDEV}p${part}"
 EOF
 
     if [[ ${size} -gt 1 ]]; then
       cat <<-EOF >>"${mount}"
 (
 mkdir -p "${dir}"
-m=( sudo mount )
-if [[ -n "\${LOOPDEV}" ]]; then
-  m+=( "\${LOOPDEV}p${part}" "${dir}" )
-else
-  m+=( -o loop,offset=${start_b},sizelimit=${size_b} "${target}" "${dir}" )
-fi
+m=( sudo mount "\${LOOPDEV}p${part}" "${dir}" )
 if ! "\${m[@]}"; then
   if ! "\${m[@]}" -o ro; then
     rmdir ${dir}

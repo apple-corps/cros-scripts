@@ -908,6 +908,9 @@ disable_rw_mount() {
   printf '\377' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
       conv=notrunc count=1 bs=1 status=none
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/954188
+  sync
 }
 
 enable_rw_mount() {
@@ -921,6 +924,9 @@ enable_rw_mount() {
   printf '\000' |
     sudo dd of="${rootfs}" seek=$((offset + ro_compat_offset)) \
       conv=notrunc count=1 bs=1 status=none
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/954188
+  sync
 }
 
 is_ext2_rw_mount_enabled() {

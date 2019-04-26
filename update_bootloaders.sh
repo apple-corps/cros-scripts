@@ -31,10 +31,12 @@ DEFINE_string from "/tmp/boot" \
   "Path the legacy bootloader templates are copied from. (Default /tmp/boot)"
 DEFINE_string to "/tmp/esp.img" \
   "Path to esp image (Default: /tmp/esp.img)"
-DEFINE_integer to_offset 0 \
-  "Offset in bytes into 'to' if it is a file (Default: 0)"
-DEFINE_integer to_size -1 \
-  "Size in bytes of 'to' to use if it is a file. -1 is ignored. (Default: -1)"
+# offset= interacts with dirty pages in the file in a very poor manner.  See
+# crbug.com/954188. Use device partitions on the loop device instead.
+#DEFINE_integer to_offset 0 \
+#  "Offset in bytes into 'to' if it is a file (Default: 0)"
+#DEFINE_integer to_size -1 \
+#  "Size in bytes of 'to' to use if it is a file. -1 is ignored. (Default: -1)"
 DEFINE_integer to_partition -1 \
   "Partition number to use on block device. -1 is ignored. (Default: -1)"
 DEFINE_string vmlinuz "/tmp/vmlinuz" \
@@ -143,17 +145,6 @@ if [[ ! -e "${FLAGS_to}" ]]; then
   fi
 else
   if [[ -f "${FLAGS_to}" ]]; then
-    esp_offset="--offset ${FLAGS_to_offset}"
-    esp_size="--sizelimit ${FLAGS_to_size}"
-    if [ ${FLAGS_to_size} -lt 0 ]; then
-      esp_size=
-    fi
-    if [ ${FLAGS_to_offset} -gt 0]; then
-      die "Attempt to use --to-offset. (See crbug/954118)"
-    fi
-    if [ ${FLAGS_to_size} -ge 0]; then
-      die "Attempt to use --to-size. (See crbug/954118)"
-    fi
     ESP_DEV=$(sudo losetup --show -f "${FLAGS_to}")
     ESP_DEV_OURS=y
     if [ -z "${ESP_DEV}" ]; then

@@ -11,16 +11,26 @@
 #
 # Args:
 #   mount_options: Options that could be passed to the "mount" command, for
-#       example "loop,ro,offset=1234".
+#       example "loop,ro".
 #   option_key: The key you are looking for.
 #   default_value: An optional default value used if the option key is not
 #       found.
 fs_parse_option() {
-  # If we are mounting a partition inside a device by passing an offset
-  # in the mount options, we need to tell unsquashfs to read from there.
   local mount_options="$1"
   local option_key="$2"
   local default_value="${3:-}"
+
+  # offset= interacts with dirty pages in the file in a very poor manner.  See
+  # crbug.com/954188. Use device partitions on the loop device instead.
+  case "${option_key}" in
+  offset|size)
+    local msg="Support for ${option_key} dropped from fs_parse_option."
+    msg="${msg} See crbug.com/954188."
+    die "${msg}"
+    # unittests cause die to return to us, so make sure we return the default.
+    option_key='$'
+    ;;
+  esac
 
   local option_value
   if option_value=$(echo "${mount_options}" | tr , '\n' | \
@@ -57,10 +67,9 @@ fs_mount() {
     die "ro_rw must be \"ro\" or \"rw\", not \"${ro_rw}\"."
   fi
 
-  local offset=$(fs_parse_option "${mount_options}" offset UNDEF)
-  if [[ "X${offset}" != XUNDEF ]]; then
-    echo "${mount_options}" # XXXLJ
-    die "Attempt to use offset=${offset}. (See crbug/954118)"
+  # Explicitly deny offset= in options.
+  if echo ${mount_options} | grep -qE '^(.*,)?offset='; then
+    die "Support for offset= dropped from fs_mount.  See crbug.com/954188."
   fi
 
   local all_options="${ro_rw}"
@@ -83,23 +92,19 @@ fs_mount() {
       sudo mount "${part_dev}" "${mount_point}" -o "${all_options}" \
           -t "${fs_format}"
     else
-      local offset=$(fs_parse_option "${mount_options}" offset 0)
       local sizelimit=$(fs_parse_option "${mount_options}" sizelimit)
-      local sizelimit_arg=""
-      if [[ "${offset}" != "0" || -n "${sizelimit}" ]]; then
-        local losetup_opts=( --show --read-only --offset "${offset}" )
-        if [[ -n "${sizelimit}" ]]; then
-          losetup_opts+=( --sizelimit "${sizelimit}" )
-        fi
+      if [[ -n "${sizelimit}" ]]; then
+        local losetup_opts=( --show --read-only --sizelimit "${sizelimit}" )
         part_dev=$(sudo losetup "${losetup_opts[@]}" -f "${part_dev}")
       fi
 
       sudo unsquashfs -dest "${mount_point}" -no-progress -force "${part_dev}"
 
-      if [[ "${offset}" != "0" ]]; then
+      if [[ -n "${sizelimit}" ]]; then
         # Cleanup the loop device used to unsquash the filesystem.
         sudo losetup -d "${part_dev}"
       fi
+      sudo unsquashfs -dest "${mount_point}" -no-progress -force "${part_dev}"
     fi
     ;;
   *)
@@ -162,10 +167,9 @@ fs_umount() {
 "size of your filesystem or remove some files from it."
     fi
 
-    local offset=$(fs_parse_option "${mount_options}" offset 0)
     # mksquashfs pads the filesystem up to 4kB, but we can use a bigger block
     # size to improve speed.
-    sudo dd if="${squash_file}" of="${part_dev}" bs=8M seek="${offset}" \
+    sudo dd if="${squash_file}" of="${part_dev}" bs=8M \
         oflag=seek_bytes conv=notrunc status=none
     sudo rm -f "${squash_file}"
     ;;

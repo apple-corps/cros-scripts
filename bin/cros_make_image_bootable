@@ -388,6 +388,10 @@ make_image_bootable() {
     kernel_part=""
   fi
 
+  # Force all of the file writes to complete, in case it's necessary for
+  # crbug.com/938958
+  sync
+
   if [[ ${esp_size} -gt 0 ]]; then
     # Update EFI partition
     ${SCRIPTS_DIR}/update_bootloaders.sh \

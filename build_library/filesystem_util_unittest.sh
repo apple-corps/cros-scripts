@@ -8,6 +8,11 @@ BUILD_LIBRARY_DIR=$(dirname $0)
 
 set -e -u
 
+# Make die() non-fatal for testing.
+exit() {
+  echo exit "$@"
+}
+
 output_test() {
   local expected_output="$1"
   echo "Testing ${*:2}"
@@ -32,7 +37,10 @@ output_test "" fs_parse_option "loop=,ro,offset=1234" "ro" 42
 output_test 42 fs_parse_option "loop=,rostuff,offset=1234" "ro" 42
 
 output_test 42 fs_parse_option "loop=,ro,offset=1234" "laap" 42
-output_test 1234 fs_parse_option "loop=,ro,offset=1234" "offset" 42
+# offset= interacts with dirty pages in the file in a very poor manner.
+# See crbug.com/954188
+output_test 'exit 1' fs_parse_option "loop=,ro,offset=1234" "offset" ""
+
 output_test 42 fs_parse_option "loop=,ro,offset=1234" "laap" 42
 
 echo "All tests passed."
