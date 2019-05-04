@@ -225,17 +225,40 @@ usage() {
     echo
     ret=1
   fi
-  echo "Usage: $0 [image] [part]"
+  echo "Usage: $0 [-h|--help] [--nolosetup] [image] [part]"
   echo "Example: $0 chromiumos_image.bin"
   exit ${ret}
 }
 
-TARGET=${1:-}
-PART=${2:-}
+USE_LOSETUP=yes
+TARGET=""
+PART=""
+ARG_INDEX=0
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help)
+      usage
+      ;;
+    --nolosetup)
+      USE_LOSETUP=no
+      shift
+      ;;
+    *)
+      if [[ ${ARG_INDEX} -eq 0 ]]; then
+        TARGET="${1}"
+      elif [[ ${ARG_INDEX} -eq 1 ]]; then
+        PART="${1}"
+      else
+        usage "too many arguments"
+      fi
+      ARG_INDEX=$((ARG_INDEX+1))
+      shift
+      ;;
+  esac
+done
+
 case ${TARGET} in
--h|--help)
-  usage
-  ;;
 "")
   for TARGET in chromiumos_{,base_}image.bin ""; do
     if [[ -e ${TARGET} ]]; then
@@ -266,7 +289,9 @@ cleanup() {
   fi
 }
 trap cleanup EXIT
-LOOPDEV=$(sudo losetup -P -f --show "${TARGET}") || exit 1
+if [[ "${USE_LOSETUP}" == yes ]]; then
+  LOOPDEV=$(sudo losetup -P -f --show "${TARGET}") || exit 1
+fi
 
 EOF
     fi
@@ -292,11 +317,19 @@ EOF
     done
 
     cat <<EOF >> "${unpack}"
-sudo dd if="\${LOOPDEV}p${part}" of="${file}"
+if [[ -n "\${LOOPDEV}" ]]; then
+  sudo dd if="\${LOOPDEV}p${part}" of="${file}"
+else
+  dd if=${target} of="${file}" ${dd_args} skip=${start}
+fi
 ln -sfT ${file} "${file}_${label}"
 EOF
     cat <<EOF >> "${pack}"
-sudo dd if="${file}" of="\${LOOPDEV}p${part}"
+if [[ -n "\${LOOPDEV}" ]]; then
+  sudo dd if="${file}" of="\${LOOPDEV}p${part}"
+else
+  dd if="${file}" of=${target} ${dd_args} seek=${start} conv=notrunc
+fi
 EOF
 
     if [[ ${size} -gt 1 ]]; then
