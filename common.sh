@@ -455,6 +455,7 @@ COMMON_INSTALL_MASK="
   /usr/include/nspr/*
   /usr/include/rpcsvc/*.x
   /usr/include/tensorflow
+  /usr/include/boost
   /usr/include/X11/*
   /usr/lib/debug
   /usr/lib/gopath
