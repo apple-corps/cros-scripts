@@ -138,8 +138,7 @@ repack_rootfs() {
   if [[ "${arch}" == "arm" ]]; then
     cp "${rootfs}"/boot/Image-* "${output_dir}/vm_kernel"
   else
-    "${CHROOT_TRUNK_DIR}"/src/third_party/kernel/v4.4/scripts/extract-vmlinux \
-        "${rootfs}"/boot/vmlinuz > "${output_dir}/vm_kernel"
+    cp "${rootfs}"/boot/vmlinuz "${output_dir}/vm_kernel"
   fi
 
   # Remove vmlinuz from the rootfs; it's not necessary.
