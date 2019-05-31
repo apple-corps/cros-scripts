@@ -9,7 +9,8 @@
 # the given target's root with binary packages turned on. This script will
 # build the Chrome OS image using only pre-built binary packages.
 
-SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
+SCRIPT_ROOT="$(dirname "$(readlink -f "$0")")"
+# shellcheck source=build_library/build_common.sh
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
 
 # Developer-visible flags.
@@ -106,17 +107,27 @@ switch_to_strict_mode
 
 # Determine build version.
 OVERLAY_CHROMEOS_DIR="${SRC_ROOT}/third_party/chromiumos-overlay/chromeos"
+# shellcheck source=../third_party/chromiumos-overlay/chromeos/config/chromeos_version.sh
 . "${OVERLAY_CHROMEOS_DIR}/config/chromeos_version.sh" || exit 1
 # N.B.  Ordering matters for some of the libraries below, because
 # some of the files contain initialization used by later files.
+# shellcheck source=build_library/board_options.sh
 . "${BUILD_LIBRARY_DIR}/board_options.sh" || exit 1
+# shellcheck source=build_library/disk_layout_util.sh
 . "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
+# shellcheck source=build_library/mount_gpt_util.sh
 . "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh" || exit 1
+# shellcheck source=build_library/build_image_util.sh
 . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
+# shellcheck source=build_library/imageloader_util.sh
 . "${BUILD_LIBRARY_DIR}/imageloader_util.sh" || exit 1
+# shellcheck source=build_library/base_image_util.sh
 . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
+# shellcheck source=build_library/dev_image_util.sh
 . "${BUILD_LIBRARY_DIR}/dev_image_util.sh" || exit 1
+# shellcheck source=build_library/test_image_util.sh
 . "${BUILD_LIBRARY_DIR}/test_image_util.sh" || exit 1
+# shellcheck source=build_library/selinux_util.sh
 . "${BUILD_LIBRARY_DIR}/selinux_util.sh" || exit 1
 
 parse_build_image_args
@@ -130,7 +141,7 @@ sudo_clear_shadow_locks "/build/${FLAGS_board}"
 BASE_PACKAGE="virtual/target-os"
 # Tweak flags, configure extra USE flags, and set base packages for the factory
 # install shim.
-if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
+if should_build_image "${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}"; then
   # TODO: Build a separated ebuild for the install shim to reduce size.
   INSTALL_MASK="${FACTORY_SHIM_INSTALL_MASK}"
 
@@ -143,7 +154,7 @@ if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
 fi
 
 # Mask systemd directories if this is not a systemd image.
-if ! has "systemd" "$(portageq-${FLAGS_board} envvar USE)"; then
+if ! has "systemd" "$("portageq-${FLAGS_board}" envvar USE)"; then
   COMMON_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
   DEFAULT_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
   FACTORY_SHIM_INSTALL_MASK+=" ${SYSTEMD_INSTALL_MASK}"
@@ -155,10 +166,10 @@ fi
 # If we are creating a developer image, also create a pristine image with a
 # different name.
 PRISTINE_IMAGE_NAME=
-if should_build_image ${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}; then
-  PRISTINE_IMAGE_NAME=${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}
+if should_build_image "${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}"; then
+  PRISTINE_IMAGE_NAME="${CHROMEOS_FACTORY_INSTALL_SHIM_NAME}"
 else
-  PRISTINE_IMAGE_NAME=${CHROMEOS_BASE_IMAGE_NAME}
+  PRISTINE_IMAGE_NAME="${CHROMEOS_BASE_IMAGE_NAME}"
 fi
 
 if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
@@ -181,8 +192,8 @@ fi
 mkdir -p "${BUILD_DIR}"
 
 # Create the base image.
-create_base_image ${PRISTINE_IMAGE_NAME} ${FLAGS_enable_rootfs_verification} \
-  ${FLAGS_enable_bootcache}
+create_base_image "${PRISTINE_IMAGE_NAME}" \
+  "${FLAGS_enable_rootfs_verification}" "${FLAGS_enable_bootcache}"
 
 # Running board-specific setup if any exists.
 if type board_setup &>/dev/null; then
@@ -190,16 +201,16 @@ if type board_setup &>/dev/null; then
 fi
 
 # Create a developer image if an image that is based on it is requested.
-if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME} \
-    ${CHROMEOS_TEST_IMAGE_NAME}; then
-  copy_image ${CHROMEOS_BASE_IMAGE_NAME} ${CHROMEOS_DEVELOPER_IMAGE_NAME}
-  install_dev_packages ${CHROMEOS_DEVELOPER_IMAGE_NAME}
+if should_build_image "${CHROMEOS_DEVELOPER_IMAGE_NAME}" \
+    "${CHROMEOS_TEST_IMAGE_NAME}"; then
+  copy_image "${CHROMEOS_BASE_IMAGE_NAME}" "${CHROMEOS_DEVELOPER_IMAGE_NAME}"
+  install_dev_packages "${CHROMEOS_DEVELOPER_IMAGE_NAME}"
 fi
 
 # From a developer image create a test image.
-if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
-  copy_image  ${CHROMEOS_DEVELOPER_IMAGE_NAME} ${CHROMEOS_TEST_IMAGE_NAME}
-  mod_image_for_test  ${CHROMEOS_TEST_IMAGE_NAME}
+if should_build_image "${CHROMEOS_TEST_IMAGE_NAME}"; then
+  copy_image  "${CHROMEOS_DEVELOPER_IMAGE_NAME}" "${CHROMEOS_TEST_IMAGE_NAME}"
+  mod_image_for_test  "${CHROMEOS_TEST_IMAGE_NAME}"
 fi
 
 # Move the completed image to the output_root.
@@ -210,7 +221,7 @@ build_dlc --sysroot="${BOARD_ROOT}" --install-root-dir="${OUTPUT_DIR}"
 
 # Create a named symlink.
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"
-ln -sfT $(basename ${OUTPUT_DIR}) ${LINK_NAME}
+ln -sfT "$(basename "${OUTPUT_DIR}")" "${LINK_NAME}"
 
 info "Done. Image(s) created in ${OUTPUT_DIR}"
 echo
@@ -220,6 +231,8 @@ summarize() {
   local name="$1" img="$2"
   local dir_path
 
+  # __flags_output_root_default defined in shflags.
+  # shellcheck disable=2154
   if [[ "${FLAGS_output_root}" == "${__flags_output_root_default}" ]]; then
     dir_path=${OUTSIDE_OUTPUT_DIR}
   else
@@ -235,16 +248,16 @@ summarize() {
   fi
   echo
 }
-if should_build_image ${CHROMEOS_BASE_IMAGE_NAME}; then
+if should_build_image "${CHROMEOS_BASE_IMAGE_NAME}"; then
   summarize "Non-developer Chromium OS" "${PRISTINE_IMAGE_NAME}"
 fi
-if should_build_image ${CHROMEOS_FACTORY_SHIM_NAME}; then
+if should_build_image "${CHROMEOS_FACTORY_SHIM_NAME}"; then
   summarize "Chromium OS Factory install shim" "${PRISTINE_IMAGE_NAME}"
 fi
-if should_build_image ${CHROMEOS_DEVELOPER_IMAGE_NAME}; then
+if should_build_image "${CHROMEOS_DEVELOPER_IMAGE_NAME}"; then
   summarize "Developer" "${CHROMEOS_DEVELOPER_IMAGE_NAME}" ""
 fi
-if should_build_image ${CHROMEOS_TEST_IMAGE_NAME}; then
+if should_build_image "${CHROMEOS_TEST_IMAGE_NAME}"; then
   summarize "Test" "${CHROMEOS_TEST_IMAGE_NAME}" "--test"
 fi
 
