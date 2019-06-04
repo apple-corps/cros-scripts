@@ -22,7 +22,7 @@ DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean ignore_verity $FLAGS_FALSE "Update kernel even if system is using verity"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
-DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel"
+DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel (including /boot)"
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
 DEFINE_boolean firmware $FLAGS_FALSE "Also update firmwares (/lib/firmware)"
@@ -211,7 +211,6 @@ update_syslinux_kernel() {
   # ARM does not have the syslinux directory, so skip it when the
   # partition is missing, the file system fails to mount, or the syslinux
   # vmlinuz target is missing.
-  echo "updating syslinux kernel"
   remote_sh grep $(echo ${FLAGS_device}${PARTITION_NUM_EFI_SYSTEM} | cut -d/ -f3) /proc/partitions
   if [ $(echo "$REMOTE_OUT" | wc -l) -eq 1 ]; then
     remote_sh mkdir -p /tmp/${PARTITION_NUM_EFI_SYSTEM}
@@ -292,11 +291,13 @@ main() {
     else
       remote_sh mount -o remount,rw /
     fi
-    echo "copying kernel"
-    remote_send_to /build/"${FLAGS_board}"/boot/ "${remote_basedir}"/boot/
 
-    if [ ${FLAGS_syslinux} -eq ${FLAGS_TRUE} ]; then
+    if [[ ${FLAGS_syslinux} -eq ${FLAGS_TRUE} ]]; then
+      info "Copying syslinux and /boot"
+      remote_send_to /build/"${FLAGS_board}"/boot/ "${remote_basedir}"/boot/
       update_syslinux_kernel
+    else
+      info "Skipping syslinux and /boot (per request)"
     fi
 
     copy_kernelmodules "${remote_basedir}"
