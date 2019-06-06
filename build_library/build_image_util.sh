@@ -119,7 +119,7 @@ create_boot_desc() {
   --keys_dir="${VBOOT_DEVKEYS_DIR}"
   --boot_args="${FLAGS_boot_args}"
   --nocleanup_dirs
-  --verity_algorithm=sha1
+  --verity_algorithm=sha256
   --enable_serial="${FLAGS_enable_serial}"
   --loglevel="${FLAGS_loglevel}"
   ${enable_rootfs_verification_flag}
