@@ -191,10 +191,11 @@ DST_OEM="${DST_DEV}"p8
 DST_ESP="${DST_DEV}"p12
 
 # Copy into the partition parts of the file.
-sudo cp "${SRC_ROOTFS}" "${DST_ROOTFS}"
-sudo cp "${TEMP_STATE}" "${DST_STATE}"
-sudo cp "${SRC_ESP}"    "${DST_ESP}"
-sudo cp "${SRC_OEM}"    "${DST_OEM}"
+sudo dd if="${SRC_ROOTFS}" of="${DST_ROOTFS}" status=progress bs=16M
+sudo dd if="${TEMP_STATE}" of="${DST_STATE}"  status=progress bs=16M
+sudo dd if="${SRC_ESP}"    of="${DST_ESP}"    status=progress bs=16M
+sudo dd if="${SRC_OEM}"    of="${DST_OEM}"    status=progress bs=16M
+sync
 
 TEMP_MNT=$(mktemp -d)
 TEMP_ESP_MNT=$(mktemp -d)
@@ -226,7 +227,8 @@ trap 'ret=$?; detach_loopback; die_err_trap ${ret}' INT TERM EXIT
 # cros_make_image_bootable made the kernel in slot A recovery signed. We want
 # it to be normally signed like the one in slot B, so copy B into A.
 IMAGE_DEV=$(loopback_partscan "${TEMP_IMG}")
-sudo cp ${IMAGE_DEV}p4 ${IMAGE_DEV}p2
+sudo dd if=${IMAGE_DEV}p4 of=${IMAGE_DEV}p2 status=progress bs=16M
+sync
 
 trap 'die_err_trap' INT TERM EXIT
 switch_to_strict_mode
