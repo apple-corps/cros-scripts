@@ -191,10 +191,15 @@ DST_OEM="${DST_DEV}"p8
 DST_ESP="${DST_DEV}"p12
 
 # Copy into the partition parts of the file.
-sudo dd if="${SRC_ROOTFS}" of="${DST_ROOTFS}" status=progress bs=16M
-sudo dd if="${TEMP_STATE}" of="${DST_STATE}"  status=progress bs=16M
-sudo dd if="${SRC_ESP}"    of="${DST_ESP}"    status=progress bs=16M
-sudo dd if="${SRC_OEM}"    of="${DST_OEM}"    status=progress bs=16M
+# When copying to (or from) a non-regular file, cp ignores --sparse. Since we
+# have created a collection of empty partitions for the new image above, we can
+# use 'dd conv=sparse' to both speed up the copy, and (apparently) avoid
+# b/135292499.  See also crbug.com/957712.  This only works because we know that
+# the destination partition is all zeros.
+sudo dd if="${SRC_ROOTFS}" of="${DST_ROOTFS}" conv=sparse bs=2M
+sudo dd if="${TEMP_STATE}" of="${DST_STATE}"  conv=sparse bs=2M
+sudo dd if="${SRC_ESP}"    of="${DST_ESP}"    conv=sparse bs=2M
+sudo dd if="${SRC_OEM}"    of="${DST_OEM}"    conv=sparse bs=2M
 sync
 
 TEMP_MNT=$(mktemp -d)
@@ -226,8 +231,10 @@ trap 'ret=$?; detach_loopback; die_err_trap ${ret}' INT TERM EXIT
 
 # cros_make_image_bootable made the kernel in slot A recovery signed. We want
 # it to be normally signed like the one in slot B, so copy B into A.
+# Because cros_make_image_bootable overwrote p2 above, we cannot do a sparse
+# copy.
 IMAGE_DEV=$(loopback_partscan "${TEMP_IMG}")
-sudo dd if=${IMAGE_DEV}p4 of=${IMAGE_DEV}p2 status=progress bs=16M
+sudo dd if=${IMAGE_DEV}p4 of=${IMAGE_DEV}p2 bs=2M
 sync
 
 trap 'die_err_trap' INT TERM EXIT
