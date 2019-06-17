@@ -242,6 +242,10 @@ summarize() {
   info "${name} image created as ${img}"
   info "To copy the image to a USB key, use:"
   info "  cros flash usb:// ${dir_path}/${img}"
+  info "To flash the image to a Chrome OS device, use:"
+  info "  cros flash YOUR_DEVICE_IP ${dir_path}/${img}"
+  info "Note that the device must be accessible over the network."
+  info "A base image will not work in this mode, but a test or dev image will."
   if [[ $# -ge 3 ]]; then
     info "To convert it to a VM image, use:"
     info "  ./image_to_vm.sh --from=${dir_path} --board=${BOARD} $3"
