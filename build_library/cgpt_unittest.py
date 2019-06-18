@@ -1,4 +1,5 @@
 #!/usr/bin/env python2
+# -*- coding: utf-8 -*-
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -112,13 +113,14 @@ class JSONLoadingTest(unittest.TestCase):
     layout = cgpt._LoadStackedPartitionConfig(self.layout_json)
     self.assertEqual(parent_layout, layout)
 
-  def testGetStartSectorIsAccurate(self):
-    """Test that primary_entry_array_lba results in a valid start sector."""
+  def testGetStartByteOffsetIsAccurate(self):
+    """Test that padding_bytes results in a valid start sector."""
+
     test_params = (
-        # block_size, primary_entry_array_lba, expected start
-        (512,  2,     64),
-        (512,  32768, 32768 + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY),
-        (1024, 32768, 32768 + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY),
+        # block_size, primary_entry_array_padding_bytes (in blocks)
+        (512, 2),
+        (512, 32768),
+        (1024, 32768),
     )
     for i in test_params:
       with open(self.layout_json, 'w') as f:
@@ -126,7 +128,7 @@ class JSONLoadingTest(unittest.TestCase):
   "metadata": {
     "block_size": %d,
     "fs_block_size": 4096,
-    "primary_entry_array_lba": %d
+    "primary_entry_array_padding_bytes": %d
   },
   "layouts": {
     "base": [
@@ -136,23 +138,25 @@ class JSONLoadingTest(unittest.TestCase):
       }
     ]
   }
-}""" % (i[0], i[1]))
+}""" % (i[0], i[1] * i[0]))
 
       config = cgpt.LoadPartitionConfig(self.layout_json)
       class Options(object):
+        """Fake options"""
         adjust_part = ''
       partitions = cgpt.GetPartitionTable(Options(), config, 'base')
-      start_sector = cgpt._GetStartSector(config, partitions)
-      self.assertEqual(start_sector, i[2])
+      start_offset = cgpt._GetPartitionStartByteOffset(config, partitions)
+      self.assertEqual(start_offset, cgpt.START_SECTOR + i[1] * i[0])
 
-  def testGetTableTotalsBlockCountIsAccurate(self):
+  def testGetTableTotalsSizeIsAccurate(self):
     """Test that primary_entry_array_lba results in an accurate block count."""
     test_params = (
-        # block_size, primary_entry_array_lba, partition size (MiB)
-        (512,  2,     32),
-        (1024, 2,     32),
-        (512,  2,     64),
-        (512,  32768, 32),
+        # block_size, primary_entry_array_padding_bytes (in blocks),
+        # partition size (MiB)
+        (512, 2, 32),
+        (1024, 2, 32),
+        (512, 2, 64),
+        (512, 32768, 32),
         (1024, 32768, 32),
         (1024, 32768, 64),
     )
@@ -162,7 +166,7 @@ class JSONLoadingTest(unittest.TestCase):
   "metadata": {
     "block_size": %d,
     "fs_block_size": 4096,
-    "primary_entry_array_lba": %d
+    "primary_entry_array_padding_bytes": %d
   },
   "layouts": {
     "base": [
@@ -172,20 +176,22 @@ class JSONLoadingTest(unittest.TestCase):
       }
     ]
   }
-}""" % (i[0], i[1], i[2]))
+}""" % (i[0], i[1] * i[0], i[2]))
 
       config = cgpt.LoadPartitionConfig(self.layout_json)
       class Options(object):
+        """Fake options"""
         adjust_part = ''
       partitions = cgpt.GetPartitionTable(Options(), config, 'base')
       totals = cgpt.GetTableTotals(config, partitions)
 
       # Calculate the expected image block size.
-      block_count = (
-          cgpt._GetStartSector(config, partitions) +
-          sum([i['blocks'] for i in partitions]) +
-          cgpt.SIZE_OF_GPT_HEADER + cgpt.SIZE_OF_PARTITION_ENTRY_ARRAY)
-      self.assertEqual(totals['block_count'], block_count)
+      total_size = (
+          cgpt._GetPartitionStartByteOffset(config, partitions) +
+          sum([x['bytes'] for x in partitions]) +
+          cgpt.SECONDARY_GPT_BYTES)
+
+      self.assertEqual(totals['byte_count'], total_size)
 
   def testGapPartitionsAreIncluded(self):
     """Test that empty partitions (gaps) can be included in the child layout."""
@@ -353,7 +359,7 @@ class JSONLoadingTest(unittest.TestCase):
     try:
       cgpt.LoadPartitionConfig(self.layout_json)
     except cgpt.InvalidSize as e:
-      self.assertTrue('not an even number of fs blocks' in str(e))
+      self.assertTrue('not an even multiple of fs_align' in str(e))
     else:
       self.fail('InvalidSize not raised.')
 
@@ -479,33 +485,33 @@ class JSONLoadingTest(unittest.TestCase):
     self.assertEqual(
         cgpt.LoadPartitionConfig(self.layout_json),
         {
-            'layouts': {
-                'base': [
+            u'layouts': {
+                u'base': [
                     {
-                        'erase_block_size': 262144,
+                        u'erase_block_size': 262144,
                         'features': [],
-                        'num': 'metadata',
-                        'page_size': 4096,
+                        u'num': u'metadata',
+                        u'page_size': 4096,
                         'type': 'blank'
                     },
                     {
-                        'blocks': 512,
                         'bytes': 262144,
                         'features': [],
-                        'format': 'ubi',
+                        u'format': u'ubi',
                         'fs_bytes': 253952,
-                        'fs_size': "253952",
-                        'label': 'ROOT-A',
-                        'num': 1,
-                        'size': '256 KiB',
-                        'type': 'rootfs'
+                        u'fs_size': u"253952",
+                        u'label': u'ROOT-A',
+                        u'num': 1,
+                        u'size': u'256 KiB',
+                        u'type': u'rootfs'
                     }
                 ],
                 'common': []
             },
-            'metadata': {
-                'block_size': 512,
-                'fs_block_size': 4096
+            u'metadata': {
+                u'block_size': u'512',
+                'fs_align': 4096,
+                u'fs_block_size': 4096
             }
         })
 
