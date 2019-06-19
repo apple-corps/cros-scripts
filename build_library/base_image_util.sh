@@ -326,10 +326,6 @@ create_base_image() {
     arc_flags+=("--arc_android_sdk_version=${CHROMEOS_ARC_ANDROID_SDK_VERSION}")
   fi
 
-  "${VBOOT_SIGNING_DIR}"/insert_container_publickey.sh \
-    "${root_fs_dir}" \
-    "${VBOOT_DEVKEYS_DIR}"/cros-oci-container-pub.pem
-
   local builder_path=
   if [[ -n "${FLAGS_builder_path}" ]]; then
     builder_path="--builder_path=${FLAGS_builder_path}"
