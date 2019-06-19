@@ -633,7 +633,7 @@ early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
 # https://crbug.com/715788
 info "Updating host toolchain"
 if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
-  early_enter_chroot $EMERGE_CMD -uNv crossdev
+  early_enter_chroot ${EMERGE_CMD} -uNv crossdev
 fi
 TOOLCHAIN_ARGS=( --deleteold )
 if [[ "${FLAGS_usepkg}" == "${FLAGS_FALSE}" ]]; then
@@ -654,7 +654,7 @@ early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
 
 info "Running emerge curl sudo gentoolkit ..."
-early_enter_chroot $EMERGE_CMD -uNv $USEPKG --select $EMERGE_JOBS \
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
   pbzip2 dev-libs/openssl net-misc/curl sudo app-portage/gentoolkit
 
 info "Updating Perl modules"
