@@ -74,11 +74,14 @@ FULLNAME="ChromeOS Developer"
 DEFGROUPS="${PRIMARY_GROUP},adm,cdrom,floppy,audio,video,portage"
 
 USEPKG=""
+USEPKGONLY=""
 if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
   # Use binary packages. Include all build-time dependencies,
   # so as to avoid unnecessary differences between source
   # and binary builds.
   USEPKG="--getbinpkg --usepkg --with-bdeps y"
+  # Use --usepkgonly to avoid building toolchain packages from source.
+  USEPKGONLY="--usepkgonly"
 fi
 
 EMERGE_CMD="${CHROOT_TRUNK_DIR}/chromite/bin/parallel_emerge"
@@ -638,11 +641,11 @@ if [[ "${FLAGS_usepkg}" == "${FLAGS_FALSE}" ]]; then
 fi
 # First the low level compiler tools.  These should be fairly independent of
 # the C library, so we can do it first.
-early_enter_chroot ${EMERGE_CMD} -uNv ${EMERGE_JOBS} \
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${USEPKGONLY} ${EMERGE_JOBS} \
   sys-devel/binutils
 # Next the C library.  The compilers often use newer features, but the C library
 # is often designed to work with older compilers.
-early_enter_chroot ${EMERGE_CMD} -uNv ${EMERGE_JOBS} \
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${USEPKGONLY} ${EMERGE_JOBS} \
   sys-kernel/linux-headers sys-libs/glibc
 # Now we can let the rest of the compiler packages build in parallel as they
 # don't generally rely on each other.
