@@ -95,34 +95,15 @@ _make_conf_private() {
 # $1 - 'wget' for bootstrapping; 'curl' otherwise.
 # $2 - When outside the chroot, path to the chroot.  Empty when
 #      inside the chroot.
-# $3 - boolean indicating whether to set clang as default host
-#      compiler or not.
 _create_host_setup() {
   local fetchtype="$1"
   local host_setup="$2/etc/make.conf.host_setup"
-  local use_clang="$3"
-  local cc_string=""
-  local cxx_string=""
-  local build_cc_string=""
-  local build_cxx_string=""
-
-  if [[ "${use_clang}" == "true" ]];  then
-      cc_string='CC=${CHOST}-clang'
-      cxx_string='CXX=${CHOST}-clang++'
-      build_cc_string='BUILD_CC=${CHOST}-clang'
-      build_cxx_string='BUILD_CXX=${CHOST}-clang++'
-  fi
-
   ( echo "# Automatically generated.  EDIT THIS AND BE SORRY."
     echo
     _make_conf_fetchcommand "$fetchtype"
     _make_conf_private "$fetchtype"
     _make_conf_prebuilt
-    echo 'MAKEOPTS="-j'${NUM_JOBS}'"'
-    echo "${cc_string}"
-    echo "${cxx_string}"
-    echo "${build_cc_string}"
-    echo "${build_cxx_string}" ) | sudo_clobber "$host_setup"
+    echo 'MAKEOPTS="-j'${NUM_JOBS}'"' ) | sudo_clobber "$host_setup"
   sudo chmod 644 "$host_setup"
 }
 
@@ -134,11 +115,11 @@ _create_host_setup() {
 # Usage:
 #   $1 - Path to chroot as seen from outside
 create_bootstrap_host_setup() {
-  _create_host_setup wget "$@" "" ""
+  _create_host_setup wget "$@"
 }
 
 
 # Create /etc/make.conf.host_setup for normal usage.
 create_host_setup() {
-  _create_host_setup curl "" "true"
+  _create_host_setup curl ''
 }
