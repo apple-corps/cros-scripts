@@ -43,12 +43,18 @@ sudo rm -rf netboot
 mkdir -p netboot
 
 # Get netboot firmware.
-FIRMWARE_PATH="/firmware/image.net.bin"
-if [ -f "${SYSROOT}${FIRMWARE_PATH}" ]; then
-  echo "Copying netboot firmware ${FIRMWARE_PATH}..."
-  cp -v "${SYSROOT}${FIRMWARE_PATH}" netboot/
+FIRMWARE_PATTERN="firmware/image*.net.bin"
+FIRMWARE_PATHS=("${SYSROOT}"/${FIRMWARE_PATTERN})
+# When there is no netboot firmware found, filename expansion fails and the
+# array still contains the original pattern string, so we need to check if the
+# first file in the array actually exists to know if we find any firmware.
+if [ -e "${FIRMWARE_PATHS[0]}" ]; then
+  for firmware_path in "${FIRMWARE_PATHS[@]}"; do
+    echo "Copying netboot firmware ${firmware_path}..."
+    cp -v "${firmware_path}" netboot/
+  done
 else
-  echo "Skipping netboot firmware: ${SYSROOT}${FIRMWARE_PATH} not present?"
+  echo "Skipping netboot firmware: ${SYSROOT}/${FIRMWARE_PATTERN} not present?"
 fi
 
 # Create temporary emerge root
