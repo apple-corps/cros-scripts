@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -555,6 +555,10 @@ class UtilityTest(unittest.TestCase):
     for exp, inp in test_cases:
       self.assertEqual(cgpt.ProduceHumanNumber(inp), exp)
 
+  def testGetScriptShell(self):
+    """Verify GetScriptShell works."""
+    data = cgpt.GetScriptShell()
+    self.assertIn('#!/bin/sh', data)
 
   def testParseProduce(self):
     """Test that ParseHumanNumber(ProduceHumanNumber()) yields same value."""

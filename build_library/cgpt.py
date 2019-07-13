@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -270,7 +270,7 @@ def _LoadStackedPartitionConfig(filename):
 
   # Let's first apply our new configs onto base.
   common_layout = config['layouts'].setdefault(COMMON_LAYOUT, [])
-  for layout_name, layout in config['layouts'].iteritems():
+  for layout_name, layout in config['layouts'].items():
     # Don't apply on yourself.
     if layout_name == COMMON_LAYOUT or layout_name == '_comment':
       continue
@@ -323,7 +323,7 @@ def _LoadStackedPartitionConfig(filename):
 
     # Iterate through each layout in the parent config and apply the new layout.
     common_layout = config['layouts'].setdefault(COMMON_LAYOUT, [])
-    for layout_name, parent_layout in parent_config['layouts'].iteritems():
+    for layout_name, parent_layout in parent_config['layouts'].items():
       if layout_name == '_comment':
         continue
 
@@ -381,7 +381,7 @@ def LoadPartitionConfig(filename):
     if not BASE_LAYOUT in config['layouts'].keys():
       raise InvalidLayout('Missing "base" config in "layouts"')
 
-    for layout_name, layout in config['layouts'].iteritems():
+    for layout_name, layout in config['layouts'].items():
       if layout_name == '_comment':
         continue
 
@@ -604,7 +604,7 @@ def GetPartitionTable(options, config, image_type):
     if isinstance(fs_options, dict):
       fs_format = partition.get('fs_format')
       fs_options = fs_options.get(fs_format, '')
-    elif not isinstance(fs_options, basestring):
+    elif not isinstance(fs_options, str):
       raise InvalidLayout('Partition number %s: fs_format must be a string or '
                           'dict, not %s' % (partition.get('num'),
                                             type(fs_options)))
@@ -1538,7 +1538,7 @@ def GetParser():
   }
 
   subparsers = parser.add_subparsers(title='Commands')
-  for name, func in sorted(action_map.iteritems()):
+  for name, func in sorted(action_map.items()):
     # Turn the func's docstring into something we can show the user.
     desc, doc = func.__doc__.split('\n', 1)
     # Extract the help for each argument.
