@@ -106,7 +106,7 @@ load_image_partition_numbers() {
   local image
   if [[ -b "${FLAGS_from}" ]]; then
     image="${FLAGS_from}"
-  else
+  elif [[ -n "${FLAGS_from}" ]]; then
     image="${FLAGS_from}/${FLAGS_image}"
     if [[ ! -f "${image}" ]]; then
       die "Image ${image} does not exist."
@@ -152,23 +152,22 @@ unmount_image() {
     fix_broken_symlinks "${FLAGS_rootfs_mountpt}"
   fi
 
+  local loopdev
   local filename
   if [[ -b "${FLAGS_from}" ]]; then
     filename="${FLAGS_from}"
-  else
+  elif [[ -n "${FLAGS_from}" ]]; then
     filename="${FLAGS_from}/${FLAGS_image}"
     if [[ ! -f "${filename}" ]]; then
-      if [[ "${FLAGS_image}" == "${DEFAULT_IMAGE}" ]]; then
-        warn "Umount called without passing the image. Some filesystems can't" \
-          "be unmounted in this way."
-        filename=""
-      else
-        die "Image ${filename} does not exist."
-      fi
+      die "Image ${filename} does not exist."
     fi
   fi
-
-  local loopdev="$(loopback_partscan "${filename}")"
+  if [[ -z "${filename}" ]]; then
+    warn "Umount called without passing the image. Some filesystems can't" \
+         "be unmounted in this way."
+  else
+    loopdev="$(loopback_partscan "${filename}")"
+  fi
 
   # Unmount in reverse order: EFI, OEM, stateful and rootfs.
   local var_name mountpoint fs_format fs_options
@@ -205,7 +204,9 @@ unmount_image() {
     fs_umount "${part_loop}" "${mountpoint}" "${fs_format}" "${fs_options}"
   done
 
-  sudo losetup -d "${loopdev}"
+  if [[ -n "${loopdev}" ]]; then
+    sudo losetup -d "${loopdev}"
+  fi
 
   # We need to remove the mountpoints after we unmount all the partitions since
   # there could be nested mounts.
