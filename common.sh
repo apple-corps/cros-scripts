@@ -846,6 +846,11 @@ setup_symlinks_on_root() {
   local var_target=$2
   local dev_image_root="$3/dev_image"
 
+  # Make sure the dev_image dir itself exists.
+  if [[ ! -d "${dev_image_root}" ]]; then
+    sudo mkdir "${dev_image_root}"
+  fi
+
   # If our var target is actually the standard var, we are cleaning up the
   # symlinks (could also check for /usr/local for the dev_image_target).
   if [[ ${var_target} == "/var" ]]; then
