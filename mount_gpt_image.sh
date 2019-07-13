@@ -353,12 +353,23 @@ mount_image() {
     die "Failed to mount all partitions in ${FLAGS_from}/${FLAGS_image}"
   fi
 
-  # Mount directories and setup symlinks.
-  sudo mount --bind "${FLAGS_stateful_mountpt}" \
+  # Mount directories and setup symlinks.  Create dirs on demand in case they
+  # were wiped out for some reason (devs like to dev!).
+  mkdir_and_mount() {
+    local src="$1" dst="$2"
+    if [[ ! -d "${src}" ]]; then
+      sudo mkdir "${src}"
+    fi
+    if [[ ! -d "${dst}" ]]; then
+      sudo mkdir "${dst}"
+    fi
+    sudo mount --bind "${src}" "${dst}"
+  }
+  mkdir_and_mount "${FLAGS_stateful_mountpt}" \
     "${FLAGS_rootfs_mountpt}/mnt/stateful_partition"
-  sudo mount --bind "${FLAGS_stateful_mountpt}/var_overlay" \
+  mkdir_and_mount "${FLAGS_stateful_mountpt}/var_overlay" \
     "${FLAGS_rootfs_mountpt}/var"
-  sudo mount --bind "${FLAGS_stateful_mountpt}/dev_image" \
+  mkdir_and_mount "${FLAGS_stateful_mountpt}/dev_image" \
     "${FLAGS_rootfs_mountpt}/usr/local"
 
   if [[ ${FLAGS_read_only} -eq ${FLAGS_FALSE} ]]; then
