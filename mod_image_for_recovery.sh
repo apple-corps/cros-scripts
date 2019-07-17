@@ -48,6 +48,8 @@ DEFINE_boolean verbose $FLAGS_FALSE \
   "log all commands to stdout" v
 DEFINE_boolean decrypt_stateful $FLAGS_FALSE \
   "request a decryption of the stateful partition (implies --nominimize_image)"
+DEFINE_string enable_serial "" \
+  "Enable serial output (same as build_kernel_image.sh). Example: ttyS0"
 
 # Parse command line
 FLAGS "$@" || exit 1
@@ -147,6 +149,7 @@ create_recovery_kernel_image() {
     --vmlinuz="$vmlinuz" \
     --working_dir="${IMAGE_DIR}" \
     --boot_args="noinitrd panic=60 cros_recovery kern_b_hash=$kern_hash" \
+    --enable_serial="${FLAGS_enable_serial}" \
     --keep_work \
     --keys_dir="${FLAGS_keys_dir}" \
     ${enable_rootfs_verification_flag} \
