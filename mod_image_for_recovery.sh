@@ -104,10 +104,6 @@ get_install_vblock() {
 create_recovery_kernel_image() {
   local sysroot="$FACTORY_ROOT"
   local vmlinuz="$sysroot/boot/vmlinuz"
-  local partition_num_root_a=$(get_image_partition_number "${RECOVERY_IMAGE}" \
-    "ROOT-A")
-  local root_offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_root_a}")
-  local root_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_root_a}")
 
   local enable_rootfs_verification_flag=--noenable_rootfs_verification
   if grep -q enable_rootfs_verification "${IMAGE_DIR}/boot.desc"; then
