@@ -985,25 +985,6 @@ command_completed() {
   print_time_elapsed ${run_time} ${cmd_base}
 }
 
-# The board and variant command line options can be used in a number of ways
-# to specify the board and variant.  The board can encode both pieces of
-# information separated by underscores.  Or the variant can be passed using
-# the separate variant option.  This function extracts the canonical board and
-# variant information and provides it in the BOARD, VARIANT and BOARD_VARIANT
-# variables.
-get_board_and_variant() {
-  local flags_board=$1
-  local flags_variant=$2
-
-  BOARD=$(echo "${flags_board}" | cut -d '_' -f 1)
-  VARIANT=${flags_variant:-$(echo "${flags_board}" | cut -s -d '_' -f 2)}
-
-  BOARD_VARIANT=${BOARD}
-  if [[ -n ${VARIANT} ]]; then
-    BOARD_VARIANT+="_${VARIANT}"
-  fi
-}
-
 # Load a single variable from a bash file.
 # $1 - Path to the file.
 # $2 - Variable to get.
