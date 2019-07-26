@@ -139,11 +139,23 @@ get_bootargs() {
   fi
 }
 
+learn_arch() {
+  [ -n "${FLAGS_arch}" ] && return
+  FLAGS_arch=$(sed -n -E 's/^CONFIG_(ARM|ARM64|X86)=y/\1/p' \
+               /build/"${FLAGS_board}"/boot/config-* | \
+               uniq | awk '{print tolower($0)}')
+  if [ -z "${FLAGS_arch}" ]; then
+    error "Arch required"
+    exit 1
+  fi
+  info "Target reports arch is ${FLAGS_arch}"
+}
+
 make_kernelimage() {
   local bootloader_path
   local kernel_image
   local config_path="$(mktemp /tmp/config.txt.XXXXX)"
-  if [[ "${FLAGS_arch}" == "arm" ]]; then
+  if [[ "${FLAGS_arch}" == "arm" || "${FLAGS_arch}" == "arm64" ]]; then
     name="bootloader.bin"
     bootloader_path="${SRC_ROOT}/build/images/${FLAGS_board}/latest/${name}"
     # If there is no local bootloader stub, create a dummy file.  This matches
@@ -271,9 +283,9 @@ main() {
 
   remote_access_init
 
-  learn_arch
-
   learn_board
+
+  learn_arch
 
   learn_device
 
