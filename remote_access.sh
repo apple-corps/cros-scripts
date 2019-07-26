@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright (c) 2009 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -72,7 +73,19 @@ remote_cp_to() {
 # Raw rsync access to the remote
 # Use like: remote_rsync_raw -a /path/from/ root@${FLAGS_remote}:/path/to/
 remote_rsync_raw() {
-  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings)" "$@"
+  local reason=0
+  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings)" "$@" || reason=$?
+  case ${reason} in
+    11 )
+      # no space left on device, call handle_no_space if implemented
+      if command -v handle_no_space >/dev/null; then
+        handle_no_space
+      fi
+      ;;
+    * )
+      ;;
+  esac
+  return ${reason}
 }
 
 # Copies a list of remote files specified in file $1 to local location

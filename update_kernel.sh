@@ -19,6 +19,7 @@ DEFINE_string partition "" "Override kernel partition reported by target"
 DEFINE_string rootoff "" "Override root offset"
 DEFINE_string rootfs "" "Override rootfs partition reported by target"
 DEFINE_string arch "" "Override architecture reported by target"
+DEFINE_boolean clean $FLAGS_FALSE "Remove old files before sending new files"
 DEFINE_boolean ignore_verity $FLAGS_FALSE "Update kernel even if system is using verity"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
@@ -41,6 +42,16 @@ switch_to_strict_mode
 cleanup() {
   cleanup_remote_access
   rm -rf "${TMP}"
+}
+
+# If rsync errors due to no space on the device, suggest running with the clean
+# flag to make space before copying
+handle_no_space() {
+  if [[ ${FLAGS_clean} -ne ${FLAGS_TRUE} ]]; then
+    warn "There is not enough space to copy all necessary files."
+    warn "Try running again with the --clean flag."
+  fi
+  die_notrace "No space left on device."
 }
 
 learn_device() {
@@ -162,12 +173,16 @@ make_kernelimage() {
 
 copy_kernelmodules() {
   local basedir="$1" # rootfs directory (could be in /tmp) or empty string
-  echo "copying modules"
   local modules_dir=/build/"${FLAGS_board}"/lib/modules/
   if [ ! -d "${modules_dir}" ]; then
-    info "No modules.  Skipping."
+    info "No modules. Skipping."
     return
   fi
+  if [[ ${FLAGS_clean} -eq ${FLAGS_TRUE} ]]; then
+    info "Cleaning /lib/modules"
+    remote_sh rm -rf "${basedir}/lib/modules/*"
+  fi
+  info "Copying modules"
   remote_send_to "${modules_dir}" "${basedir}"/lib/modules
   local kernel_release
   remote_sh "cd ${basedir}/lib/modules; echo *"
@@ -293,6 +308,10 @@ main() {
     fi
 
     if [[ ${FLAGS_syslinux} -eq ${FLAGS_TRUE} ]]; then
+      if [[ ${FLAGS_clean} -eq ${FLAGS_TRUE} ]]; then
+        info "Cleaning /boot"
+        remote_sh rm -rf "${remote_basedir}"/boot/{System,config,vmlinuz}'*'
+      fi
       info "Copying syslinux and /boot"
       remote_send_to /build/"${FLAGS_board}"/boot/ "${remote_basedir}"/boot/
       update_syslinux_kernel
@@ -303,6 +322,10 @@ main() {
     copy_kernelmodules "${remote_basedir}"
 
     if [[ ${FLAGS_firmware} -eq ${FLAGS_TRUE} ]]; then
+      if [[ ${FLAGS_clean} -eq ${FLAGS_TRUE} ]]; then
+        info "Cleaning /lib/firmware"
+        remote_sh rm -rf "${remote_basedir}/lib/firmware/*"
+      fi
       echo "copying firmware (per request)"
       remote_send_to /build/"${FLAGS_board}"/lib/firmware/ \
                      "${remote_basedir}"/lib/firmware/
