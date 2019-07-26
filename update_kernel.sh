@@ -328,7 +328,7 @@ main() {
         info "Cleaning /lib/firmware"
         remote_sh rm -rf "${remote_basedir}/lib/firmware/*"
       fi
-      echo "copying firmware (per request)"
+      info "Copying firmware (per request)"
       remote_send_to /build/"${FLAGS_board}"/lib/firmware/ \
                      "${remote_basedir}"/lib/firmware/
     fi
