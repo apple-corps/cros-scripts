@@ -511,16 +511,6 @@ setup_board_warning() {
   echo
 }
 
-is_nfs() {
-  [[ $(stat -f -L -c %T "$1") == "nfs" ]]
-}
-
-warn_if_nfs() {
-  if is_nfs "$1"; then
-    warn "$1 is on NFS. This is untested. You can send patches if it's broken."
-  fi
-}
-
 # Enter a chroot and restart the current script if needed
 restart_in_chroot_if_needed() {
   # NB:  Pass in ARGV:  restart_in_chroot_if_needed "$@"

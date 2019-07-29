@@ -703,4 +703,10 @@ $ cros_sdk --delete $CHROOT_EXAMPLE_OPT
 
 EOF
 
-warn_if_nfs "${SUDO_HOME}"
+is_nfs() {
+  [[ $(stat -f -L -c %T "$1") == "nfs" ]]
+}
+
+if is_nfs "$1"; then
+  warn "$1 is on NFS. This is untested. You can send patches if it's broken."
+fi
