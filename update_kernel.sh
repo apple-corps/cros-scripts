@@ -185,8 +185,10 @@ copy_kernelmodules() {
   info "Copying modules"
   remote_send_to "${modules_dir}" "${basedir}"/lib/modules
   local kernel_release
+  local kernel_releases
   remote_sh "cd ${basedir}/lib/modules; echo *"
-  for kernel_release in "${REMOTE_OUT}"; do
+  IFS=" " read -a kernel_releases <<< "${REMOTE_OUT}"
+  for kernel_release in "${kernel_releases[@]}"; do
     local system_map="${modules_dir}"/"${kernel_release}"/build/System.map
     if [ -r "${system_map}" ]; then
       remote_sh mktemp -d /tmp/update_kernel_system_map_"${kernel_release}".XXXXXX
