@@ -48,7 +48,6 @@ DEFINE_boolean useimage $FLAGS_FALSE "Mount the chroot on a loopback image."
 FLAGS_HELP="usage: $SCRIPT_NAME [flags]"
 FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
-check_flags_only_and_allow_null_arg "$@" && set --
 
 CROS_LOG_PREFIX=cros_sdk:make_chroot
 SUDO_HOME=$(eval echo ~"${SUDO_USER}")

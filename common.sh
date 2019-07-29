@@ -563,29 +563,6 @@ assert_root_user() {
   fi
 }
 
-# Check that all arguments are flags; that is, there are no remaining arguments
-# after parsing from shflags.  Allow (with a warning) a single empty-string
-# argument.
-#
-# TODO: fix buildbot so that it doesn't pass the empty-string parameter,
-# then change this function.
-#
-# Usage: check_flags_only_and_allow_null_arg "$@" && set --
-check_flags_only_and_allow_null_arg() {
-  local do_shift=1
-  if [[ $# -eq 1 ]] && [[ -z $1 ]]; then
-    echo "$0: warning: ignoring null argument" >&2
-    shift
-    do_shift=0
-  fi
-  if [[ $# -gt 0 ]]; then
-    echo "error: invalid arguments: \"$*\"" >&2
-    flags_help
-    exit 1
-  fi
-  return ${do_shift}
-}
-
 # Removes single quotes around parameter
 # Arguments:
 #   $1 - string which optionally has surrounding quotes
