@@ -739,18 +739,6 @@ loopback_detach() {
   au_generator_sudo losetup --detach "$@"
 }
 
-# Get the size of a regular file or a block device.
-#
-# $1 - The regular file or block device to get the size of.
-bd_safe_size() {
-  local file="$1"
-  if [[ -b "${file}" ]]; then
-    sudo blockdev --getsize64 "${file}"
-  else
-    stat -c%s "${file}"
-  fi
-}
-
 # Fixes symlinks that are incorrectly prefixed with the build root $1
 # rather than the real running root '/'.
 # TODO(sosa) - Merge setup - cleanup below with this method.
