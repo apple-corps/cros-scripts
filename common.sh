@@ -540,15 +540,6 @@ assert_root_user() {
   fi
 }
 
-# Removes single quotes around parameter
-# Arguments:
-#   $1 - string which optionally has surrounding quotes
-# Returns:
-#   None, but prints the string without quotes.
-remove_quotes() {
-  echo "$1" | sed -e "s/^'//; s/'$//"
-}
-
 # Writes stdin to the given file name as root using sudo in overwrite mode.
 #
 # $1 - The output file name.

@@ -37,6 +37,15 @@ cleanup() {
   rm -rf "${TMP}"
 }
 
+# Removes single quotes around parameter
+# Arguments:
+#   $1 - string which optionally has surrounding quotes
+# Returns:
+#   None, but prints the string without quotes.
+remove_quotes() {
+  echo "$1" | sed -e "s/^'//; s/'$//"
+}
+
 # Echoes kind of crash (minidump or kcrash).
 get_kind() {
   local kind="${1##*.}"
