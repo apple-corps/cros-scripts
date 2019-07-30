@@ -12,6 +12,9 @@ if [ "${UID:-$(id -u)}" != 0 ]; then
   # explicitly bounces up to root for everything it does- that way
   # if anyone introduces a temp depriving in the sudo setup, it can't break
   # mid upgrade.
+
+  . "$(dirname "$(dirname "$0")")/common.sh" || exit 1
+
   load_environment_whitelist
   exec sudo bash "$0" / "${USER}" "${ENVIRONMENT_WHITELIST[@]}"
   exit 1
