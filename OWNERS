@@ -1,1 +1,3 @@
+per-file update_kernel.sh = dianders@chromium.org,groeck@chromium.org
+
 include chromiumos/chromite:OWNERS.build
