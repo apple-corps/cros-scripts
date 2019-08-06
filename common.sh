@@ -500,17 +500,6 @@ SYSTEMD_INSTALL_MASK="
 # -----------------------------------------------------------------------------
 # Functions
 
-setup_board_warning() {
-  echo
-  echo "${V_REVERSE}================  WARNING  =====================${V_VIDOFF}"
-  echo
-  echo "*** No default board detected in " \
-    "${GCLIENT_ROOT}/src/scripts/.default_board"
-  echo "*** Either run setup_board with default flag set"
-  echo "*** or echo |board_name| > ${GCLIENT_ROOT}/src/scripts/.default_board"
-  echo
-}
-
 # Enter a chroot and restart the current script if needed
 restart_in_chroot_if_needed() {
   # NB:  Pass in ARGV:  restart_in_chroot_if_needed "$@"
