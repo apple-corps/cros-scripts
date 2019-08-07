@@ -288,8 +288,13 @@ setup_gclient_cache_dir_mount() {
     return 0
   fi
 
+  # See if the cache dir exists outside of the chroot.
   if [[ ! -d "${cache_dir}" ]]; then
-    warn "Gclient cache dir \"${cache_dir}\" is not a directory."
+    # See if it exists inside the chroot (which can happen if the checkout was
+    # created in there).
+    if [[ ! -d "${FLAGS_chroot}/${cache_dir}" ]]; then
+      warn "Gclient cache dir \"${cache_dir}\" is not a directory."
+    fi
     return 0
   fi
 
