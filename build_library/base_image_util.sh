@@ -307,6 +307,13 @@ create_base_image() {
     fi
   done
 
+  # If Python 2 is installed in the rootfs, make sure it's the default.  If we
+  # have multiple versions, there's no guarantee as to which was selected.
+  # TODO(vapier): Make Python 3 the default!
+  if [[ -e "${root_fs_dir}/usr/bin/python2.7" ]]; then
+    sudo env ROOT="${root_fs_dir}" eselect python set python2.7
+  fi
+
   # Set /etc/lsb-release on the image.
   local official_flag=
   if [[ "${CHROMEOS_OFFICIAL:-0}" == "1" ]]; then

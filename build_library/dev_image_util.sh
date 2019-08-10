@@ -34,6 +34,13 @@ install_dev_packages() {
   # Install developer packages.
   emerge_to_image --root="${root_dev_dir}" virtual/target-os-dev
 
+  # If Python 2 is installed in the dev image, make sure it's the default.  If
+  # we have multiple versions, there's no guarantee as to which was selected.
+  # TODO(vapier): Make Python 3 the default!
+  if [[ -e "${root_dev_dir}/usr/bin/python2.7" ]]; then
+    sudo env ROOT="${root_dev_dir}" eselect python set python2.7
+  fi
+
   # Run depmod to recalculate the kernel module dependencies.
   run_depmod "${BOARD_ROOT}" "${root_fs_dir}"
 
