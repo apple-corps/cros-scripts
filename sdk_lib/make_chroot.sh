@@ -571,12 +571,8 @@ fi
 # Add version of stage3 for update checks.
 echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 
-# New versions of the stage3 have Python 3 set as the default. Make sure we
-# default to 2.x as our scripts are only compatible with Python 2. We leave
-# Python 3 installed though as we've started including it in our SDK.
-# We can't just "set 1" because the option order changes for different stage3
-# tarballs.
-early_enter_chroot eselect python update --ignore "3*"
+# Switch SDK python to Python 3 by default.
+early_enter_chroot eselect python update
 
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet portage
@@ -591,7 +587,7 @@ if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
 fi
 
 # Add chromite into python path.
-for python_path in "${FLAGS_chroot}/usr/lib/"python2.*; do
+for python_path in "${FLAGS_chroot}/usr/lib/"python*.*; do
   python_path+="/site-packages"
   sudo mkdir -p "${python_path}"
   sudo ln -s -fT "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"/chromite
