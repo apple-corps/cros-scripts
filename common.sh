@@ -1027,17 +1027,6 @@ emerge_custom_kernel() {
     --root=${install_root} ${kernel} || die "Cannot emerge kernel to root"
 }
 
-enable_strict_sudo() {
-  if [[ -z ${CROS_SUDO_KEEP_ALIVE} ]]; then
-    echo "$0 was somehow invoked in a way that the sudo keep alive could"
-    echo "not be found.  Failing due to this.  See crosbug.com/18393."
-    exit 126
-  fi
-  sudo() {
-    $(type -P sudo) -n "$@"
-  }
-}
-
 # Display --help if requested. This is used to hide options from help
 # that are not intended for developer use.
 #
