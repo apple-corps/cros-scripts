@@ -887,41 +887,6 @@ command_completed() {
   print_time_elapsed ${run_time} ${cmd_base}
 }
 
-# Load a single variable from a bash file.
-# $1 - Path to the file.
-# $2 - Variable to get.
-get_variable() {
-  local filepath=$1
-  local variable=$2
-  local lockfile="${filepath}.lock"
-
-  if [[ -e "${filepath}" ]]; then
-    userowned_file "${lockfile}"
-    (
-      flock 201
-      . "${filepath}"
-      if [[ "${!variable+set}" == "set" ]]; then
-        echo "${!variable}"
-      fi
-    ) 201>"${lockfile}"
-  fi
-}
-
-# Creates a user owned file.
-# $1 - Path to the file.
-userowned_file() {
-  local filepath=$1
-
-  if [[ ! -w "${filepath}" ]]; then
-    cmds=(
-      "mkdir -p '$(dirname "${filepath}")'"
-      "touch '${filepath}'"
-      "chown ${USER} '${filepath}'"
-    )
-    sudo_multi "${cmds[@]}"
-  fi
-}
-
 # Load configuration files that allow board-specific overrides of default
 # functionality to be specified in overlays.
 # $1 - File to load.

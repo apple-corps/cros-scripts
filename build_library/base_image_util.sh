@@ -114,11 +114,30 @@ create_dev_install_lists() {
   rm -r "${pkgs_out}"
 }
 
+# Load a single variable from a bash file.
+# $1 - Path to the file.
+# $2 - Variable to get.
+_get_variable() {
+  local filepath=$1
+  local variable=$2
+  local lockfile="${filepath}.lock"
+
+  if [[ -e "${filepath}" ]]; then
+    (
+      flock 201
+      . "${filepath}"
+      if [[ "${!variable+set}" == "set" ]]; then
+        echo "${!variable}"
+      fi
+    ) 201>"${lockfile}"
+  fi
+}
+
 install_libc() {
   root_fs_dir="$1"
   # We need to install libc manually from the cross toolchain.
   # TODO: Improve this? It would be ideal to use emerge to do this.
-  libc_version="$(get_variable "${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}" \
+  libc_version="$(_get_variable "${BOARD_ROOT}/${SYSROOT_SETTINGS_FILE}" \
     "LIBC_VERSION")"
   PKGDIR="/var/lib/portage/pkgs"
   local libc_atom="cross-${CHOST}/glibc-${libc_version}"
