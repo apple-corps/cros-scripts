@@ -371,10 +371,6 @@ if [[ -f ${GCLIENT_ROOT}/src/scripts/.default_board ]]; then
         "'${DEFAULT_BOARD}'"
   fi
 fi
-# Stub to get people to upgrade.
-get_default_board() {
-  warn "please upgrade your script, and make sure to run build_packages"
-}
 
 # Enable --fast by default.
 DEFAULT_FAST=${FLAGS_TRUE}
