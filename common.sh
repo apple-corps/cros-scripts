@@ -666,17 +666,6 @@ safe_umount() {
   $([[ ${UID:-$(id -u)} != 0 ]] && echo sudo) umount "$@"
 }
 
-# Run a command with sudo in a way that still preferentially uses files
-# from au-generator.zip, but still finds things in /sbin and /usr/sbin when
-# not using au-generator.zip.
-au_generator_sudo() {
-  # When searching for env, the unmodified path is used and env is potentially
-  # found somewhere out in the system. env itself sees the modified PATH
-  # and will find the command where we're telling it to. Running the command
-  # directly without env will escape our constructed PATH.
-  sudo -E PATH="${PATH}:/sbin:/usr/sbin" env "$@"
-}
-
 # Setup a loopback device for a file and scan for partitions, with retries.
 #
 # $1 - The file to back the new loopback device.
@@ -684,11 +673,11 @@ au_generator_sudo() {
 loopback_partscan() {
   local lb_dev image="$1"
   shift
-  lb_dev=$(au_generator_sudo losetup --show -f "$@" "${image}")
+  lb_dev=$(sudo losetup --show -f "$@" "${image}")
   # Ignore problems deleting existing partitions. There shouldn't be any
   # which will upset partx, but that's actually ok.
-  au_generator_sudo partx -d "${lb_dev}" 2>/dev/null || true
-  au_generator_sudo partx -a "${lb_dev}"
+  sudo partx -d "${lb_dev}" 2>/dev/null || true
+  sudo partx -a "${lb_dev}"
 
   echo "${lb_dev}"
 }
@@ -701,14 +690,14 @@ loopback_detach() {
   # Retry the deletes before we detach.  crbug.com/469259
   local i
   for (( i = 0; i < 10; i++ )); do
-    if au_generator_sudo partx -d "$1"; then
+    if sudo partx -d "$1"; then
       break
     fi
     warn "Sleeping & retrying ..."
     sync
     sleep 1
   done
-  au_generator_sudo losetup --detach "$@"
+  sudo losetup --detach "$@"
 }
 
 # Sets up symlinks for the developer root. It is necessary to symlink
