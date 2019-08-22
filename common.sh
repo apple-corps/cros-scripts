@@ -31,17 +31,15 @@ fi
 V_BOLD_RED=
 V_BOLD_GREEN=
 V_BOLD_YELLOW=
-V_REVERSE=
 V_VIDOFF=
 
-if [[ -t 1 ]] && tput colors >&/dev/null; then
+if [[ -t 1 ]]; then
   # order matters: we want VIDOFF last so that when we trace with `set -x`,
   # our terminal doesn't bleed colors as bash dumps the values of vars.
-  V_BOLD_RED=$(tput bold; tput setaf 1)
-  V_BOLD_GREEN=$(tput bold; tput setaf 2)
-  V_BOLD_YELLOW=$(tput bold; tput setaf 3)
-  V_REVERSE=$(tput rev)
-  V_VIDOFF=$(tput sgr0)
+  V_BOLD_RED=$'\e[1;31m'
+  V_BOLD_GREEN=$'\e[1;32m'
+  V_BOLD_YELLOW=$'\e[1;33m'
+  V_VIDOFF=$'\e[m'
 fi
 
 # Turn on bash debug support if available for backtraces.
