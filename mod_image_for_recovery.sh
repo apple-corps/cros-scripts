@@ -463,5 +463,5 @@ fi
 install_recovery_kernel
 
 echo "Recovery image created at $RECOVERY_IMAGE"
-print_time_elapsed
+command_completed
 trap - EXIT
