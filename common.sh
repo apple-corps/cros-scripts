@@ -310,24 +310,6 @@ BUILD_LIBRARY_DIR="${SCRIPTS_DIR}/build_library"
 CHROMITE_BIN="${GCLIENT_ROOT}/chromite/bin"
 IMAGES_DIR="${GCLIENT_ROOT}/src/build/images"
 
-# Load developer's custom settings.  Default location is in scripts dir,
-# since that's available both inside and outside the chroot.  By convention,
-# settings from this file are variables starting with 'CHROMEOS_'
-: ${CHROMEOS_DEV_SETTINGS:=${SCRIPTS_DIR}/.chromeos_dev}
-if [[ -f ${CHROMEOS_DEV_SETTINGS} ]]; then
-  warn "Support for .chromeos_dev is being removed.  If you have a need for"
-  warn "this still, please contact chromium-os-dev@chromium.org."
-  # Turn on exit-on-error during custom settings processing
-  SAVE_OPTS=$(set +o)
-  switch_to_strict_mode
-
-  # Read settings
-  . "${CHROMEOS_DEV_SETTINGS}"
-
-  # Restore previous state of exit-on-error
-  eval "${SAVE_OPTS}"
-fi
-
 # Load shflags
 # NOTE: This code snippet is in particular used by the au-generator (which
 # stores shflags in ./lib/shflags/) and should not be touched.
