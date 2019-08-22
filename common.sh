@@ -570,44 +570,6 @@ sudo_clear_shadow_locks() {
   sudo rm -f "$1/etc/"{passwd,group,shadow,gshadow}.lock*
 }
 
-# Writes stdin to the given file name as the sudo user in overwrite mode.
-#
-# $@ - The output file names.
-user_clobber() {
-  install -m644 -o ${SUDO_UID} -g ${SUDO_GID} /dev/stdin "$@"
-}
-
-# Copies the specified file owned by the user to the specified location.
-# If the copy fails as root (e.g. due to root_squash and NFS), retry the copy
-# with the user's account before failing.
-user_cp() {
-  cp -p "$@" 2>/dev/null || sudo -u ${SUDO_USER} -- cp -p "$@"
-}
-
-# Appends stdin to the given file name as the sudo user.
-#
-# $1 - The output file name.
-user_append() {
-  cat >> "$1"
-  chown ${SUDO_UID}:${SUDO_GID} "$1"
-}
-
-# Create the specified directory, along with parents, as the sudo user.
-#
-# $@ - The directories to create.
-user_mkdir() {
-  install -o ${SUDO_UID} -g ${SUDO_GID} -d "$@"
-}
-
-# Create the specified symlink as the sudo user.
-#
-# $1 - Link target
-# $2 - Link name
-user_symlink() {
-  ln -sfT "$1" "$2"
-  chown -h ${SUDO_UID}:${SUDO_GID} "$2"
-}
-
 # Locate all mounts below a specified directory.
 #
 # $1 - The root tree.

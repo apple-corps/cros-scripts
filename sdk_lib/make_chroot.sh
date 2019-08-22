@@ -139,6 +139,14 @@ cleanup() {
   fi
 }
 
+# Appends stdin to the given file name as the sudo user.
+#
+# $1 - The output file name.
+user_append() {
+  cat >> "$1"
+  chown ${SUDO_UID}:${SUDO_GID} "$1"
+}
+
 delete_existing() {
   # Delete old chroot dir.
   local chroot_img="${FLAGS_chroot}.img"
