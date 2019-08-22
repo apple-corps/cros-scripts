@@ -167,34 +167,6 @@ install_libc() {
       --strip-components=3 "${libc_excludes[@]/#/--exclude=}"
 }
 
-# Generates imageloader images containing demo mode resources.
-# Generates two imageloader images under BUILD_DIR:
-#   * standalone demo resources - archive containing demo resources to be added
-#     to demo mode enabled release images. The demo mode resources will be added
-#     to target image stateful partition during factory flow.
-#   * test demo resources - demo resources that will be moved to the test images
-#     stateful partition during mod_image_for_test.
-generate_demo_mode_resources_images() {
-  local demo_resources_src="$1"
-
-  # Used to enable demo mode on test images, but with reduced set of demo apps.
-  if [[ -d "${demo_resources_src}/test" ]]; then
-    mkdir -p  "${BUILD_DIR}/test_demo_resources"
-    generate_imageloader_image "0.0.1" \
-        "${demo_resources_src}/test/image" \
-        "${BUILD_DIR}/test_demo_resources"
-  fi
-
-  if [[ -d "${demo_resources_src}/standalone" ]]; then
-    # Used to generate the demo resources archive to be bundled with release
-    # images in factory - these are intended to contain the full set of demo
-    # mode apps.
-    generate_and_tar_imageloader_image "0.0.1" \
-        "${demo_resources_src}/standalone/image" \
-        "${BUILD_DIR}/demo_resources.tar.gz"
-  fi
-}
-
 create_base_image() {
   local image_name=$1
   local rootfs_verification_enabled=$2
@@ -436,9 +408,6 @@ create_base_image() {
   if type board_finalize_base_image &>/dev/null; then
     board_finalize_base_image
   fi
-
-  generate_demo_mode_resources_images \
-      "${root_fs_dir}/build/rootfs/chromeos-assets/demo_resources"
 
   # Clean up symlinks so they work on a running target rooted at "/".
   # Here development packages are rooted at /usr/local.  However, do not

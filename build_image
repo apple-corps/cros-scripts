@@ -119,8 +119,6 @@ OVERLAY_CHROMEOS_DIR="${SRC_ROOT}/third_party/chromiumos-overlay/chromeos"
 . "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh" || exit 1
 # shellcheck source=build_library/build_image_util.sh
 . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
-# shellcheck source=build_library/imageloader_util.sh
-. "${BUILD_LIBRARY_DIR}/imageloader_util.sh" || exit 1
 # shellcheck source=build_library/base_image_util.sh
 . "${BUILD_LIBRARY_DIR}/base_image_util.sh" || exit 1
 # shellcheck source=build_library/dev_image_util.sh
