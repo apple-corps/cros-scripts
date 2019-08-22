@@ -335,11 +335,6 @@ EOF
    echo ". ~/trunk/src/scripts/bash_completion" \
        | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
 
-   if [[ "${SUDO_USER}" = "chrome-bot" && -d "${SUDO_HOME}/.ssh" ]]; then
-     # Copy ssh keys, so chroot'd chrome-bot can scp files from chrome-web.
-     user_cp -rp "${SUDO_HOME}/.ssh" "$FLAGS_chroot/home/${SUDO_USER}/"
-   fi
-
    if [[ -f "${SUDO_HOME}/.cros_chroot_init" ]]; then
      sudo -u "${SUDO_USER}" -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
        "${FLAGS_chroot}"
