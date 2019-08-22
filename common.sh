@@ -48,7 +48,7 @@ shopt -s extdebug 2>/dev/null
 # Output a backtrace. Optional parameter allows hiding the last
 # frame(s) so functions like "die()" can hide their additional
 # frame(s) if they wish.
-dump_trace() {
+_dump_trace() {
   # Default = 0 hidden frames: show everything except dump_trace
   # frame itself.
   local hidden_frames=${1:-0}
@@ -144,7 +144,7 @@ die_err_trap() {
        '(Note bash sometimes misreports "command not found" as exit code 1 '\
 'instead of 127)'
   fi
-  dump_trace 1
+  _dump_trace 1
   error
   error "Command failed:"
   DIE_PREFIX='  '
@@ -154,7 +154,7 @@ die_err_trap() {
 # Exit this script due to a failure, outputting a backtrace in the process.
 die() {
   set +e +u
-  dump_trace 1
+  _dump_trace 1
   error
   error "Error was:"
   DIE_PREFIX='  '
@@ -896,7 +896,7 @@ make_block_device_rw() {
 start_time=$(date +%s)
 
 # Get time elapsed since start_time in seconds.
-get_elapsed_seconds() {
+_get_elapsed_seconds() {
   local end_time=$(date +%s)
   local elapsed_seconds=$(( end_time - start_time ))
   echo ${elapsed_seconds}
@@ -907,7 +907,7 @@ print_time_elapsed() {
   # Optional first arg to specify elapsed_seconds.  If not given, will
   # recalculate elapsed time to now.  Optional second arg to specify
   # command name associated with elapsed time.
-  local elapsed_seconds=${1:-$(get_elapsed_seconds)}
+  local elapsed_seconds=${1:-$(_get_elapsed_seconds)}
   local cmd_base=${2:-}
 
   local minutes=$(( elapsed_seconds / 60 ))
@@ -922,7 +922,7 @@ print_time_elapsed() {
 
 command_completed() {
   # Call print_elapsed_time regardless.
-  local run_time=$(get_elapsed_seconds)
+  local run_time=$(_get_elapsed_seconds)
   local cmd_base=$(basename "$0")
   print_time_elapsed ${run_time} ${cmd_base}
 }
