@@ -314,6 +314,8 @@ IMAGES_DIR="${GCLIENT_ROOT}/src/build/images"
 # settings from this file are variables starting with 'CHROMEOS_'
 : ${CHROMEOS_DEV_SETTINGS:=${SCRIPTS_DIR}/.chromeos_dev}
 if [[ -f ${CHROMEOS_DEV_SETTINGS} ]]; then
+  warn "Support for .chromeos_dev is being removed.  If you have a need for"
+  warn "this still, please contact chromium-os-dev@chromium.org."
   # Turn on exit-on-error during custom settings processing
   SAVE_OPTS=$(set +o)
   switch_to_strict_mode
