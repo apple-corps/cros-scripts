@@ -36,6 +36,7 @@ assert_inside_chroot
 . "${BUILD_LIBRARY_DIR}/build_image_util.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/disk_layout_util.sh" || exit 1
 . "${BUILD_LIBRARY_DIR}/mount_gpt_util.sh" || exit 1
+. "${BUILD_LIBRARY_DIR}/ext2_sb_util.sh" || exit 1
 
 switch_to_strict_mode
 
