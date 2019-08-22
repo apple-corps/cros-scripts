@@ -355,7 +355,7 @@ setup_env() {
 
       IFS=$'\n';
       required=( $( sudo -u "${SUDO_USER}" -- \
-        "${FLAGS_trunk}/chromite/lib/rewrite_git_alternates.py" \
+        "${FLAGS_trunk}/chromite/lib/rewrite_git_alternates" \
         "${FLAGS_trunk}" "${REFERENCE_DIR}" "${CHROOT_TRUNK_DIR}" ) )
       unset IFS
 
