@@ -360,14 +360,6 @@ DEFAULT_EVENT_DIR=${DEFAULT_EVENT_DIR:-"${DEFAULT_BUILD_ROOT}/events"}
 # Default event file. Format is YYYYDD.HHMM.json
 DEFAULT_EVENT_FILE=${DEFAULT_EVENT_FILE:-"${DEFAULT_EVENT_DIR}/$(date +%Y%m%d.%H%M.).json"}
 
-# Set up a global ALL_BOARDS value
-if [[ -d ${SRC_ROOT}/overlays ]]; then
-  ALL_BOARDS=$(cd "${SRC_ROOT}/overlays"; \
-    ls -1d overlay-* 2>&- | sed 's,overlay-,,g')
-fi
-# Normalize whitespace.
-ALL_BOARDS=$(echo ${ALL_BOARDS})
-
 # Sets the default board variable for calling script.
 if [[ -f ${GCLIENT_ROOT}/src/scripts/.default_board ]]; then
   DEFAULT_BOARD=$(<"${GCLIENT_ROOT}/src/scripts/.default_board")
