@@ -177,6 +177,17 @@ learn_board() {
   info "Target reports board is ${FLAGS_board}"
 }
 
+learn_arch() {
+  [ -n "${FLAGS_arch}" ] && return
+  remote_sh uname -m
+  FLAGS_arch=$(echo "${REMOTE_OUT}" | sed -e s/armv7l/arm/ -e s/i686/x86/ )
+  if [ -z "${FLAGS_arch}" ]; then
+    error "Arch required"
+    exit 1
+  fi
+  info "Target reports arch is ${FLAGS_arch}"
+}
+
 # Discover partition numbers from the target.
 learn_partition_layout() {
   source <(remote_sh_raw cat /usr/sbin/write_gpt.sh)

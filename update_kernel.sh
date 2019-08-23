@@ -139,17 +139,6 @@ get_bootargs() {
   fi
 }
 
-learn_arch() {
-  [ -n "${FLAGS_arch}" ] && return
-  FLAGS_arch=$(sed -n -E 's/^ *--arch="(.*)"/\1/p' \
-         "${SRC_ROOT}/build/images/${FLAGS_board}/latest/boot.desc")
-  if [ -z "${FLAGS_arch}" ]; then
-    error "Arch required"
-    exit 1
-  fi
-  info "Target reports arch is ${FLAGS_arch}"
-}
-
 make_kernelimage() {
   local bootloader_path
   local kernel_image
@@ -282,9 +271,9 @@ main() {
 
   remote_access_init
 
-  learn_board
-
   learn_arch
+
+  learn_board
 
   learn_device
 
