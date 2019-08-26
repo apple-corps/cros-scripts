@@ -596,7 +596,10 @@ def GetPartitionTable(options, config, image_type):
 
   # We make a deep copy so that changes to the dictionaries in this list do not
   # persist across calls.
-  partitions = copy.deepcopy(config['layouts'][image_type])
+  try:
+    partitions = copy.deepcopy(config['layouts'][image_type])
+  except KeyError:
+    raise InvalidLayout('Unknown layout: %s' % image_type)
   metadata = config['metadata']
 
   # Convert fs_options to a string.
@@ -1285,28 +1288,24 @@ def GetReservedEraseBlocks(options, image_type, layout_filename, num):
     return 0
 
 
-def DoDebugOutput(options, image_type, layout_filename):
+def _DumpLayout(options, config, image_type):
   """Prints out a human readable disk layout in on-disk order.
 
   Args:
-    options: Flags passed to the script
-    image_type: Type of image eg base/test/dev/factory_install
-    layout_filename: Path to partition configuration file
+    options: Flags passed to the script.
+    config: Partition configuration file object.
+    image_type: Type of image e.g. base/test/dev/factory_install.
   """
-  config = LoadPartitionConfig(layout_filename)
-  partitions = GetPartitionTable(options, config, image_type)
+  try:
+    partitions = GetPartitionTable(options, config, image_type)
+  except InvalidLayout as e:
+    print(str(e), file=sys.stderr)
+    sys.exit(1)
 
-  label_len = max([len(x['label']) for x in partitions if 'label' in x])
-  type_len = max([len(x['type']) for x in partitions if 'type' in x])
+  label_len = max(len(x['label']) for x in partitions if 'label' in x)
+  type_len = max(len(x['type']) for x in partitions if 'type' in x)
 
   msg = 'num:%4s label:%-*s type:%-*s size:%-10s fs_size:%-10s features:%s'
-
-  # Print out non-layout options first.
-  print('Config Data')
-  metadata_msg = 'field:%-14s value:%s'
-  for key in config.keys():
-    if key not in ('layouts', '_comment'):
-      print(metadata_msg % (key, config[key]))
 
   print('\n%s Layout Data' % image_type.upper())
   for partition in partitions:
@@ -1329,6 +1328,34 @@ def DoDebugOutput(options, image_type, layout_filename):
         fs_size,
         partition.get('features', []),
     ))
+
+
+def DoDebugOutput(options, layout_filename, image_type):
+  """Prints out a human readable disk layout in on-disk order.
+
+  Args:
+    options: Flags passed to the script
+    layout_filename: Path to partition configuration file
+    image_type: Type of image e.g. ALL/LIST/base/test/dev/factory_install
+  """
+  if image_type == 'LIST':
+    print(GetImageTypes(options, layout_filename))
+    return
+
+  config = LoadPartitionConfig(layout_filename)
+
+  # Print out non-layout options first.
+  print('Config Data')
+  metadata_msg = 'field:%-14s value:%s'
+  for key in config.keys():
+    if key not in ('layouts', '_comment'):
+      print(metadata_msg % (key, config[key]))
+
+  if image_type == 'ALL':
+    for layout in config['layouts']:
+      _DumpLayout(options, config, layout)
+  else:
+    _DumpLayout(options, config, image_type)
 
 
 def CheckRootfsPartitionsMatch(partitions):
