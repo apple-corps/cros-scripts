@@ -10,12 +10,12 @@
 
 from __future__ import print_function
 
-import cgpt
-
 import os
 import shutil
 import tempfile
 import unittest
+
+import cgpt
 
 
 class JSONLoadingTest(unittest.TestCase):
@@ -223,9 +223,9 @@ class JSONLoadingTest(unittest.TestCase):
             'layouts': {
                 'common': [],
                 'base': [
-                    {'num': 2, 'name': "Part 2"},
-                    {'type': 'blank', 'size': "64 MiB"},
-                    {'num': 1, 'name': "Part 1"}
+                    {'num': 2, 'name': 'Part 2'},
+                    {'type': 'blank', 'size': '64 MiB'},
+                    {'num': 1, 'name': 'Part 1'}
                 ]
             }})
 
@@ -499,7 +499,7 @@ class JSONLoadingTest(unittest.TestCase):
                         'features': [],
                         u'format': u'ubi',
                         'fs_bytes': 253952,
-                        u'fs_size': u"253952",
+                        u'fs_size': u'253952',
                         u'label': u'ROOT-A',
                         u'num': 1,
                         u'size': u'256 KiB',
@@ -522,18 +522,18 @@ class UtilityTest(unittest.TestCase):
   def testParseHumanNumber(self):
     """Test that ParseHumanNumber is correct."""
     test_cases = [
-        ("1", 1),
-        ("2", 2),
-        ("1KB", 1000),
-        ("1KiB", 1024),
-        ("1 K", 1024),
-        ("1 KiB", 1024),
-        ("3 MB", 3000000),
-        ("4 MiB", 4 * 2**20),
-        ("5GB", 5 * 10**9),
-        ("6GiB", 6 * 2**30),
-        ("7TB", 7 * 10**12),
-        ("8TiB", 8 * 2**40),
+        ('1', 1),
+        ('2', 2),
+        ('1KB', 1000),
+        ('1KiB', 1024),
+        ('1 K', 1024),
+        ('1 KiB', 1024),
+        ('3 MB', 3000000),
+        ('4 MiB', 4 * 2**20),
+        ('5GB', 5 * 10**9),
+        ('6GiB', 6 * 2**30),
+        ('7TB', 7 * 10**12),
+        ('8TiB', 8 * 2**40),
     ]
     for inp, exp in test_cases:
       self.assertEqual(cgpt.ParseHumanNumber(inp), exp)
@@ -541,16 +541,16 @@ class UtilityTest(unittest.TestCase):
   def testProduceHumanNumber(self):
     """Test that ProduceHumanNumber is correct."""
     test_cases = [
-        ("1", 1),
-        ("2", 2),
-        ("1 KB", 1000),
-        ("1 KiB", 1024),
-        ("3 MB", 3 * 10**6),
-        ("4 MiB", 4 * 2**20),
-        ("5 GB", 5 * 10**9),
-        ("6 GiB", 6 * 2**30),
-        ("7 TB", 7 * 10**12),
-        ("8 TiB", 8 * 2**40),
+        ('1', 1),
+        ('2', 2),
+        ('1 KB', 1000),
+        ('1 KiB', 1024),
+        ('3 MB', 3 * 10**6),
+        ('4 MiB', 4 * 2**20),
+        ('5 GB', 5 * 10**9),
+        ('6 GiB', 6 * 2**30),
+        ('7 TB', 7 * 10**12),
+        ('8 TiB', 8 * 2**40),
     ]
     for exp, inp in test_cases:
       self.assertEqual(cgpt.ProduceHumanNumber(inp), exp)

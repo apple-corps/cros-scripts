@@ -27,6 +27,7 @@ This will shrink the ROOT-A partition size by 10 mebibytes (1024 * 1024 * 10):
   --adjust_part ROOT-A:-20MiB
 """
 
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -171,7 +172,7 @@ def ParseRelativeNumber(max_number, number):
   max_number = int(max_number)
   number = str(number)
   if number.endswith('%'):
-    percent = float(number[:-1]) / 100
+    percent = number[:-1] / 100
     return int(max_number * percent)
   else:
     number = ParseHumanNumber(number)
@@ -443,7 +444,7 @@ def LoadPartitionConfig(filename):
                    ProduceHumanNumber(fs_bytes)))
 
         if 'fs_blocks' in part:
-          max_fs_blocks = part['bytes'] / metadata['fs_block_size']
+          max_fs_blocks = part['bytes'] // metadata['fs_block_size']
           part['fs_blocks'] = ParseRelativeNumber(max_fs_blocks,
                                                   part['fs_blocks'])
           part['fs_bytes'] = part['fs_blocks'] * metadata['fs_block_size']
@@ -655,7 +656,7 @@ def ApplyPartitionAdjustment(partitions, metadata, label, operator, operand):
     # specified is being used for the filesytem, minus the space reserved for
     # the hashpad.
     partition['fs_bytes'] = partition['bytes']
-    partition['fs_blocks'] = partition['fs_bytes'] / metadata['fs_block_size']
+    partition['fs_blocks'] = partition['fs_bytes'] // metadata['fs_block_size']
     partition['bytes'] = int(partition['bytes'] * 1.15)
 
 def GetPartitionTableFromConfig(options, layout_filename, image_type):
@@ -1313,7 +1314,7 @@ def DoDebugOutput(options, image_type, layout_filename):
       continue
 
     size = ProduceHumanNumber(partition['bytes'])
-    if 'fs_bytes' in partition.iterkeys():
+    if 'fs_bytes' in partition:
       fs_size = ProduceHumanNumber(partition['fs_bytes'])
     else:
       fs_size = 'auto'
@@ -1373,7 +1374,7 @@ def Combinations(n, k):
   """
   if k < 0 or n < k:
     return 0
-  return math.factorial(n) / (math.factorial(k) * math.factorial(n - k))
+  return math.factorial(n) // (math.factorial(k) * math.factorial(n - k))
 
 
 def CheckReservedEraseBlocks(partitions):
@@ -1409,10 +1410,10 @@ def CheckReservedEraseBlocks(partitions):
 
       reserved = partition['reserved_erase_blocks']
       erase_block_size = metadata['erase_block_size']
-      device_erase_blocks = metadata['bytes'] / erase_block_size
+      device_erase_blocks = metadata['bytes'] // erase_block_size
       device_bad_blocks = metadata['max_bad_erase_blocks']
       distributions = Combinations(device_erase_blocks, device_bad_blocks)
-      partition_erase_blocks = partition['bytes'] / erase_block_size
+      partition_erase_blocks = partition['bytes'] // erase_block_size
       # The idea is to calculate the number of ways that there could be reserved
       # or more bad blocks inside the partition, assuming that there are
       # device_bad_blocks in the device in total (the worst case). To get the
@@ -1428,7 +1429,7 @@ def CheckReservedEraseBlocks(partitions):
                        device_bad_blocks - partition_bad_blocks)
           for partition_bad_blocks
           in range(reserved + 1, device_bad_blocks + 1))
-      probability = (1.0 * ways_for_failure) / distributions
+      probability = ways_for_failure / distributions
       if probability > 0.00001:
         raise ExcessFailureProbability('excessive probability %f of too many '
                                        'bad blocks in partition %s'
@@ -1537,7 +1538,12 @@ def GetParser():
       'validate': Validate,
   }
 
-  subparsers = parser.add_subparsers(title='Commands')
+  # Subparsers are required by default under Python 2.  Python 3 changed to
+  # not required, but didn't include a required option until 3.7.  Setting
+  # the required member works in all versions (and setting dest name).
+  subparsers = parser.add_subparsers(title='Commands', dest='command')
+  subparsers.required = True
+
   for name, func in sorted(action_map.items()):
     # Turn the func's docstring into something we can show the user.
     desc, doc = func.__doc__.split('\n', 1)
