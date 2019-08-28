@@ -5,5 +5,5 @@
 # Manually force sys-libs/glibc to be upgraded to the new version when updating.
 # net-libs/rpcsvc-proto is needed to avoid portage complains.
 if portageq has_version / '<sys-libs/glibc-2.27'; then
-  sudo "$(which parallel_emerge)" -1ug '>=sys-libs/glibc-2.27' 'net-libs/rpcsvc-proto'
+  sudo emerge -1ug '>=sys-libs/glibc-2.27' 'net-libs/rpcsvc-proto'
 fi

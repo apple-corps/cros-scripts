@@ -8,7 +8,7 @@
 # reverse-dependencies of protobuf seems to blow up pretty terribly
 # (including gcc and icedtea for some reason?) so let's just rebuild the
 # things we know to be required.
-sudo ~/trunk/chromite/bin/parallel_emerge \
+sudo emerge \
   chromeos-base/libchrome \
   chromeos-base/libchromeos \
   chromeos-base/metrics \

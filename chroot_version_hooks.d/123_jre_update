@@ -9,6 +9,6 @@ sudo CLEAN_DELAY=0 emerge -Cq \
   '<virtual/jre-1.7' \
   '<virtual/jdk-1.7'
 if ! portageq has_version / '>dev-java/icedtea-bin-7'; then
-  sudo ~/trunk/chromite/bin/parallel_emerge -1ug '>dev-java/icedtea-bin-7'
+  sudo emerge -1ug '>dev-java/icedtea-bin-7'
 fi
 sudo java-config --set-system-vm 1

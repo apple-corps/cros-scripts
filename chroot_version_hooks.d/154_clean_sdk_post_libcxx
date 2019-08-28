@@ -40,4 +40,4 @@ PKGS=( sys-devel/llvm sys-devel/clang )
 PKGS+=( $(qdepends -qCN -k NEEDED -Q 'libstdc\+\+\.so\.6') )
 
 # Reinstall the packages using fresh binary packages.
-sudo ~/trunk/chromite/bin/parallel_emerge --getbinpkg "${PKGS[@]}"
+sudo emerge --getbinpkg "${PKGS[@]}"

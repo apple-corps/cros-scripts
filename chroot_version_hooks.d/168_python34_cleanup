@@ -7,7 +7,6 @@
 
 echo "Cleaning up Python 3.4 to migrate to 3.6"
 
-EMERGE="$(which parallel_emerge)"
 export CLEAN_DELAY=0
 
 # Install python 3.6 if the sdk is out of date.
@@ -19,19 +18,19 @@ fi
 sudo eselect python update --python3
 
 # Remove python 3.4 from the system.
-sudo "${EMERGE}" -Cq dev-lang/python:3.4
+sudo emerge -Cq dev-lang/python:3.4
 
 # Remove java-config if needed to avoid circular deps.
 reinstall_java="false"
 if ! python3.6 -c 'import java_config_2' >&/dev/null; then
   reinstall_java="true"
-  sudo "${EMERGE}" -Cq dev-java/java-config
+  sudo emerge -Cq dev-java/java-config
 fi
 
 # Upgrade portage itself finally.
-sudo "${EMERGE}" -Ugqv sys-apps/portage
+sudo emerge -Ugqv sys-apps/portage
 
 # Reinstall java-config in case we purged it.
 if [[ "${reinstall_java}" == "true" ]]; then
-  sudo "${EMERGE}" -ugqv dev-java/java-config
+  sudo emerge -ugqv dev-java/java-config
 fi

@@ -8,4 +8,4 @@
 # Update python 2.7 and 3.3 to force rebuild of eselect-python which will
 # also remove the old app-admin/eselect-python.
 
-sudo ~/trunk/chromite/bin/parallel_emerge -uNv --quiet python:2.7 python:3.3
+sudo emerge -uNv --quiet python:2.7 python:3.3
