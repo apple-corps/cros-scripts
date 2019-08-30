@@ -7,6 +7,9 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/filesystem_util.sh" || exit 1
 
+TERMINA_BUILD_IMAGE_PY="${SCRIPT_ROOT}/../platform/container-guest-tools/termina/termina_build_image.py"
+TERMINA_BUILD_IMAGE_PY="$(readlink -f "${TERMINA_BUILD_IMAGE_PY}")"
+
 assert_inside_chroot "$@"
 
 DEFINE_string arch "amd64" \
@@ -28,156 +31,9 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 switch_to_strict_mode
 
-get_version() {
-  local output_dir="$1"
-  awk -F'=' -v key='CHROMEOS_RELEASE_VERSION' '$1==key { print $2 }' \
-    "${output_dir}"/lsb-release
-}
-
-read_le_int() {
-  local disk="$1"
-  local offset="$2"
-  local size="$3"
-
-  case "${size}" in
-  1 | 2 | 4 | 8)
-    ;;
-  *) die "${size} is not a valid int size to read"
-    ;;
-  esac
-
-  local raw="$(xxd -g ${size} -e -s ${offset} -l ${size} ${disk} | cut -d' ' -f2)"
-  local result="$(( 16#${raw} ))"
-
-  echo "${result}"
-}
-
-extract_squashfs_partition() {
-  local src_disk="$1"
-  local src_part="$2"
-  local dst_file="$3"
-
-  local part_start_blks="$(cgpt show -i "${src_part}" -b "${src_disk}")"
-  local part_start_bytes="$(( part_start_blks * 512 ))"
-  local part_size_blks="$(cgpt show -i "${src_part}" -s "${src_disk}")"
-  local part_size_bytes="$(( part_size_blks * 512 ))"
-
-  # To be sure we're extracting a squashfs partition, verify the magic.
-  # See fs/squashfs/squashfs_fs.h.
-  local magic="$(read_le_int ${src_disk} ${part_start_bytes} 4)"
-  if [[ "${magic}" -ne 0x73717368 ]]; then
-    die "Partition ${src_part} doesn't look like a squashfs partition"
-  fi
-
-  dd if="${src_disk}" of="${dst_file}" skip="${part_start_bytes}c" \
-    count="${part_size_bytes}c" iflag=skip_bytes,count_bytes
-}
-
-can_hardlink() {
-  local file1=$1
-  local file2=$2
-
-  # The file is considered hard-linkable if the access rights, user, and group
-  # are the same.
-  [[ "$(sudo stat -c '%a' ${prev_line})" = "$(sudo stat -c '%a' ${line})" ]] && \
-     [[ "$(sudo stat -c '%u' ${prev_line})" = "$(sudo stat -c '%u' ${line})" ]] && \
-     [[ "$(sudo stat -c '%g' ${prev_line})" = "$(sudo stat -c '%g' ${line})" ]]
-}
-
-do_hardlinks() {
-  local dir=$1
-
-  local line prev_line=""
-  if [ -z $(command -v fdupes) ]; then
-    warn "Please install fdupes for removing dups"
-  fi
-  while read line; do
-    # Treat the first file as the original.
-    if [[ -n "${prev_line}" && -n "${line}" ]]; then
-      if can_hardlink "${prev_line}" "${line}"; then
-        sudo ln -f "${prev_line}" "${line}"
-      fi
-    fi
-
-    prev_line="${line}"
-  done < <(sudo fdupes --recurse ${dir})
-}
-
-# Repack termina rootfs.
-repack_rootfs() {
-  local output_dir="$1"
-  local fs_type="$2"
-  local arch="$3"
-  local rootfs_img="${output_dir}/vm_rootfs.img"
-  local stateful_img="${output_dir}/vm_stateful.img"
-
-  # Create image in a temporary directory to avoid the need for extra space
-  # on the final rootfs.
-  local rootfs="${output_dir}/rootfs"
-  local stateful="${output_dir}/stateful"
-
-  sudo unsquashfs -d "${rootfs}" "${rootfs_img}"
-  sudo unsquashfs -d "${stateful}" "${stateful_img}"
-
-  # Remove source images.
-  sudo rm -f "${rootfs_img}" "${stateful_img}"
-
-  # Fix up rootfs.
-
-  # Remove efi cruft.
-  sudo rm -rf "${rootfs}/boot"/{efi,syslinux}
-  # Don't need firmware if you don't have hardware!
-  sudo rm -rf "${rootfs}/lib/firmware"
-  # Get rid of stateful, it's not needed on termina.
-  sudo rm -rf "${rootfs}/mnt/stateful_partition"
-  # Create container stateful and shared dirs.
-  sudo mkdir "${rootfs}"/mnt/{stateful,shared}
-  # Copy the dev_image into its location at /usr/local.
-  sudo cp -aT "${stateful}"/dev_image "${rootfs}/usr/local"
-
-  if [[ "${arch}" == "arm" ]]; then
-    cp "${rootfs}"/boot/Image-* "${output_dir}/vm_kernel"
-  else
-    cp "${rootfs}"/boot/vmlinuz "${output_dir}/vm_kernel"
-  fi
-
-  # Remove vmlinuz from the rootfs; it's not necessary.
-  sudo rm -rf "${rootfs}"/boot/vmlinuz*
-
-  do_hardlinks "${rootfs}"
-
-  sudo cp "${rootfs}/etc/lsb-release" "${output_dir}/lsb-release"
-  sudo cp "${rootfs}/opt/google/chrome/resources/about_os_credits.html" \
-      "${output_dir}/about_os_credits.html"
-
-  case "${fs_type}" in
-  squashfs)
-    sudo mksquashfs "${rootfs}" "${rootfs_img}" -comp lzo
-    ;;
-  ext4)
-    # Start with 110% rootfs size, then shrink.
-    local image_size=$(sudo du -sxm "${rootfs}" | awk '{print $1}')
-    let image_size=image_size*11/10
-    truncate --size "${image_size}M" "${rootfs_img}"
-    /sbin/mkfs.ext4 -F -m 0 -i 16384 -b 4096 -O "^has_journal" "${rootfs_img}"
-    local rootfs_mnt="$(mktemp -d)"
-    fs_mount "${rootfs_img}" "${rootfs_mnt}" ext4 rw
-    sudo cp -aT "${rootfs}" "${rootfs_mnt}"
-    fs_umount "${rootfs_img}" "${rootfs_mnt}" ext4 rw
-    # Shrink to minimum size.
-    /sbin/e2fsck -f "${rootfs_img}"
-    /sbin/resize2fs -M "${rootfs_img}"
-    rmdir "${rootfs_mnt}"
-    ;;
-  *)
-    die_notrace "Unsupported fs type ${fs_type}."
-    ;;
-  esac
-
-  sudo rm -rf "${rootfs}" "${stateful}"
-}
-
 main() {
+  warn "termina_build_image is deprecated. Please use termina_build_image.py."
+
   if [[ -z "${FLAGS_image}" ]]; then
     die_notrace "Please provide an image using --image"
   elif [[ ! -f "${FLAGS_image}" ]]; then
@@ -188,32 +44,16 @@ main() {
     die_notrace "Architecture '${FLAGS_arch}' is not valid. Options are 'amd64' and 'arm'"
   fi
 
-  case "${FLAGS_filesystem}" in
-  squashfs|ext4)
-    ;;
-  *)
-    die_notrace "Filesystem '${FLAGS_filesystem}' is not valid. Options are 'squashfs' and 'ext4'"
-    ;;
-  esac
-
-  if [[ -z "${FLAGS_output}" ]]; then
-    die_notrace "Output directory was not specified"
-  elif [[ -e "${FLAGS_output}" ]]; then
-    die_notrace "${FLAGS_output} already exists"
+  if [[ "${FLAGS_filesystem}" != "ext4" ]]; then
+    die_notrace "Filesystem '${FLAGS_filesystem}' is not valid. 'ext4' is valid."
   fi
 
-  local output_dir="${FLAGS_output}"
-  local stateful_img="${output_dir}/vm_stateful.img"
-  local rootfs_img="${output_dir}/vm_rootfs.img"
-  local image="${FLAGS_image}"
+  info "Equivalent termina_build_image.py command:"
+  info "${TERMINA_BUILD_IMAGE_PY} ${FLAGS_image} ${FLAGS_output}"
 
-  mkdir -p "${output_dir}"
-  extract_squashfs_partition "${image}" "3" "${rootfs_img}"
-  extract_squashfs_partition "${image}" "1" "${stateful_img}"
+  sudo "${TERMINA_BUILD_IMAGE_PY}" "${FLAGS_image}" "${FLAGS_output}"
 
-  repack_rootfs "${output_dir}" "${FLAGS_filesystem}" "${FLAGS_arch}"
-
-  info "Done! The resulting image is in '${output_dir}'"
+  info "Done! The resulting image is in '${FLAGS_output}'"
 }
 
 main "$@"
