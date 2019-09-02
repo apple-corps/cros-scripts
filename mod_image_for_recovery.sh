@@ -83,10 +83,7 @@ get_install_vblock() {
   # This is the real vblock and not the recovery vblock.
   local partition_num_state=$(get_image_partition_number "${FLAGS_image}" \
     "STATE")
-  IMAGE_DEV=$(sudo losetup --show -f "${FLAGS_image}")
-  trap "sudo losetup -d ${IMAGE_DEV} || true" RETURN
-  sudo partx -d ${IMAGE_DEV} 2>/dev/null || true
-  sudo partx -a ${IMAGE_DEV}
+  IMAGE_DEV=$(loopback_partscan "${FLAGS_image}")
   local stateful_mnt=$(mktemp -d)
   local out=$(mktemp)
 
@@ -164,10 +161,7 @@ create_recovery_kernel_image() {
   # passes.
   local block_size=$(get_block_size)
 
-  RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
-  trap "sudo losetup -d ${RECOVERY_DEV} || true" RETURN
-  sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
-  sudo partx -a ${RECOVERY_DEV}
+  RECOVERY_DEV=$(loopback_partscan "${RECOVERY_IMAGE}")
   local partition_num_efi_system=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "EFI-SYSTEM")
 
@@ -243,10 +237,7 @@ install_recovery_kernel() {
   local failed=0
 
   if [ "$ARCH" = "x86" ]; then
-    RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
-    trap "sudo losetup -d ${RECOVERY_DEV} || true" RETURN
-    sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
-    sudo partx -a ${RECOVERY_DEV}
+    RECOVERY_DEV=$(loopback_partscan "${RECOVERY_IMAGE}")
     # There is no syslinux on ARM, so this copy only makes sense for x86.
     set +e
     local partition_num_efi_system=$(get_image_partition_number \
@@ -303,10 +294,7 @@ maybe_resize_stateful() {
   old_stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
   old_stateful_mnt=$(mktemp -d)
 
-  IMAGE_DEV=$(sudo losetup --show -f "${FLAGS_image}")
-  trap "sudo losetup -d ${IMAGE_DEV} || true" RETURN
-  sudo partx -d ${IMAGE_DEV} 2>/dev/null || true
-  sudo partx -a ${IMAGE_DEV}
+  IMAGE_DEV=$(loopback_partscan "${FLAGS_image}")
   sudo mount ${IMAGE_DEV}p${partition_num_state} $old_stateful_mnt
 
   sectors_needed=$(find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}")
@@ -448,9 +436,7 @@ maybe_resize_stateful  # Also copies the image if needed.
 
 if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
   stateful_mnt=$(mktemp -d)
-  RECOVERY_DEV=$(sudo losetup --show -f "${RECOVERY_IMAGE}")
-  sudo partx -d ${RECOVERY_DEV} 2>/dev/null || true
-  sudo partx -a ${RECOVERY_DEV}
+  RECOVERY_DEV=$(loopback_partscan "${RECOVERY_IMAGE}")
   partition_num_state=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "STATE")
   sudo mount ${RECOVERY_DEV}p${partition_num_state} "${stateful_mnt}"

@@ -417,10 +417,8 @@ mk_fs() {
 
   # Root is needed to mount on loopback device.
   # sizelimit is used to denote the FS size for mkfs if not specified.
-  local image_dev=$(sudo losetup --show -f ${image_file})
-  trap "sudo losetup -d ${image_dev}" RETURN
-  sudo partx -d "${image_dev}" 2>/dev/null || true
-  sudo partx -a "${image_dev}"
+  local image_dev
+  image_dev=$(loopback_partscan "${image_file}")
   local part_dev=${image_dev}p${part_num}
   if [ ! -e "${part_dev}" ]; then
     die "No free loopback device to create partition."
