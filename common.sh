@@ -87,6 +87,7 @@ _dump_trace() {
 _message() {
   local prefix=$1
   shift
+  printf '%s: ' "$(date +%H:%M:%S)" >&2
   if [[ $# -eq 0 ]]; then
     echo -e "${prefix}${CROS_LOG_PREFIX:-""}:${V_VIDOFF}" >&2
     return

@@ -93,7 +93,7 @@ ENTER_CHROOT_ARGS=(
 
 # Invoke enter_chroot.  This can only be used after sudo has been installed.
 enter_chroot() {
-  echo "[enter_chroot] $*"
+  echo "$(date +%H:%M:%S) [enter_chroot] $*"
   "$ENTER_CHROOT" --cache_dir "${FLAGS_cache_dir}" --chroot "$FLAGS_chroot" \
     -- "${ENTER_CHROOT_ARGS[@]}" "$@"
 }
@@ -102,7 +102,7 @@ enter_chroot() {
 # This should be used prior to sudo being merged.
 early_env=()
 early_enter_chroot() {
-  echo "[early_enter_chroot] $*"
+  echo "$(date +%H:%M:%S) [early_enter_chroot] $*"
   "$ENTER_CHROOT" --chroot "$FLAGS_chroot" --early_make_chroot \
     --cache_dir "${FLAGS_cache_dir}" \
     -- "${ENTER_CHROOT_ARGS[@]}" "${early_env[@]}" "$@"
