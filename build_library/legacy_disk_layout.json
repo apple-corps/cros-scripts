@@ -94,7 +94,7 @@
       },
       {
         # Slot A rootfs. Rootfs + extras must fit.
-        # FS size + Verity (64 * FS blocks) + Boot Cache (200M).
+        # FS size + Verity (64 * FS blocks).
         # Make sure that other layouts still has room for the
         # extras, should you increase FS size
         #
