@@ -4,11 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-mkdir -p "${ROOT_FS_DIR}/usr/share/power_manager/board_specific"
-echo 1 > "${ROOT_FS_DIR}/usr/share/power_manager/board_specific/disable_dark_resume"
+# Several tests depend on RTC to wakeup from suspend. But on devices with dark
+# resume enabled, powerd will suspend the device immediately on wake from RTC.
+# This can interfere with the tests. Thus this script disables dark resume on
+# test images. powerd gives highest precedence to settings under
+# /var/lib/power_manager. Thus this overrides settings from other sources.
+# Please look at power_manager/docs/faq.md#powerd-preferences for preference
+# order. If a test intends to enable dark resume, it should create a temporary
+# directory and mount it in place of /var/lib/power_manager and restart powerd.
+mkdir -p "${ROOT_FS_DIR}/var/lib/power_manager/"
+echo 1 > "${ROOT_FS_DIR}/var/lib/power_manager/disable_dark_resume"
 
-# This file is only present on link currently. Presence of this file will
-# automatically enable legacy_dark_resume.cc. Enabling legacy_dark_resume.cc
-# will hinder tests that use wakeup alarm for waking up for suspend.
-# So deleting the file.
-rm -f "${ROOT_FS_DIR}/usr/share/power_manager/board_specific/dark_resume_suspend_durations"
