@@ -471,6 +471,14 @@ create_base_image() {
     sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinux.uimg \
         "${BUILD_DIR}/boot_images"
 
+  # Calculate package sizes within the built rootfs for reporting purposes.
+  # Use sudo to access some paths that are unreadable as non-root.
+  (sudo "${GCLIENT_ROOT}/chromite/scripts/pkg_size" \
+          --root "${root_fs_dir}" \
+          --image-type 'base' \
+          --partition-name 'rootfs') \
+     > "${BUILD_DIR}/${image_name}-package-sizes.json"
+
 # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.
   zero_free_space "${root_fs_dir}"
