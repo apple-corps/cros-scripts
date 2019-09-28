@@ -38,14 +38,10 @@ check_linker_flags()
   local pie=false
   local relro=false
   local now=false
-  local gold=false
   ${readelf} -dlSW "${binary}" | \
   {
     while read line ; do
       case "${line}" in
-        *".note.gnu.gold-version"*)
-          gold=true
-          ;;
         *"Shared object file"*)
           pie=true
           ;;
@@ -61,7 +57,6 @@ check_linker_flags()
     ${pie} || echo "File not PIE: ${binary}"
     ${relro} || echo "File not built with -Wl,-z,relro: ${binary}"
     ${now} || echo "File not built with -Wl,-z,now: ${binary}"
-    ${gold} || echo "File not built with gold: ${binary}"
   }
 }
 
