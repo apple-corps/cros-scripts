@@ -25,7 +25,6 @@ FLAGS_HELP="usage: $(basename $0) [flags]
 setup_host_board builds the chroot for the amd64-host (chroot) board.
 This should not need to be called except by the SDK Builder.
 "
-show_help_if_requested "$@"
 
 # Parse command line flags
 FLAGS "$@" || exit 1

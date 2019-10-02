@@ -21,7 +21,6 @@ FLAGS_HELP="usage: $(basename $0) [flags]
 Performs an update of the chroot. This script is called as part of
 build_packages, so there is typically no need to call this script directly.
 "
-show_help_if_requested "$@"
 
 # The following options are advanced options, only available to those willing
 # to read the source code. They are not shown in help output, since they are

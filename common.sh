@@ -779,25 +779,6 @@ reinterpret_path_for_chroot() {
   fi
 }
 
-# Display --help if requested. This is used to hide options from help
-# that are not intended for developer use.
-#
-# How to use:
-#  1) Declare the options that you want to appear in help.
-#  2) Call this function.
-#  3) Declare the options that you don't want to appear in help.
-#
-# See build_packages for example usage.
-show_help_if_requested() {
-  local opt
-  for opt in "$@"; do
-    if [[ ${opt} == "-h" || ${opt} == "--help" ]]; then
-      flags_help
-      exit 0
-    fi
-  done
-}
-
 switch_to_strict_mode() {
   # Set up strict execution mode; note that the trap
   # must follow switch_to_strict_mode, else it will have no effect.

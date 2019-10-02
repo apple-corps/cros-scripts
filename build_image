@@ -62,7 +62,6 @@ adjust_part='ROOT-A:-1G' -- remove one GB from the primary rootfs partition
 adjust_part='STATE:=1G' --  make the stateful partition 1 GB
 ...
 "
-show_help_if_requested "$@"
 
 # The following options are advanced options, only available to those willing
 # to read the source code. They are not shown in help output, since they are

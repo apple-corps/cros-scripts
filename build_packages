@@ -55,7 +55,6 @@ dependencies they might need).
 
 For the fastest builds, use --nowithautotest --noworkon.
 "
-show_help_if_requested "$@"
 
 # The following options are advanced options, only available to those willing
 # to read the source code. They are not shown in help output, since they are
