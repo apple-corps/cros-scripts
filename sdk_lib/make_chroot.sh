@@ -702,6 +702,6 @@ is_nfs() {
   [[ $(stat -f -L -c %T "$1") == "nfs" ]]
 }
 
-if is_nfs "$1"; then
-  warn "$1 is on NFS. This is untested. You can send patches if it's broken."
+if is_nfs "${SUDO_HOME}"; then
+  warn "${SUDO_HOME} is on NFS. This is untested. Send patches if it's broken."
 fi
