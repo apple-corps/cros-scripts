@@ -32,6 +32,8 @@ DEFINE_string eventfile "${DEFAULT_EVENT_FILE}" \
   "Define the file that event logs will be written."
 DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
   "Calculate reverse dependencies on changed ebuilds."
+DEFINE_boolean autosetgov "${FLAGS_FALSE}" \
+  "Automatically set cpu governor to 'performance'."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -116,6 +118,25 @@ switch_to_strict_mode
 
 # Right now build_packages has to be run from scripts/
 . ${SRC_ROOT}/third_party/chromiumos-overlay/chromeos/config/chromeos_version.sh
+
+# On some systems, powersave can take a long time to ramp up.  Inform the user
+# so they can get faster builds.  https://crbug.com/1008932
+if grep -qs powersave \
+     /sys/devices/system/cpu/cpufreq/policy*/scaling_governor; then
+  # Make sure we can actually support "performance".
+  if grep -qs performance \
+      /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors; then
+    if [[ "${FLAGS_autosetgov}" -eq "${FLAGS_TRUE}" ]]; then
+      info "Temporarily setting cpu governor to 'performance'"
+      trap "sudo cpupower -c all frequency-set -g powersave >&/dev/null" EXIT
+      sudo cpupower -c all frequency-set -g performance >&/dev/null
+    else
+      warn "Current CPU governor set to 'powersave' which can slow down builds."
+      warn "Use --autosetgov to automatically (and temporarily) switch to" \
+        "'performance'."
+    fi
+  fi
+fi
 
 if [[ -z "${FLAGS_board}" ]]; then
   echo "Error: --board is required."
