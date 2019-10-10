@@ -473,10 +473,13 @@ create_base_image() {
 
   # Calculate package sizes within the built rootfs for reporting purposes.
   # Use sudo to access some paths that are unreadable as non-root.
-  (sudo "${GCLIENT_ROOT}/chromite/scripts/pkg_size" \
-          --root "${root_fs_dir}" \
-          --image-type 'base' \
-          --partition-name 'rootfs') \
+  # shellcheck disable=2154
+  (sudo BUILD_API_METRICS_LOG="${BUILD_API_METRICS_LOG}" \
+     -- \
+     "${GCLIENT_ROOT}/chromite/scripts/pkg_size" \
+        --root "${root_fs_dir}" \
+        --image-type 'base' \
+        --partition-name 'rootfs') \
      > "${BUILD_DIR}/${image_name}-package-sizes.json"
 
 # Zero rootfs free space to make it more compressible so auto-update
