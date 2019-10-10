@@ -388,6 +388,7 @@ COMMON_INSTALL_MASK="
   *.hpp
   *.h++
   *.hxx
+  *.proto
   */.keep*
   /build/libexec/tast
   /build/share/tast
