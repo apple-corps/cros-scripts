@@ -615,6 +615,11 @@ safe_umount() {
 loopback_partscan() {
   local lb_dev image="$1"
   shift
+
+  # Flush any dirty pages in the image before we send losetup that way.
+  info "Running sync -f ${image}"
+  sync -f "${image}"
+
   lb_dev=$(sudo losetup --show -f "$@" "${image}")
 
   # Ignore problems deleting existing partitions. There shouldn't be any

@@ -173,6 +173,9 @@ create_base_image() {
   local bootcache_enabled=$3
   local image_type="usb"
 
+  info "Entering create_base_image $*"
+  set -x
+
   if [[ "${FLAGS_disk_layout}" != "default" ]]; then
     image_type="${FLAGS_disk_layout}"
   else
@@ -194,6 +197,11 @@ create_base_image() {
   trap "delete_prompt" EXIT
   mkdir "${root_fs_dir}" "${stateful_fs_dir}" "${esp_fs_dir}"
   build_gpt_image "${BUILD_DIR}/${image_name}" "${image_type}"
+
+  # Try to get all of the dirty pages written to disk, so that mount doesn't
+  # return EAGAIN.
+  info "Syncing ${BUILD_DIR}/${image_name}."
+  sync -f "${BUILD_DIR}/${image_name}"
 
   trap "check_full_disk ; unmount_image ; delete_prompt" EXIT
   mount_image "${BUILD_DIR}/${image_name}" "${root_fs_dir}" \
