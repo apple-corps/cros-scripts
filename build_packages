@@ -188,7 +188,7 @@ if [[ "${FLAGS_jobs}" -ne -1 ]]; then
 fi
 
 if [[ "${FLAGS_norebuild}" -eq "${FLAGS_FALSE}" ]]; then
-  EMERGE_FLAGS+=( --rebuild-if-unbuilt )
+  EMERGE_FLAGS+=( --rebuild-if-new-rev )
 fi
 if [[ "${FLAGS_showoutput}" -eq "${FLAGS_TRUE}" ]]; then
   EMERGE_FLAGS+=( --show-output )
