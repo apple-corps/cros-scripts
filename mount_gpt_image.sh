@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "Entering $0 $*" >&2
-set -x
-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,6 +8,10 @@ set -x
 # and creates mount points for /var and /usr/local (if in dev_mode).
 
 # Helper scripts should be run from the same location as this script.
+echo "Entering $0 $*" >&2
+# TODO(crbug/1011891): remove this
+set -x
+
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 . "${SCRIPT_ROOT}/build_library/filesystem_util.sh" || exit 1
