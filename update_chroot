@@ -90,6 +90,19 @@ info "Bootstrapping depot_tools"
 # TODO(crbug.com/984182): Drop EPYTHON setting if they ever finish.
 EPYTHON="python2" ensure_bootstrap
 
+
+info "Rebuilding Portage cache"
+# Before running any emerge operations, regenerate the Portage dependency cache
+# in parallel.
+egen_jobs=${FLAGS_jobs}
+if [[ ${egen_jobs} -eq -1 ]]; then
+  egen_jobs=$(getconf _NPROCESSORS_ONLN)
+fi
+
+egencache --jobs "${egen_jobs}" --update-pkg-desc-index --repo chromiumos &
+egencache --jobs "${egen_jobs}" --update-pkg-desc-index --repo portage-stable
+wait $!
+
 info "Updating the SDK"
 
 # Perform an update of all the sdk packages in the chroot.
