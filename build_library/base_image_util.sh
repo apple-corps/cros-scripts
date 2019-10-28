@@ -55,26 +55,30 @@ create_dev_install_lists() {
   )
 
   local pkgs_out=$(mktemp -d)
-
+  local pids=()
   for pkg in "${pkgs[@]}" ; do
     (
-      emerge-${BOARD} --color n --pretend --quiet --emptytree \
-        --root-deps=rdeps ${pkg} | \
-        egrep -o ' [[:alnum:]-]+/[^[:space:]/]+\b' | \
-        tr -d ' ' | \
+      emerge-${BOARD} --color n --pretend --quiet --emptytree --cols \
+        --root-deps=rdeps --with-bdeps=n --usepkgonly ${pkg} | \
+        awk '$2 ~ /\// {print $2 "-" $3}' | \
         sort > "${pkgs_out}/${pkg##*/}.packages"
       pipestatus=${PIPESTATUS[*]}
-      [[ ${pipestatus// } -eq 0 ]] || touch "${pkgs_out}/FAILED"
+      [[ ${pipestatus// } -eq 0 ]]
     ) &
+    pids+=( $! )
   done
-  wait
-  if [[ -e "${pkgs_out}/FAILED" ]]; then
+  if ! wait "${pids[@]}"; then
     die_notrace "Generating lists failed"
   fi
 
   # bootstrap = portage - target-os
   comm -13 "${pkgs_out}/target-os.packages" \
     "${pkgs_out}/portage.packages" > "${pkgs_out}/bootstrap.packages"
+  # Sanity check.  https://crbug.com/1015253
+  if [[ ! -s "${pkgs_out}/bootstrap.packages" ]]; then
+    grep ^ "${pkgs_out}"/*
+    die "dev-install bootstrap.packages is empty!"
+  fi
 
   # chromeos-base = target-os + portage - virtuals
   sort -u "${pkgs_out}/target-os.packages" "${pkgs_out}/portage.packages" \
