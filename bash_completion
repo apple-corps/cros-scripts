@@ -152,7 +152,18 @@ _autotest_complete() {
 _complete_cros_workon_command() {
   [ ${COMP_CWORD} -eq 1 ] || return 1
   local command="${COMP_WORDS[1]}"
-  COMPREPLY=($(compgen -W "start stop list iterate" -- "$command"))
+
+  # TODO(hesling): Local scoped references to associative arrays
+  # seems to be broken in bash version 4.3.48, but working in version 5.
+  # We can beautify this by using the following command, when cros bash
+  # is updated.
+  # local -n cache="_comp_cache[subcmds/cros_workon]"
+
+  local key="subcmds/cros_workon"
+  if [[ -z "${_comp_cache[${key}]}" ]]; then
+    _comp_cache[${key}]="$(command cros_workon --help | _subcmds_from_help)"
+  fi
+  COMPREPLY=($(compgen -W "${_comp_cache[${key}]}" -- "${command}"))
   return 0
 }
 
