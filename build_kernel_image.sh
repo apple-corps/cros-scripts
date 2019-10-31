@@ -50,8 +50,8 @@ DEFINE_integer verity_error_behavior 3 \
 (Default: 3)"
 DEFINE_integer verity_max_ios -1 \
   "Optional number of outstanding I/O operations. (Default: -1)"
-DEFINE_string verity_hash_alg "sha1" \
-  "Cryptographic hash algorithm used for dm-verity. (Default: sha1)"
+DEFINE_string verity_hash_alg "sha256" \
+  "Cryptographic hash algorithm used for dm-verity. (Default: sha256)"
 DEFINE_string verity_salt "" \
   "Salt to use for rootfs hash (Default: \"\")"
 DEFINE_boolean enable_rootfs_verification ${FLAGS_TRUE} \
