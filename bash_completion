@@ -9,7 +9,7 @@
 # function assumes that the command supports shflags' --help flag.
 _flags() {
   echo $(command "${COMP_WORDS[0]}" --help 2>&1 \
-    | egrep -o -- --\[^\ \]+: \
+    | egrep -o -- '--[[:alnum:]=_-]+' \
     | sed 's/://; s/--\[no\]\(.\+\)/--\1 --no\1/')
 }
 
