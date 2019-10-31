@@ -4,6 +4,23 @@
 
 # Add programmable completion to some Chromium OS build scripts
 
+# Declare one cache for all bash complete operations to
+# allow it to be easiley cleared if need be.
+# > unset _comp_cache
+declare -A _comp_cache
+
+# Usage: cros --help | _subcmds_from_help
+# Parse subcommands from a commands's help message.
+# Trims the help outputs after it see any token with "command"
+# in it. Then, it searches for a no-space bracketed token,
+# similar to the following:
+# {subcmd1,subcmd2,subcmd3}
+_subcmds_from_help() {
+  sed -n -e '/commands:/,$p' \
+    | egrep -o '\{[[:alnum:]_-,]+\}' | sort -u \
+    | tr -d '{}' | tr ',' ' '
+  return ${PIPESTATUS[0]}
+}
 
 # Echo a list of -- flags that the current command accepts. The
 # function assumes that the command supports shflags' --help flag.
@@ -12,7 +29,6 @@ _flags() {
     | egrep -o -- '--[[:alnum:]=_-]+' \
     | sed 's/://; s/--\[no\]\(.\+\)/--\1 --no\1/')
 }
-
 
 # Complete flags, i.e., current words starting with --. Return 1 if
 # the current word doesn't start with --, 0 otherwise.
@@ -25,7 +41,6 @@ _flag_complete() {
   fi
   return 1
 }
-
 
 # Look for "--arg=foo" or "--arg foo" (where foo can be an empty string) in the
 # word to be completed. If found, echo "--arg=foo".
@@ -188,6 +203,31 @@ _cros_workon() {
   return 0
 }
 
+_complete_cros_command() {
+  local command="${COMP_WORDS[COMP_CWORD]}"
+  if [ ${COMP_CWORD} -ne 1 ]; then
+    COMPREPLY=($(compgen -o default -- "${command}"))
+    return 0
+  fi
+
+  local key="subcmds/cros"
+  if [[ -z "${_comp_cache[${key}]}" ]]; then
+    _comp_cache[${key}]="$(command cros --help | _subcmds_from_help)"
+  fi
+  COMPREPLY=($(compgen -W "${_comp_cache[${key}]}" -- "${command}"))
+  return 0
+}
+
+# Complete cros arguments.
+_cros() {
+  COMPREPLY=()
+  _flag_complete && return 0
+  _complete_board_sysroot_flag && return 0
+  _complete_cros_command && return 0
+  # TODO(hesling): Add package completion like cros_workon.
+  return 0
+}
+
 # Complete equery's <module-name> argument.
 _complete_equery_module_name() {
   [ ${COMP_CWORD} -eq 1 ] || return 1
@@ -212,6 +252,7 @@ complete -o bashdefault -o default -F _board_sysroot \
   mod_image_for_test.sh
 complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
+complete -F _cros cros
 complete -F _cros_workon cros_workon
 complete -o bashdefault -o default -F _complete_equery equery
 
