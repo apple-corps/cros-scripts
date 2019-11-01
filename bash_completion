@@ -144,6 +144,11 @@ _autotest_complete() {
   _complete_board_sysroot_flag && return 0
 }
 
+_test_that_complete() {
+  _flag_complete && return 0
+  return 0
+}
+
 # Complete cros_workon's <command> argument.
 #
 # TODO(petkov): We should probably extract the list of commands from
@@ -271,6 +276,7 @@ complete -o bashdefault -o default -F _board_sysroot \
   mod_image_for_test.sh
 complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
+complete -o bashdefault -o default -o nospace -F _test_that_complete test_that
 complete -F _cros cros
 complete -F _cros_workon cros_workon
 complete -o bashdefault -o default -F _complete_equery equery
