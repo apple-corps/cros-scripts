@@ -36,7 +36,11 @@ _flag_complete() {
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
   if [[ "${cur}" == --* ]]; then
-    COMPREPLY=( $(compgen -W "$(_flags)" -- ${cur}) )
+    local key="flags/${COMP_WORDS[0]}"
+    if [[ -z "${_comp_cache[${key}]}" ]]; then
+      _comp_cache[${key}]="$(_flags)"
+    fi
+    COMPREPLY=( $(compgen -W "${_comp_cache[${key}]}" -- "${cur}") )
     return 0
   fi
   return 1
