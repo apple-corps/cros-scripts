@@ -193,7 +193,11 @@ _complete_cros_workon_package() {
   local command="${COMP_WORDS[1]}"
   # If "start", complete based on all workon packages.
   if [[ ${command} == "start" ]]; then
-    COMPREPLY=($(compgen -W "$(_cros_workon_list --all)" -- "$package"))
+    local key="pkgs/all"
+    if [[ -z "${_comp_cache[${key}]}" ]]; then
+      _comp_cache[${key}]="$(_cros_workon_list --all)"
+    fi
+    COMPREPLY=($(compgen -W "${_comp_cache[${key}]}" -- "${package}"))
     return 0
   fi
   # If "stop" or "iterate", complete based on all live packages.
