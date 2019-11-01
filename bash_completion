@@ -182,7 +182,7 @@ _cros_workon_executable() {
 # the ebuild names (e.g., metrics).
 _cros_workon_list() {
   local cros_workon=$(_cros_workon_executable)
-  ${cros_workon} list $1 | sed 's,\(.\+\)/\(.\+\),\1/\2 \2,'
+  ${cros_workon} $1 list | sed 's,\(.\+\)/\(.\+\),\1/\2 \2,'
 }
 
 # Completes the current cros_workon argument assuming it's a
