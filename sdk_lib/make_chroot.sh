@@ -347,12 +347,6 @@ EOF
      sudo -u "${SUDO_USER}" -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
        "${FLAGS_chroot}"
    fi
-
-   # Update nsswitch.conf to make glibc-2.26 and after builds. See
-   # https://wiki.gentoo.org/wiki/Project:Toolchain/nsswitch.conf_in_glibc-2.26
-   if ! grep compat "${FLAGS_chroot}/etc/nsswitch.conf" | grep -q files; then
-     sed -i 's/\<compat\>/compat files/g' "${FLAGS_chroot}/etc/nsswitch.conf"
-   fi
 }
 
 unpack_tarball() {
