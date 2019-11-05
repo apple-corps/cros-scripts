@@ -617,7 +617,7 @@ early_enter_chroot emerge -uNvq sys-libs/ncurses
 #   older sys-devel/automake makes media-libs/freetype build flaky.
 #   glibc 2.26+ needs a newer bison.
 info "Updating preinstalled build tools"
-early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${EMERGE_JOBS} \
   sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake sys-devel/bison
 
 # Now that many of the fundamental packages should be in a good state, update
@@ -648,7 +648,7 @@ early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
 
 info "Running emerge curl sudo gentoolkit ..."
-early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} --select ${EMERGE_JOBS} \
+early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${EMERGE_JOBS} \
   pbzip2 dev-libs/openssl net-misc/curl sudo app-portage/gentoolkit
 
 info "Updating Perl modules"

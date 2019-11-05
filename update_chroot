@@ -114,7 +114,7 @@ info "Updating the SDK"
 # Perform an update of all the sdk packages in the chroot.
 EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 
-EMERGE_FLAGS=( -uNv --with-bdeps=y --select )
+EMERGE_FLAGS=( -uNv --with-bdeps=y )
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   EMERGE_FLAGS+=( --getbinpkg )
 

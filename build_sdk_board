@@ -141,7 +141,7 @@ sudo eclean -d packages
 # Next, install our rebuilt packages into our separate root.
 HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
 HOST_FLAGS+=" --newuse --usepkgonly"
-sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=y --select=y "${PACKAGES[@]}"
+sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=y "${PACKAGES[@]}"
 # Install our rebuilt packages from the nobdeps target into our separate root
 # without their build-time deps.  We also avoid adding this target to the
 # world set so that subsequent update_chroot commands won't re-import the
