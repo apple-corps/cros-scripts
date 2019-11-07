@@ -252,6 +252,13 @@ _cros() {
   return 0
 }
 
+_cros_portage_upgrade() {
+  COMPREPLY=()
+  _flag_complete && return 0
+  _complete_board_sysroot_flag && return 0
+  return 0
+}
+
 # Complete equery's <module-name> argument.
 _complete_equery_module_name() {
   [ ${COMP_CWORD} -eq 1 ] || return 1
@@ -279,6 +286,8 @@ complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
 complete -o bashdefault -o default -o nospace -F _test_that_complete test_that
 complete -F _cros cros
 complete -F _cros_workon cros_workon
+complete -o bashdefault -o default -o nospace -F _cros_portage_upgrade \
+            cros_portage_upgrade
 complete -o bashdefault -o default -F _complete_equery equery
 
 # Use equery completion for equery-$board for known boards
