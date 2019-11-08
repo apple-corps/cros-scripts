@@ -93,13 +93,26 @@
         "size": "2048 MiB"
       },
       {
-        # Slot A rootfs. Rootfs + extras must fit.
-        # FS size + Verity (64 * FS blocks).
-        # Make sure that other layouts still has room for the
-        # extras, should you increase FS size
+        # Slot A rootfs. Rootfs + extras (AKA verity) must fit, AKA:
+        #   size <= FS size + Verity size
         #
-        # Note that updates will fail if the rootfs size
-        # shrinks. (crbug.com/192136)
+        # Verity's size can be found by:
+        #   verity_bytes = div_round_up(fs_bytes, 128) +
+        #                  div_round_up(fs_bytes, 16384) + 4096
+        #
+        # That means that the FS MiB should be:
+        #   ((total_MiB * 1024 * 1024 - 4096) * 16384 / 16513) / (1024 * 1024)
+        #
+        # The reason to not set your fs_size to be exactly what is specified
+        # by the formula above is to make builds start failing a little bit
+        # before we're truly out of space, allowing a quick release valve to
+        # relieve some of the pressure while we try to find other ways to save
+        # space.
+        #
+        # Note that in the past it was observed that updates would fail if the
+        # rootfs size shrunk (crbug.com/192136).  There are no known reasons to
+        # shrink the rootfs size, but if you come up with one you should
+        # revisit that bug and make sure it won't affect you.
         #
         # Changes to the offset of this partition may require
         # changes in cros-signing/security_test_baselines/
@@ -113,7 +126,7 @@
           "btrfs": "skinny-metadata"
         },
         "size": "2048 MiB",
-        "fs_size": "1240 MiB",
+        "fs_size": "1991 MiB",
         "uuid": "clear"
       },
       {
@@ -138,12 +151,6 @@
         # installation will expand this to size from base.
         "num": 5,
         "size": "2 MiB"
-      },
-      {
-        # Shrunken rootfs partition to support smaller USB sticks.
-        # installation will expand this to size from base.
-        "num": 3,
-        "size": "1290 MiB"
       }
     ],
     # Used for factory install images.
@@ -173,15 +180,6 @@
         # installation will expand this to size from base.
         "num": 5,
         "size": "2 MiB"
-      },
-      {
-        # Shrunken rootfs partition to support smaller USB sticks,
-        # and smaller recovery downloads.
-        # Installation will expand this to size from base.
-        # The offset to the beginning of this partition, and the FS
-        # size must match base exactly to allow secure boot.
-        "num": 3,
-        "size": "1290 MiB"
       },
       {
         # Stateful on recovery is dynamically resized larger.
