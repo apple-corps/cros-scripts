@@ -42,12 +42,6 @@ eval set -- "${FLAGS_ARGV}"
 # so will die prematurely if 'switch_to_strict_mode' is specified before now.
 switch_to_strict_mode
 
-# Before using chromite, we need to delete any stale .pyc files from
-# the chromite directory.  This is because bugs like crbug.com/1017859
-# can happen when things get moved and the .gitignore'd .pyc files are
-# still there.
-"${GCLIENT_ROOT}/chromite/scripts/run_tests" --clear-pycache
-
 . ${SCRIPTS_DIR}/sdk_lib/make_conf_util.sh
 
 # Run version hooks as pre-update
