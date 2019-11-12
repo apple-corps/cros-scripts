@@ -34,6 +34,8 @@ DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
   "Calculate reverse dependencies on changed ebuilds."
 DEFINE_boolean autosetgov "${FLAGS_FALSE}" \
   "Automatically set cpu governor to 'performance'."
+DEFINE_boolean use_any_chrome "${FLAGS_TRUE}" \
+  "Use any Chrome prebuilt available, even if the prebuilt doesn't match exactly."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -183,6 +185,10 @@ EMERGE_CMD=(
   "${CHROMITE_BIN}/parallel_emerge"
   --board=${FLAGS_board}
 )
+
+if [[ "${FLAGS_use_any_chrome}" -eq "${FLAGS_TRUE}" ]]; then
+  EMERGE_CMD+=( "--force-remote-binary=chromeos-base/chromeos-chrome" )
+fi
 
 if [[ "${FLAGS_buildretry}" -eq "${FLAGS_FALSE}" ]]; then
   EMERGE_CMD+=( --retries=0 )
