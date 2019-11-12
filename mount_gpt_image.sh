@@ -9,8 +9,6 @@
 
 # Helper scripts should be run from the same location as this script.
 echo "Entering $0 $*" >&2
-# TODO(crbug/1011891): remove this
-set -x
 
 SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 . "${SCRIPT_ROOT}/common.sh" || exit 1

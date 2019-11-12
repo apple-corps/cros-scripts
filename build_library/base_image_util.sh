@@ -178,8 +178,6 @@ create_base_image() {
   local image_type="usb"
 
   info "Entering create_base_image $*"
-  # TODO(crbug/1011891): remove this
-  set -x
 
   if [[ "${FLAGS_disk_layout}" != "default" ]]; then
     image_type="${FLAGS_disk_layout}"
@@ -512,6 +510,4 @@ create_base_image() {
     ${SCRIPTS_DIR}/bin/cros_make_image_bootable "${BUILD_DIR}" \
       ${image_name} ${USE_DEV_KEYS} --adjust_part="${FLAGS_adjust_part}"
   fi
-  # TODO(crbug/1011891): remove this.
-  set +x
 }
