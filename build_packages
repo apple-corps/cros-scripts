@@ -18,8 +18,8 @@ DEFINE_boolean usepkg "${FLAGS_TRUE}" \
   "Use binary packages to bootstrap when possible."
 DEFINE_boolean usepkgonly "${FLAGS_FALSE}" \
   "Only use binary packages to bootstrap; abort if any are missing."
-DEFINE_boolean noworkon "${FLAGS_FALSE}" \
-  "Don't force-build workon packages."
+DEFINE_boolean workon "${FLAGS_TRUE}" \
+  "Force-build workon packages."
 DEFINE_boolean showoutput "${FLAGS_FALSE}" \
   "Show all output from parallel_emerge."
 DEFINE_boolean withautotest "${FLAGS_TRUE}" \
@@ -275,7 +275,7 @@ fi
 
 # Build cros_workon packages when they are changed.
 CROS_WORKON_PKGS=()
-if [ "${FLAGS_noworkon}" -eq "${FLAGS_FALSE}" ]; then
+if [ "${FLAGS_workon}" -eq "${FLAGS_TRUE}" ]; then
   LIST_MODIFIED_PACKAGES="${CHROMITE_BIN}/cros_list_modified_packages"
   MODIFIED_PACKAGES=( $("${LIST_MODIFIED_PACKAGES}" --board=${FLAGS_board}) )
   info "cros_workon modified packages '${MODIFIED_PACKAGES[*]}' detected"
