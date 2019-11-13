@@ -32,7 +32,7 @@ _flags() {
 
 # Complete flags, i.e., current words starting with --. Return 1 if
 # the current word doesn't start with --, 0 otherwise.
-_flag_complete() {
+_complete_flag_help() {
   COMPREPLY=()
   local cur="${COMP_WORDS[COMP_CWORD]}"
   if [[ "${cur}" == --* ]]; then
@@ -95,8 +95,8 @@ _complete_board_sysroot_flag() {
 }
 
 # Completion for --board= argument for existing board sysroots
-_board_sysroot() {
-  _flag_complete && return 0
+_complete_basic() {
+  _complete_flag_help && return 0
   _complete_board_sysroot_flag && return 0
 }
 
@@ -110,7 +110,7 @@ _board_overlays() {
 
 # Completion for --board= argument for existing board overlays
 _board_overlay() {
-  _flag_complete && return 0
+  _complete_flag_help && return 0
 
   COMPREPLY=()
   local arg=$(_argeq --board)
@@ -127,7 +127,7 @@ _ls_autotest() {
 }
 
 _autotest_complete() {
-  _flag_complete && return 0
+  _complete_flag_help && return 0
 
   local arg=$(_argeq -c)
   if [[ ${arg} == -c=* ]]; then
@@ -145,14 +145,14 @@ _autotest_complete() {
 }
 
 _test_that_complete() {
-  _flag_complete && return 0
+  _complete_flag_help && return 0
   return 0
 }
 
 # Complete cros_workon's <command> argument.
 #
 # TODO(petkov): We should probably extract the list of commands from
-# cros_workon --help, just like we do for flags (see _flag_complete).
+# cros_workon --help, just like we do for flags (see _complete_flag_help).
 #
 # TODO(petkov): Currently, this assumes that the command is the first
 # argument. In practice, the command is the first non-flag
@@ -220,7 +220,7 @@ _complete_cros_workon_package() {
 # Complete cros_workon arguments.
 _cros_workon() {
   COMPREPLY=()
-  _flag_complete && return 0
+  _complete_flag_help && return 0
   _complete_board_sysroot_flag && return 0
   _complete_cros_workon_command && return 0
   _complete_cros_workon_package && return 0
@@ -245,17 +245,10 @@ _complete_cros_command() {
 # Complete cros arguments.
 _cros() {
   COMPREPLY=()
-  _flag_complete && return 0
+  _complete_flag_help && return 0
   _complete_board_sysroot_flag && return 0
   _complete_cros_command && return 0
   # TODO(hesling): Add package completion like cros_workon.
-  return 0
-}
-
-_cros_portage_upgrade() {
-  COMPREPLY=()
-  _flag_complete && return 0
-  _complete_board_sysroot_flag && return 0
   return 0
 }
 
@@ -276,18 +269,18 @@ _complete_equery() {
   return 0
 }
 
-complete -o bashdefault -o default -F _board_sysroot \
+complete -o bashdefault -o default -F _complete_basic \
   build_autotest.sh \
   build_image \
   build_packages \
-  mod_image_for_test.sh
+  mod_image_for_test.sh \
+  cros_portage_upgrade
+
 complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
 complete -o bashdefault -o default -o nospace -F _test_that_complete test_that
 complete -F _cros cros
 complete -F _cros_workon cros_workon
-complete -o bashdefault -o default -o nospace -F _cros_portage_upgrade \
-            cros_portage_upgrade
 complete -o bashdefault -o default -F _complete_equery equery
 
 # Use equery completion for equery-$board for known boards
