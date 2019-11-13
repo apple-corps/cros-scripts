@@ -25,9 +25,9 @@ _subcmds_from_help() {
 # Echo a list of -- flags that the current command accepts. The
 # function assumes that the command supports shflags' --help flag.
 _flags() {
-  echo $(command "${COMP_WORDS[0]}" --help 2>&1 \
-    | egrep -o -- '--[[:alnum:]=_-]+' \
-    | sed 's/://; s/--\[no\]\(.\+\)/--\1 --no\1/')
+  command "$@" --help 2>&1 \
+    | egrep -o -- '--(\[no\])?[[:alnum:]=_-]+' \
+    | sed -E -e 's|--\[no\](.+)|--\1 --no\1|'
 }
 
 # Complete flags, i.e., current words starting with --. Return 1 if
@@ -38,7 +38,7 @@ _flag_complete() {
   if [[ "${cur}" == --* ]]; then
     local key="flags/${COMP_WORDS[0]}"
     if [[ -z "${_comp_cache[${key}]}" ]]; then
-      _comp_cache[${key}]="$(_flags)"
+      _comp_cache[${key}]="$(_flags "${COMP_WORDS[0]}")"
     fi
     COMPREPLY=( $(compgen -W "${_comp_cache[${key}]}" -- "${cur}") )
     return 0
