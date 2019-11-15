@@ -391,7 +391,7 @@ COMMON_INSTALL_MASK="
   *.proto
   */.keep*
   /build/libexec/tast
-  /build/share/tast
+  /build/share
   /etc/init.d
   /etc/runlevels
   /etc/selinux/intermediates
