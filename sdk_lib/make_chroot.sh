@@ -575,7 +575,7 @@ echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 early_enter_chroot eselect python update
 
 info "Updating portage"
-early_enter_chroot emerge -uNv --quiet portage
+early_enter_chroot emerge -uNv --quiet --ignore-world portage
 
 # Clear out openrc if it's installed as we don't want it.
 if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
