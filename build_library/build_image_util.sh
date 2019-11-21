@@ -194,8 +194,10 @@ delete_prompt() {
 # Arguments to this command are passed as addition options/arguments
 # to the basic emerge command.
 emerge_to_image() {
-  sudo -E ${EMERGE_BOARD_CMD} --root-deps=rdeps --usepkgonly -v \
+  set -- ${EMERGE_BOARD_CMD} --root-deps=rdeps --usepkgonly -v \
     "$@" ${EMERGE_JOBS}
+  info "$*"
+  sudo -E "$@"
 }
 
 # Create the /etc/shadow file with all the right entries.
