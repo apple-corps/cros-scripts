@@ -414,7 +414,7 @@ fi
 # Build the recovery kernel.
 FACTORY_ROOT="${BOARD_ROOT}/factory-root"
 RECOVERY_KERNEL_FLAGS="recovery_ramfs tpm i2cdev vfat kernel_compress_xz -kernel_afdo"
-USE="${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
+USE="${USE} ${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
   die "Cannot emerge custom kernel"
 
 if [ -z "$FLAGS_kernel_image" ]; then
