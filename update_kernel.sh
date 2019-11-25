@@ -196,25 +196,6 @@ copy_kernelmodules() {
   fi
   info "Copying modules"
   remote_send_to "${modules_dir}" "${basedir}"/lib/modules
-  local kernel_release
-  local kernel_releases
-  remote_sh "cd ${basedir}/lib/modules; echo *"
-  IFS=" " read -a kernel_releases <<< "${REMOTE_OUT}"
-  for kernel_release in "${kernel_releases[@]}"; do
-    local system_map="${modules_dir}"/"${kernel_release}"/build/System.map
-    if [ -r "${system_map}" ]; then
-      remote_sh mktemp -d /tmp/update_kernel_system_map_"${kernel_release}".XXXXXX
-      local temp_dir="${REMOTE_OUT}"
-      remote_cp_to "${system_map}" "${temp_dir}"
-      local b_opt
-      if [ -n "${basedir}" ]; then
-        b_opt="-b ${basedir}"
-      fi
-      remote_sh depmod "${b_opt}" -ae \
-                       -F "${temp_dir}"/System.map "${kernel_release}"
-      remote_sh rm -rf "${temp_dir}"
-    fi
-  done
 }
 
 copy_kernelimage() {
