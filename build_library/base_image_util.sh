@@ -455,10 +455,10 @@ create_base_image() {
 
   restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
-   # Move the bootable kernel images out of the /boot directory to save
+  # Move the bootable kernel images out of the /boot directory to save
   # space.  We put them in the $BUILD_DIR so they can be used to write
   # the bootable partitions later.
-  mkdir "${BUILD_DIR}/boot_images"
+  mkdir -p "${BUILD_DIR}/boot_images"
 
   # We either copy or move vmlinuz depending on whether it should be included
   # in the final built image.  Boards that boot with legacy bioses
