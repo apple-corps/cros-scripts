@@ -230,8 +230,7 @@ _cros_workon() {
 _complete_cros_command() {
   local command="${COMP_WORDS[COMP_CWORD]}"
   if [ ${COMP_CWORD} -ne 1 ]; then
-    COMPREPLY=($(compgen -o default -- "${command}"))
-    return 0
+    return 1
   fi
 
   local key="subcmds/cros"
@@ -279,7 +278,7 @@ complete -o bashdefault -o default -F _complete_basic \
 complete -o bashdefault -o default -F _board_overlay setup_board
 complete -o bashdefault -o default -o nospace -F _autotest_complete autotest
 complete -o bashdefault -o default -o nospace -F _test_that_complete test_that
-complete -F _cros cros
+complete -o bashdefault -o default -F _cros cros
 complete -F _cros_workon cros_workon
 complete -o bashdefault -o default -F _complete_equery equery
 
