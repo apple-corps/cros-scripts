@@ -42,6 +42,11 @@ mod_image_for_test () {
 
   restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
+  # Move DLC images to the /var/cache directory. The dlc-images directory will
+  # hold DLC(s) that dlcservice will leverage for testing/provisioning.
+  sudo build_dlc --sysroot="${BOARD_ROOT}" \
+    --install-root-dir="${root_fs_dir}/var/cache/dlc-images"
+
   unmount_image
   trap - EXIT
 
