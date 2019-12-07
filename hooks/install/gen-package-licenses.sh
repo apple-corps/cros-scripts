@@ -28,7 +28,7 @@ prebuilts to anyone and therefore must include a license.
 
 If you need help resolving the licensing error you just got, please have a
 look at
-http://www.chromium.org/chromium-os/licensing-for-chromiumos-package-owners
+https://dev.chromium.org/chromium-os/licensing/licensing-for-chromiumos-package-owners
 "
 }
 
