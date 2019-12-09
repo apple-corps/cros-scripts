@@ -118,6 +118,15 @@ eval set -- "${FLAGS_ARGV}"
 # Die on any errors.
 switch_to_strict_mode
 
+# This is a temporary measure to help the goma team check the configs while
+# they transition their backend service.
+# TODO(crbug.com/1032290): Delete after the goma RBE transition is complete.
+if [[ "${FLAGS_run_goma}" -eq "${FLAGS_TRUE}" ]]; then
+  info "Environment:"
+  env
+  info "End Environment."
+fi
+
 # Right now build_packages has to be run from scripts/
 . ${SRC_ROOT}/third_party/chromiumos-overlay/chromeos/config/chromeos_version.sh
 
