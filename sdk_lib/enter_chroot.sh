@@ -271,6 +271,12 @@ generate_locales() {
   fi
 }
 
+git_config() {
+  USER="${SUDO_USER:-${USER}}" \
+  HOME="${SUDO_HOME:-${HOME}}" \
+  git config "$@"
+}
+
 setup_git() {
   # Copy .gitconfig into chroot so repo and git can be used from inside.
   # This is required for repo to work since it validates the email address.
@@ -293,7 +299,8 @@ setup_git() {
 
   # Copy the gitcookies file, updating the user's gitconfig to point to it.
   local gitcookies
-  gitcookies="$(git config -f "${chroot_gitconfig}" --get http.cookiefile)"
+  gitcookies="$(git_config --type path -f "${chroot_gitconfig}" \
+                  --get http.cookiefile)"
   if [[ $? -ne 0 ]]; then
     # Try the default location anyway.
     gitcookies="${SUDO_HOME}/.gitcookies"
@@ -377,7 +384,7 @@ setup_env() {
     setup_mount "${FLAGS_trunk}" "--rbind" "${CHROOT_TRUNK_DIR}"
 
     debug "Setting up referenced repositories if required."
-    REFERENCE_DIR=$(git config --file  \
+    REFERENCE_DIR=$(git_config --file  \
       "${FLAGS_trunk}/.repo/manifests.git/config" \
       repo.reference)
     if [ -n "${REFERENCE_DIR}" ]; then
