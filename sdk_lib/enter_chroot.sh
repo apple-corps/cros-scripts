@@ -83,6 +83,11 @@ FILES_TO_COPY_TO_CHROOT=(
   .gdata_token                # Auth token for Google Docs on chromium.org
   .inputrc                    # Preserve command line customizations
 )
+if [[ "${USER}" == "chrome-bot" ]]; then
+  # Builders still haven't migrated fully to gitcookies.
+  # https://crbug.com/1032944
+  FILES_TO_COPY_TO_CHROOT+=( .netrc )
+fi
 
 INNER_CHROME_ROOT=$FLAGS_chrome_root_mount  # inside chroot
 CHROME_ROOT_CONFIG="/var/cache/chrome_root"  # inside chroot
@@ -203,7 +208,13 @@ copy_ssh_config() {
 
 copy_into_chroot_if_exists() {
   # $1 is file path outside of chroot to copy to path $2 inside chroot.
-  [ -e "$1" ] && user_cp -p "$1" "${FLAGS_chroot}/$2"
+  if [[ -e "$1" ]]; then
+    local verbose
+    if [[ "${USER}" == "chrome-bot" ]]; then
+      verbose="-v"
+    fi
+    user_cp ${verbose} "$1" "${FLAGS_chroot}/$2"
+  fi
 }
 
 # Usage: promote_api_keys
