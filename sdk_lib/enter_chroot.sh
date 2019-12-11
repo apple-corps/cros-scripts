@@ -81,7 +81,6 @@ switch_to_strict_mode
 FILES_TO_COPY_TO_CHROOT=(
   .gdata_cred.txt             # User/password for Google Docs on chromium.org
   .gdata_token                # Auth token for Google Docs on chromium.org
-  .disable_build_stats_upload # Presence of file disables command stats upload
   .inputrc                    # Preserve command line customizations
 )
 
