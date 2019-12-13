@@ -340,7 +340,8 @@ EOF
        | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bash_profile"
 
    # Enable bash completion for build scripts.
-   echo ". ~/trunk/src/scripts/bash_completion" \
+   printf '%s\n' "# Set up bash autocompletion." \
+        ". ~/trunk/src/scripts/bash_completion" \
        | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
 
    if [[ -f "${SUDO_HOME}/.cros_chroot_init" ]]; then
