@@ -345,8 +345,7 @@ EOF
        | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
 
    if [[ -f "${SUDO_HOME}/.cros_chroot_init" ]]; then
-     sudo -u "${SUDO_USER}" -- /bin/bash "${SUDO_HOME}/.cros_chroot_init" \
-       "${FLAGS_chroot}"
+     warn "~/.cros_chroot_init is no longer supported"
    fi
 }
 
