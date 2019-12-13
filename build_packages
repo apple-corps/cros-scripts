@@ -353,6 +353,23 @@ if [[ ${#FORCE_LOCAL_BUILD_PKGS[@]} -gt 0 ]]; then
   )
 fi
 
+# A list of critical system packages that should never be incidentally
+# reinstalled as a side effect of build_packages. All packages in this list
+# are special cased to prefer matching installed versions, overriding the
+# typical logic of upgrading to the newest available version.
+#
+# This list can't include any package that gets installed to a board!
+# Packages such as LLVM or binutils must not be in this list as the normal
+# rebuild logic must still apply to them for board targets.
+#
+# TODO(crbug/1050752): Remove this list and the corresponding arguments
+# to `emerge` below once we figure out how to exclude toolchain packages from
+# being upgraded transitively via BDEPEND relations.
+CRITICAL_SDK_PACKAGES=(
+  "sys-libs/glibc"
+  "sys-devel/gcc"
+)
+
 info "Merging board packages now"
 (
   # Support goma on bots. This has to run in subshell, otherwise EXIT trap
@@ -364,7 +381,9 @@ info "Merging board packages now"
     trap "'${goma_ctl}' stop" EXIT
   fi
 
-  sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}"
+  sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" \
+    --useoldpkg-atoms="${CRITICAL_SDK_PACKAGES[*]}" \
+    --rebuild-exclude="${CRITICAL_SDK_PACKAGES[*]}"
 )
 
 echo "Builds complete"
