@@ -83,7 +83,7 @@ FILES_TO_COPY_TO_CHROOT=(
   .gdata_token                # Auth token for Google Docs on chromium.org
   .inputrc                    # Preserve command line customizations
 )
-if [[ "${USER}" == "chrome-bot" ]]; then
+if [[ "${SUDO_USER:-${USER}}" == "chrome-bot" ]]; then
   # Builders still haven't migrated fully to gitcookies.
   # https://crbug.com/1032944
   FILES_TO_COPY_TO_CHROOT+=( .netrc )
@@ -210,7 +210,7 @@ copy_into_chroot_if_exists() {
   # $1 is file path outside of chroot to copy to path $2 inside chroot.
   if [[ -e "$1" ]]; then
     local verbose
-    if [[ "${USER}" == "chrome-bot" ]]; then
+    if [[ "${SUDO_USER:-${USER}}" == "chrome-bot" ]]; then
       verbose="-v"
     fi
     user_cp ${verbose} "$1" "${FLAGS_chroot}/$2"
