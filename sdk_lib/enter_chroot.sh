@@ -287,6 +287,18 @@ git_config() {
   git config "$@"
 }
 
+# The --type=path option is new to git-2.18 and not everyone upgrades.
+# But not everyone uses the ~ prefix, so try that option if needed.
+git_config_path() {
+  local out
+  out=$(git_config "$@")
+  if [[ "${out:0:1}" == "~" ]]; then
+    git_config --type path "$@"
+  else
+    echo "${out}"
+  fi
+}
+
 setup_git() {
   # Copy .gitconfig into chroot so repo and git can be used from inside.
   # This is required for repo to work since it validates the email address.
@@ -309,7 +321,7 @@ setup_git() {
 
   # Copy the gitcookies file, updating the user's gitconfig to point to it.
   local gitcookies
-  gitcookies="$(git_config --type path -f "${chroot_gitconfig}" \
+  gitcookies="$(git_config_path --file "${chroot_gitconfig}" \
                   --get http.cookiefile)"
   if [[ $? -ne 0 ]]; then
     # Try the default location anyway.
@@ -394,7 +406,7 @@ setup_env() {
     setup_mount "${FLAGS_trunk}" "--rbind" "${CHROOT_TRUNK_DIR}"
 
     debug "Setting up referenced repositories if required."
-    REFERENCE_DIR=$(git_config --file  \
+    REFERENCE_DIR=$(git_config_path --file  \
       "${FLAGS_trunk}/.repo/manifests.git/config" \
       repo.reference)
     if [ -n "${REFERENCE_DIR}" ]; then
