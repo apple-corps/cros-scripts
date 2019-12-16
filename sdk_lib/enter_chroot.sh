@@ -209,11 +209,7 @@ copy_ssh_config() {
 copy_into_chroot_if_exists() {
   # $1 is file path outside of chroot to copy to path $2 inside chroot.
   if [[ -e "$1" ]]; then
-    local verbose
-    if [[ "${SUDO_USER:-${USER}}" == "chrome-bot" ]]; then
-      verbose="-v"
-    fi
-    user_cp ${verbose} "$1" "${FLAGS_chroot}/$2"
+    user_cp "$1" "${FLAGS_chroot}/$2"
   fi
 }
 
