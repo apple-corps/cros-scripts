@@ -295,7 +295,7 @@ main() {
   if [[ ${REMOTE_VERITY} -eq ${FLAGS_FALSE} ]]; then
     local remote_basedir
     if [[ ${REMOTE_NEEDS_ROOTFS_MOUNTED} -eq ${FLAGS_TRUE} ]]; then
-      remote_sh mktemp -d /tmp/"${FLAGS_rootfs#$FLAGS_device}".XXXXXX
+      remote_sh mktemp -d /tmp/rootfs_mounted.XXXXXX
       remote_basedir="${REMOTE_OUT}"
       remote_sh mount "${FLAGS_rootfs}" "${remote_basedir}"
     else
