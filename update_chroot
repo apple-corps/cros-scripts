@@ -135,13 +135,6 @@ sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
 
 # Install post cross packages if binary pkgs are available.
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
-  # Use --usepkgonly to ensure that packages are not built from source.
-  EMERGE_FLAGS=( -uNv --with-bdeps=y --oneshot --getbinpkg --deep --usepkgonly )
-  EMERGE_FLAGS+=(
-    $("${CHROMITE_BIN}/cros_setup_toolchains" --show-packages host-post-cross)
-  )
-  sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}"
-
   # Install nobdeps packages only when binary pkgs are available, since we don't
   # want to accidentally pull in build deps for a rebuild.
   EMERGE_FLAGS=( -uNv --with-bdeps=n --oneshot --getbinpkg --deep --usepkgonly )
