@@ -404,6 +404,7 @@ COMMON_INSTALL_MASK="
   /usr/bin/Xnest
   /usr/bin/Xvfb
   /usr/include
+  /usr/lib/cros_rust_registry
   /usr/lib/debug
   /usr/lib/gopath
   /usr/lib*/pkgconfig
