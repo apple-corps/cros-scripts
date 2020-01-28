@@ -79,6 +79,8 @@ switch_to_strict_mode
 # These config files are to be copied into chroot if they exist in home dir.
 # Additionally, git relevant files are copied by setup_git.
 FILES_TO_COPY_TO_CHROOT=(
+  # Creds used to authenticate with LUCI services.
+  .config/chrome_infra/auth/creds.json
   .gdata_cred.txt             # User/password for Google Docs on chromium.org
   .gdata_token                # Auth token for Google Docs on chromium.org
   .inputrc                    # Preserve command line customizations
@@ -209,6 +211,11 @@ copy_ssh_config() {
 copy_into_chroot_if_exists() {
   # $1 is file path outside of chroot to copy to path $2 inside chroot.
   if [[ -e "$1" ]]; then
+    local dir
+    dir=$(dirname "${FLAGS_chroot}/$2")
+    if [[ ! -d "${dir}" ]]; then
+      user_mkdir "${dir}"
+    fi
     user_cp "$1" "${FLAGS_chroot}/$2"
   fi
 }
