@@ -162,8 +162,8 @@ make_kernelimage() {
     # build_kernel_image.sh.  If we wanted to be super paranoid, we could copy
     # and extract it from the remote image, if it had one.
     if [[ ! -e "${bootloader_path}" ]]; then
-      warn "Bootloader does not exist; creating a stub: ${bootloader_path}"
-      mkdir -p "${bootloader_path%/*}"
+      warn "Bootloader does not exist; creating a stub"
+      bootloader_path="${TMP}/${name}"
       truncate -s 512 "${bootloader_path}"
     fi
     kernel_image="/build/${FLAGS_board}/boot/vmlinux.uimg"
