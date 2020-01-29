@@ -1,9 +1,0 @@
-# Copyright 2018 The Chromium OS Authors. All rights reserved.
-# Use of this source code is governed by a BSD-style license that can be
-# found in the LICENSE file.
-
-# Manually force sys-libs/glibc to be upgraded to the new version when updating.
-# net-libs/rpcsvc-proto is needed to avoid portage complains.
-if portageq has_version / '<sys-libs/glibc-2.27'; then
-  sudo emerge -1ug '>=sys-libs/glibc-2.27' 'net-libs/rpcsvc-proto'
-fi
