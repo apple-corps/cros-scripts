@@ -20,6 +20,7 @@ DEFINE_string rootoff "" "Override root offset"
 DEFINE_string rootfs "" "Override rootfs partition reported by target"
 DEFINE_string arch "" "Override architecture reported by target"
 DEFINE_boolean clean $FLAGS_FALSE "Remove old files before sending new files"
+DEFINE_boolean hv $FLAGS_TRUE "Use hypervisor kernel if available."
 DEFINE_boolean ignore_verity $FLAGS_FALSE "Update kernel even if system is using verity"
 DEFINE_boolean reboot $FLAGS_TRUE "Reboot system after update"
 DEFINE_boolean vboot $FLAGS_TRUE "Update the vboot kernel"
@@ -153,6 +154,7 @@ learn_arch() {
 make_kernelimage() {
   local bootloader_path
   local kernel_image
+  local boot_path="/build/${FLAGS_board}/boot"
   local config_path="$(mktemp /tmp/config.txt.XXXXX)"
   if [[ "${FLAGS_arch}" == "arm" || "${FLAGS_arch}" == "arm64" ]]; then
     name="bootloader.bin"
@@ -165,10 +167,13 @@ make_kernelimage() {
       bootloader_path="${TMP}/${name}"
       truncate -s 512 "${bootloader_path}"
     fi
-    kernel_image="/build/${FLAGS_board}/boot/vmlinux.uimg"
+    kernel_image="${boot_path}/vmlinux.uimg"
+  elif [[ ${FLAGS_hv} -eq ${FLAGS_TRUE} && -d "${boot_path}/hv" ]]; then
+    bootloader_path="/lib64/bootstub/bootstub.efi"
+    kernel_image="${boot_path}/hv/vmlinuz"
   else
     bootloader_path="/lib64/bootstub/bootstub.efi"
-    kernel_image="/build/${FLAGS_board}/boot/vmlinuz"
+    kernel_image="${boot_path}/vmlinuz"
   fi
   get_bootargs > "${config_path}"
   vbutil_kernel --pack $TMP/new_kern.bin \
