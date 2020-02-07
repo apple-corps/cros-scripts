@@ -391,6 +391,7 @@ COMMON_INSTALL_MASK="
   *.proto
   */.keep*
   /build/libexec/tast
+  /build/rootfs/dlc
   /build/share
   /etc/init.d
   /etc/runlevels
