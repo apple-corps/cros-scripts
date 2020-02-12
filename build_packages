@@ -240,7 +240,9 @@ fi
 
 # Figure out which packages we should be building.
 PACKAGES=( "$@" )
-FORCE_LOCAL_BUILD_PKGS=()
+# Force rebuild chromeos-config because it is extremely cheap, and we do not
+# want to reuse stale configs.
+FORCE_LOCAL_BUILD_PKGS=( chromeos-base/chromeos-config )
 if [[ $# -eq 0 ]]; then
   PACKAGES=( virtual/target-os )
   if [[ "${FLAGS_withdev}" -eq "${FLAGS_TRUE}" ]]; then
