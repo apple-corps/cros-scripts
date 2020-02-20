@@ -372,9 +372,8 @@ info "Merging board packages now"
   if [[ "${FLAGS_run_goma}" -eq "${FLAGS_TRUE}" ]]; then
     info "Starting goma compiler_proxy."
     goma_ctl="${GOMA_DIR:-${HOME}/goma}/goma_ctl.py"
-    # TODO(crbug.com/1007384): Stop forcing Python 2.
-    EPYTHON="python2" "${goma_ctl}" restart
-    trap "EPYTHON=python2 '${goma_ctl}' stop" EXIT
+    "${goma_ctl}" restart
+    trap "'${goma_ctl}' stop" EXIT
   fi
 
   sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}"
