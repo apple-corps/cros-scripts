@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-CHROMEOS_MASTER_JSON_CONFIG_FILE="${BOARD_ROOT}/usr/share/chromeos-config/config.json"
+CHROMEOS_CONFIG_DIR="${BOARD_ROOT}/usr/share/chromeos-config"
 
 check_full_disk() {
   local prev_ret=$?
@@ -339,18 +339,15 @@ create_base_image() {
     builder_path="--builder_path=${FLAGS_builder_path}"
   fi
 
-  # For unified builds, include a list of models, e.g. with --models "reef pyro"
-  local model_flags=()
-  if [[ -f "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" ]]; then
-    models=$(grep '"name":' "${CHROMEOS_MASTER_JSON_CONFIG_FILE}" \
-      | uniq | sed -e 's/.*"name": "\(.*\)".*/\1/' | tr '\n' ' ')
-    [[ -n "${models}" ]] && model_flags+=( --models "${models%% }" )
+  local unibuild_flag=
+  if [[ -d "${CHROMEOS_CONFIG_DIR}" ]]; then
+    unibuild_flag="--unibuild"
   fi
 
   "${CHROMITE_BIN}/cros_set_lsb_release" \
     --sysroot="${root_fs_dir}" \
     --board="${BOARD}" \
-    "${model_flags[@]}" \
+    ${unibuild_flag} \
     ${builder_path} \
     --keyset="devkeys" \
     --version_string="${CHROMEOS_VERSION_STRING}" \
