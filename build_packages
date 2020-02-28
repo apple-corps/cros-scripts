@@ -26,8 +26,6 @@ DEFINE_boolean withautotest "${FLAGS_TRUE}" \
   "Build autotest client code."
 DEFINE_boolean withdebugsymbols "${FLAGS_FALSE}" \
   "Install the debug symbols for all packages"
-DEFINE_boolean withevents "${FLAGS_FALSE}" \
-  "Generate events during parallel_emerge step"
 DEFINE_string eventfile "${DEFAULT_EVENT_FILE}" \
   "Define the file that event logs will be written."
 DEFINE_boolean withrevdeps "${FLAGS_TRUE}" \
@@ -226,16 +224,6 @@ fi
 
 if [[ "${FLAGS_withdebug}" -eq "${FLAGS_FALSE}" ]]; then
   export USE="${USE} -cros-debug"
-fi
-
-# TODO Handle case where passed default value, but events not enabled
-if [[ "${FLAGS_eventfile}" != "${DEFAULT_EVENT_FILE}" ]]; then
-  FLAGS_withevents="${FLAGS_TRUE}"
-fi
-
-if [[ "${FLAGS_withevents}" -eq "${FLAGS_TRUE}" ]]; then
-  mkdir -p "$(dirname $FLAGS_eventfile)"
-  EMERGE_FLAGS+=( "--eventlogfile=${FLAGS_eventfile}" )
 fi
 
 # Figure out which packages we should be building.
