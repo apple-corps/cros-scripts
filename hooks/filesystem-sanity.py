@@ -107,6 +107,7 @@ BAD_VAR_PACKAGES = {
     'media-sound/alsa-utils',
     'net-analyzer/netperf',
     'net-dns/dnsmasq',
+    'net-firewall/ebtables',
     'net-firewall/iptables',
     'net-fs/samba',
     'net-misc/chrony',
