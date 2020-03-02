@@ -109,6 +109,7 @@ BAD_VAR_PACKAGES = {
     'net-dns/dnsmasq',
     'net-firewall/iptables',
     'net-fs/samba',
+    'net-misc/chrony',
     'net-misc/dhcpcd',
     'net-misc/openssh',
     'net-print/cups',
