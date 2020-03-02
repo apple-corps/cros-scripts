@@ -85,9 +85,9 @@ _dump_trace() {
 
 # Declare these asap so that code below can safely assume they exist.
 _message() {
-  local prefix=$1
+  local prefix
+  prefix="$(date +%H:%M:%S) $1"
   shift
-  printf '%s: ' "$(date +%H:%M:%S)" >&2
   if [[ $# -eq 0 ]]; then
     echo -e "${prefix}${CROS_LOG_PREFIX:-""}:${V_VIDOFF}" >&2
     return
