@@ -142,6 +142,7 @@ BAD_TMP_PACKAGES = {
     # https://crbug.com/1057059
     'chromeos-base/chromeos-bsp-caroline-private',
     'chromeos-base/chromeos-bsp-elm-private',
+    'chromeos-base/chromeos-config-bsp',
     'chromeos-base/chromeos-config-bsp-coral',
     'chromeos-base/chromeos-config-bsp-coral-private',
     'chromeos-base/chromeos-config-bsp-nami',
