@@ -74,6 +74,8 @@ KNOWN_TARGETS = {
 BAD_ROOT_PACKAGES = {
     # TODO(crbug.com/1003107): Delete this.
     'dev-go/go-tools',
+    # TODO(b/150694105): Delete this.
+    'net-wireless/wpantund',
 }
 
 # These SDK packages need cleanup.
@@ -107,6 +109,7 @@ BAD_VAR_PACKAGES = {
     'media-sound/alsa-utils',
     'net-analyzer/netperf',
     'net-dns/dnsmasq',
+    # TODO(b/150694545): Delete this.
     'net-firewall/ebtables',
     'net-firewall/iptables',
     'net-fs/samba',
