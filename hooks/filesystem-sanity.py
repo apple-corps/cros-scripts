@@ -112,6 +112,7 @@ BAD_VAR_PACKAGES = {
     # TODO(b/150694545): Delete this.
     'net-firewall/ebtables',
     'net-firewall/iptables',
+    'net-firewall/nftables',
     'net-fs/samba',
     'net-misc/chrony',
     'net-misc/dhcpcd',
