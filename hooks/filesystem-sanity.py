@@ -76,8 +76,6 @@ BAD_ROOT_PACKAGES = {
     'dev-go/go-tools',
     # TODO(b/150694105): Delete this.
     'net-wireless/wpantund',
-    # TODO(b/150818446): Delete this.
-    'sys-boot/ti-u-boot',
 }
 
 # These SDK packages need cleanup.
