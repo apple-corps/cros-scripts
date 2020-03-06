@@ -74,8 +74,6 @@ KNOWN_TARGETS = {
 BAD_ROOT_PACKAGES = {
     # TODO(crbug.com/1003107): Delete this.
     'dev-go/go-tools',
-    # TODO(b/150694105): Delete this.
-    'net-wireless/wpantund',
 }
 
 # These SDK packages need cleanup.
