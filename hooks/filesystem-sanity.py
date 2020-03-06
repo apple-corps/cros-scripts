@@ -98,6 +98,8 @@ BAD_VAR_PACKAGES = {
     'app-crypt/trousers',
     'app-emulation/containerd',
     'app-emulation/lxc',
+    # https://crbug.com/1059308
+    'chromeos-base/chromeos-bsp-initramfs-rialto',
     'chromeos-base/chromeos-initramfs',
     # https://crbug.com/1054646
     'chromeos-base/devserver',
