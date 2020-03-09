@@ -66,8 +66,7 @@ check_binaries()
     return
   fi
 
-  local CTARGET="${CTARGET:-${CHOST}}"
-  local readelf="${CTARGET}-readelf"
+  local readelf="llvm-readelf"
   local binary
   scanelf -y -B -F '%F' -R "${D}" | \
     while read binary ; do
