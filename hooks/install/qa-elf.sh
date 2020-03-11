@@ -73,7 +73,7 @@ check_binaries()
       case "${binary}" in
         *.ko)
           ;;
-        ${D}usr/lib/debug/*)
+        ${D%/}/usr/lib/debug/*)
           ;;
         *)
           check_compiler_flags "${binary}"
