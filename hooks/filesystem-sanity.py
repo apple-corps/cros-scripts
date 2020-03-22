@@ -24,13 +24,13 @@ import sys
 # always bind mounted with the host distro, and we don't want to pollute them.
 # Those are: /dev
 VALID_ROOT = {
-    'bin', 'boot', 'etc', 'home', 'lib', 'lib32', 'lib64', 'media',
+    'bin', 'etc', 'home', 'lib', 'lib32', 'lib64', 'media',
     'mnt', 'opt', 'proc', 'root', 'run', 'sbin', 'sys', 'tmp', 'usr', 'var',
 }
 
 # Paths that are allowed in the / dir for boards.
 VALID_BOARD_ROOT = {
-    'build', 'dev', 'firmware',
+    'boot', 'build', 'dev', 'firmware',
     # TODO(): We should clean this up.
     'postinst',
 }
