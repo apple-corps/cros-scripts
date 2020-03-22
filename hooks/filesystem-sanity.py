@@ -19,14 +19,18 @@ import sys
 
 
 # Paths that are allowed in the / dir.
+#
+# NB: We don't allow packages to install into some subdirs because they are
+# always bind mounted with the host distro, and we don't want to pollute them.
+# Those are: /dev
 VALID_ROOT = {
-    'bin', 'boot', 'dev', 'etc', 'home', 'lib', 'lib32', 'lib64', 'media',
+    'bin', 'boot', 'etc', 'home', 'lib', 'lib32', 'lib64', 'media',
     'mnt', 'opt', 'proc', 'root', 'run', 'sbin', 'sys', 'tmp', 'usr', 'var',
 }
 
 # Paths that are allowed in the / dir for boards.
 VALID_BOARD_ROOT = {
-    'build', 'firmware',
+    'build', 'dev', 'firmware',
     # TODO(): We should clean this up.
     'postinst',
 }
