@@ -46,7 +46,7 @@ mod_image_for_test () {
   # hold DLC(s) that dlcservice will leverage for testing/provisioning.
   build_dlc --sysroot="${BOARD_ROOT}" \
     --install-root-dir="${root_fs_dir}/var/cache/dlc-images" \
-    --preload --rootfs="${root_fs_dir}"
+    --preload --rootfs="${root_fs_dir}" --board="${BOARD}"
 
   unmount_image
   trap - EXIT

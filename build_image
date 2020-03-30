@@ -222,7 +222,8 @@ fi
 move_image "${BUILD_DIR}" "${OUTPUT_DIR}"
 
 # Copy DLC images to the output_root directory.
-build_dlc --sysroot="${BOARD_ROOT}" --install-root-dir="${OUTPUT_DIR}/dlc"
+build_dlc --sysroot="${BOARD_ROOT}" --install-root-dir="${OUTPUT_DIR}/dlc" \
+  --board="${BOARD}"
 
 # Create a named symlink.
 LINK_NAME="${FLAGS_output_root}/${BOARD}/${FLAGS_symlink}"

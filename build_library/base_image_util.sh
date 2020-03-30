@@ -482,7 +482,8 @@ create_base_image() {
   fi
 
   # Generate DLCs and copy their metadata to the rootfs.
-  build_dlc --sysroot="${BOARD_ROOT}" --rootfs="${root_fs_dir}"
+  build_dlc --sysroot="${BOARD_ROOT}" --rootfs="${root_fs_dir}" \
+    --board="${BOARD}"
 
   restore_fs_contexts "${BOARD_ROOT}" "${root_fs_dir}" "${stateful_fs_dir}"
 
