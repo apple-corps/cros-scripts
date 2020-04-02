@@ -598,6 +598,13 @@ setup_env() {
         warn "-- Note: modprobe fuse failed.  gmergefs will not work"
     fi
 
+    # Bind mount the host kernel modules read-only so modprobe can be used
+    # inside the chroot for things like usbip-host.
+    local modules_dir="/lib/modules"
+    if [ -d "${modules_dir}" ]; then
+      setup_mount "${modules_dir}" "--bind -o ro" "${modules_dir}"
+    fi
+
     # Fix permissions on ccache tree.  If this is a fresh chroot, then they
     # might not be set up yet.  Or if the user manually `rm -rf`-ed things,
     # we need to reset it.  Otherwise, gcc itself takes care of fixing things
