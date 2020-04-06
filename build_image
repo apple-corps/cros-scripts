@@ -13,6 +13,14 @@ SCRIPT_ROOT="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=build_library/build_common.sh
 . "${SCRIPT_ROOT}/build_library/build_common.sh" || exit 1
 
+# Make sure we run with network disabled to prevent leakage.
+if [[ -z ${UNSHARE} ]]; then
+  if [[ $(id -u) -ne 0 ]]; then
+    exec sudo -E env PATH="${PATH}" "$0" "$@"
+  fi
+  exec unshare -n -- sudo -E UNSHARE=true -u "${SUDO_USER}" -- "$0" "$@"
+fi
+
 # Developer-visible flags.
 DEFINE_string adjust_part "" \
   "Adjustments to apply to partition table (LABEL:[+-=]SIZE) e.g. ROOT-A:+1G"
