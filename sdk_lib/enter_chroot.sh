@@ -249,6 +249,34 @@ promote_api_keys() {
   fi
 }
 
+# Sanity check the user's environment locale settings.
+check_locale() {
+  if [[ "$(locale -k charmap)" != 'charmap="UTF-8"' ]]; then
+    error "Your locale appears to not support UTF-8 which is required."
+    error "The output from 'locale':"
+    locale
+    error "The output from 'locale -k LC_CTYPE':"
+    locale -k LC_CTYPE
+    error "The language env vars:"
+    env | grep -E '^(LC_|LANG)'
+    if [[ -n "${LC_ALL}" ]]; then
+      error "Never set LC_ALL (=${LC_ALL}) in your environment; only set LANG."
+    fi
+    die_notrace "Please fix your locale settings by setting LANG to UTF-8" \
+      "compatible locale and removing any LC_ variable settings."
+  fi
+
+  # C.UTF8 is not standard currently unfortunately.
+  local var
+  for var in LANG LC_ALL LC_CTYPE; do
+    if [[ "${!var}" == "C.UTF-8" ]]; then
+      error "Sorry, but C.UTF-8 is not currently supported."
+      locale
+      die_notrace "Please use a different locale when building CrOS."
+    fi
+  done
+}
+
 generate_locales() {
   # Make sure user's requested locales are available
   # http://crosbug.com/19139
@@ -673,6 +701,7 @@ setup_env() {
   ) 200>>"$LOCKFILE" || die "setup_env failed"
 }
 
+check_locale
 setup_env
 
 CHROOT_PASSTHRU=(
