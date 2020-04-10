@@ -265,16 +265,6 @@ check_locale() {
     die_notrace "Please fix your locale settings by setting LANG to UTF-8" \
       "compatible locale and removing any LC_ variable settings."
   fi
-
-  # C.UTF8 is not standard currently unfortunately.
-  local var
-  for var in LANG LC_ALL LC_CTYPE; do
-    if [[ "${!var}" == "C.UTF-8" ]]; then
-      error "Sorry, but C.UTF-8 is not currently supported."
-      locale
-      die_notrace "Please use a different locale when building CrOS."
-    fi
-  done
 }
 
 generate_locales() {
@@ -701,19 +691,6 @@ setup_env() {
   ) 200>>"$LOCKFILE" || die "setup_env failed"
 }
 
-check_locale
-setup_env
-
-CHROOT_PASSTHRU=(
-  "BUILDBOT_BUILD=$FLAGS_build_number"
-  "CHROMEOS_RELEASE_APPID=${CHROMEOS_RELEASE_APPID:-{DEV-BUILD}}"
-  "EXTERNAL_TRUNK_PATH=${FLAGS_trunk}"
-
-  # The default ~/.bash_profile in chroot will cd to $CHROOT_CWD instead of
-  # ~/trunk/src/script if that environment variable is set.
-  "CHROOT_CWD=${FLAGS_working_dir}"
-)
-
 # Translate C.UTF-8 into something we support. Remove this when our glibc
 # starts supporting C.UTF-8. https://bugzilla.redhat.com/show_bug.cgi?id=902094
 for var in LANG \
@@ -727,6 +704,19 @@ for var in LANG \
     fi
   fi
 done
+
+check_locale
+setup_env
+
+CHROOT_PASSTHRU=(
+  "BUILDBOT_BUILD=$FLAGS_build_number"
+  "CHROMEOS_RELEASE_APPID=${CHROMEOS_RELEASE_APPID:-{DEV-BUILD}}"
+  "EXTERNAL_TRUNK_PATH=${FLAGS_trunk}"
+
+  # The default ~/.bash_profile in chroot will cd to $CHROOT_CWD instead of
+  # ~/trunk/src/script if that environment variable is set.
+  "CHROOT_CWD=${FLAGS_working_dir}"
+)
 
 # Needs to be set here because setup_env runs in a subshell.
 [ -S "${FLAGS_chroot}/tmp/ssh-auth-sock" ] && SSH_AUTH_SOCK=/tmp/ssh-auth-sock
