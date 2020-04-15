@@ -232,11 +232,6 @@ create_base_image() {
   # trim the image size as much as possible.
   emerge_to_image --root="${root_fs_dir}" ${BASE_PACKAGE}
 
-  #
-  # Take a somewhat arbitrary number of post-emerge tasks and run them
-  # in parallel to speed things up.
-  #
-
   # Run depmod to recalculate the kernel module dependencies.
   run_depmod "${BOARD_ROOT}" "${root_fs_dir}"
 
