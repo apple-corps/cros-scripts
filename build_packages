@@ -34,6 +34,8 @@ DEFINE_boolean autosetgov "${FLAGS_FALSE}" \
   "Automatically set cpu governor to 'performance'."
 DEFINE_boolean use_any_chrome "${FLAGS_TRUE}" \
   "Use any Chrome prebuilt available, even if the prebuilt doesn't match exactly."
+DEFINE_boolean cleanbuild "${FLAGS_FALSE}" \
+  "Perform a clean build; delete sysroot if it exists before building."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -174,6 +176,9 @@ if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_TRUE}" ]; then
 fi
 if [[ -n ${FLAGS_board_root} ]]; then
   UPDATE_ARGS+=( --board-root "${FLAGS_board_root}" )
+fi
+if [ "${FLAGS_cleanbuild}" -eq "${FLAGS_TRUE}" ]; then
+  UPDATE_ARGS+=( --force )
 fi
 
 setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
