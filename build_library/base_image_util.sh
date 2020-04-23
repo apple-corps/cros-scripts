@@ -40,6 +40,44 @@ zero_free_space() {
   sudo fstrim -v "${fs_mount_point}"
 }
 
+log_rootfs_usage() {
+  local fs_mount_point="$1"
+  local -i block_size
+  local -i free_blocks total_blocks used_blocks
+  local -i free_bytes total_bytes used_bytes
+  local -i total_nodes free_nodes used_nodes
+  local -i total_mb free_mb used_mb
+
+  block_size="$(stat -f -c "%S" "${fs_mount_point}")"
+
+  total_blocks="$(stat -f -c "%b" "${fs_mount_point}")"
+  free_blocks="$(stat -f -c "%f" "${fs_mount_point}")"
+  used_blocks=$(( total_blocks - free_blocks ))
+
+  total_nodes="$(stat -f -c "%c" "${fs_mount_point}")"
+  free_nodes="$(stat -f -c "%d" "${fs_mount_point}")"
+  used_nodes=$(( total_nodes - free_nodes ))
+
+  total_bytes=$(( total_blocks * block_size ))
+  free_bytes=$(( free_blocks * block_size ))
+  used_bytes=$(( used_blocks * block_size ))
+  total_mb=$(( total_bytes / (1024 * 1024) ))
+  free_mb=$(( free_bytes / (1024 * 1024) ))
+  used_mb=$(( used_bytes / (1024 * 1024) ))
+
+  # Format the printout based on typical values (e.g. total_bytes and used_bytes
+  # are typically 10 digits).
+  info "Usage of the root filesystem:"
+  info "Blocks:\t\tTotal: ${total_blocks}\t\tUsed: ${used_blocks}" \
+    "\t\tFree: ${free_blocks}"
+  info "Inodes:\t\tTotal: ${total_nodes}\t\tUsed: ${used_nodes}" \
+    "\t\tFree: ${free_nodes}"
+  info "Size (bytes):\tTotal: ${total_bytes}\tUsed: ${used_bytes}" \
+    "\tFree: ${free_bytes}"
+  info "Size (MiB):\t\tTotal: ${total_mb}\t\tUsed: ${used_mb}" \
+    "\t\tFree: ${free_mb}"
+}
+
 # create_dev_install_lists updates package lists used by
 # chromeos-base/dev-install
 create_dev_install_lists() {
@@ -209,8 +247,6 @@ create_base_image() {
   trap "check_full_disk ; unmount_image ; delete_prompt" EXIT
   mount_image "${BUILD_DIR}/${image_name}" "${root_fs_dir}" \
     "${stateful_fs_dir}" "${esp_fs_dir}"
-
-  df -h "${root_fs_dir}"
 
   # Create symlinks so that /usr/local/usr based directories are symlinked to
   # /usr/local/ directories e.g. /usr/local/usr/bin -> /usr/local/bin, etc.
@@ -487,9 +523,11 @@ create_base_image() {
         --partition-name 'rootfs') \
      > "${BUILD_DIR}/${image_name}-package-sizes.json"
 
-# Zero rootfs free space to make it more compressible so auto-update
+  # Zero rootfs free space to make it more compressible so auto-update
   # payloads become smaller.
   zero_free_space "${root_fs_dir}"
+
+  log_rootfs_usage "${root_fs_dir}"
 
   unmount_image
   trap - EXIT
