@@ -217,6 +217,7 @@ mark_boot_once() {
 }
 
 update_syslinux_kernel() {
+  local basedir="$1" # rootfs directory (could be in /tmp) or empty string
   # ARM does not have the syslinux directory, so skip it when the
   # partition is missing, the file system fails to mount, or the syslinux
   # vmlinuz target is missing.
@@ -231,7 +232,8 @@ update_syslinux_kernel() {
       else
         target="/tmp/${PARTITION_NUM_EFI_SYSTEM}/syslinux/vmlinuz.B"
       fi
-      remote_sh "test ! -f $target || cp /boot/vmlinuz $target"
+      remote_sh "test ! -f ${target} || \
+                 cp ${basedir}/boot/vmlinuz ${target}"
 
       remote_sh umount /tmp/${PARTITION_NUM_EFI_SYSTEM}
     fi
@@ -308,7 +310,7 @@ main() {
       fi
       info "Copying syslinux and /boot"
       remote_send_to /build/"${FLAGS_board}"/boot/ "${remote_basedir}"/boot/
-      update_syslinux_kernel
+      update_syslinux_kernel "${remote_basedir}"
     else
       info "Skipping syslinux and /boot (per request)"
     fi
