@@ -258,7 +258,7 @@ make_image_bootable() {
   # TODO(wad) make sure there is parity in the signing scripts.
   if [ ${FLAGS_enable_rootfs_verification} -eq ${FLAGS_TRUE} ]; then
     # TODO(wad) this would be a good place to reset any other ext2 metadata.
-    warn "Disabling r/w mount of the root filesystem"
+    info "Disabling r/w mount of the root filesystem"
     local rootfs_offset="$(partoffset ${image} 3)"
     disable_rw_mount "${image}" "$(( rootfs_offset * 512 ))"
   fi
