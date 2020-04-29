@@ -36,6 +36,8 @@ DEFINE_boolean use_any_chrome "${FLAGS_TRUE}" \
   "Use any Chrome prebuilt available, even if the prebuilt doesn't match exactly."
 DEFINE_boolean cleanbuild "${FLAGS_FALSE}" \
   "Perform a clean build; delete sysroot if it exists before building."
+DEFINE_boolean internal "${FLAGS_FALSE}" \
+  "Build the internal version of chrome (set the chrome_internal USE flag)."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -123,6 +125,10 @@ CHROME_PACKAGES=(
   "chromeos-base/chromeos-chrome"
   "chromeos-base/chrome-icu"
 )
+
+if [[ "${FLAGS_internal}" -eq "${FLAGS_TRUE}" ]]; then
+  export USE="${USE} chrome_internal"
+fi
 
 # This is a temporary measure to help the goma team check the configs while
 # they transition their backend service.
