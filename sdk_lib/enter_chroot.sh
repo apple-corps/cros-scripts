@@ -83,6 +83,7 @@ FILES_TO_COPY_TO_CHROOT=(
   .config/chrome_infra/auth/creds.json
   .gdata_cred.txt             # User/password for Google Docs on chromium.org
   .gdata_token                # Auth token for Google Docs on chromium.org
+  .goma_client_oauth2_config  # Auth token for Goma
   .inputrc                    # Preserve command line customizations
 )
 if [[ "${SUDO_USER:-${USER}}" == "chrome-bot" ]]; then
