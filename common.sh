@@ -443,6 +443,7 @@ FACTORY_SHIM_INSTALL_MASK="
   ${DEFAULT_INSTALL_MASK}
   /opt/google/chrome
   /opt/google/containers
+  /opt/google/vms
   /usr/lib64/dri
   /usr/lib/dri
   /usr/share/X11
