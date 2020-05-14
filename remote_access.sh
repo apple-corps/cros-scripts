@@ -11,7 +11,7 @@ ssh_keys/testing_rsa"
 DEFINE_string remote "" "remote hostname/IP of running Chromium OS instance"
 DEFINE_string private_key "$DEFAULT_PRIVATE_KEY" \
   "Private key of root account on remote host"
-DEFINE_integer ssh_port 22 \
+DEFINE_integer ssh_port 0 \
   "SSH port of the remote machine running Chromium OS instance"
 DEFINE_integer ssh_connect_timeout 30 \
   "SSH connect timeout in seconds"
@@ -37,6 +37,8 @@ brackets_enclosed_if_ipv6() {
 }
 
 ssh_connect_settings() {
+  local for_tool="$1"
+
   if [[ -n "$SSH_CONNECT_SETTINGS" ]]; then
     # If connection settings were fixed in an environment variable, just return
     # those values.
@@ -58,6 +60,14 @@ ssh_connect_settings() {
       "ControlPersist=45"
     )
     printf -- '-o %s ' "${settings[@]}"
+
+    if [[ "${FLAGS_ssh_port}" -ne 0 ]]; then
+      if [[ "${for_tool}" == "scp" ]]; then
+        printf -- ' -P %d ' "${FLAGS_ssh_port}"
+      else
+        printf -- ' -p %d ' "${FLAGS_ssh_port}"
+      fi
+    fi
   fi
 }
 
@@ -65,7 +75,7 @@ ssh_connect_settings() {
 remote_cp_to() {
   local scp_rem
   scp_rem="$(brackets_enclosed_if_ipv6 "${FLAGS_remote}")"
-  REMOTE_OUT=$(scp -P ${FLAGS_ssh_port} $(ssh_connect_settings) \
+  REMOTE_OUT=$(scp $(ssh_connect_settings scp) \
     "$1" "root@${scp_rem}:$2")
   return ${PIPESTATUS[0]}
 }
@@ -74,7 +84,7 @@ remote_cp_to() {
 # Use like: remote_rsync_raw -a /path/from/ root@${FLAGS_remote}:/path/to/
 remote_rsync_raw() {
   local reason=0
-  rsync -e "ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings)" "$@" || reason=$?
+  rsync -e "ssh $(ssh_connect_settings ssh)" "$@" || reason=$?
   case ${reason} in
     11 )
       # no space left on device, call handle_no_space if implemented
@@ -118,7 +128,7 @@ remote_send_to() {
 }
 
 _remote_sh() {
-  REMOTE_OUT=$(ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
+  REMOTE_OUT=$(ssh $(ssh_connect_settings ssh) \
     root@$FLAGS_remote "$@")
   return ${PIPESTATUS[0]}
 }
@@ -138,7 +148,7 @@ remote_sh() {
 }
 
 remote_sh_raw() {
-  ssh -p ${FLAGS_ssh_port} $(ssh_connect_settings) \
+  ssh $(ssh_connect_settings ssh) \
     $EXTRA_REMOTE_SH_ARGS root@$FLAGS_remote "$@"
   return $?
 }
@@ -201,7 +211,7 @@ _check_if_rebooted() {
     SSH_CONNECT_SETTINGS="$(sed \
       -e 's/\(ConnectTimeout\)=[0-9]*/\1=2/' \
       -e 's/\(ConnectionAttempts\)=[0-9]*/\1=2/' \
-      <<<"$(ssh_connect_settings)")"
+      <<<"$(ssh_connect_settings ssh)")"
     remote_sh_allow_changed_host_key -q -- '[ ! -e /tmp/awaiting_reboot ]'
   )
 }
