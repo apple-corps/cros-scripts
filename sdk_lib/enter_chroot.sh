@@ -509,15 +509,6 @@ setup_env() {
           truncate -s 0 "${TARGET_DIR}/known_hosts"
           setup_mount "${known_hosts}" --bind "${target_ssh}/known_hosts"
         fi
-        (
-          # Only copy ~/.ssh/*.pub if they exist. Since we set
-          # nullglob, this needs to happen within a subshell.
-          shopt -s nullglob
-          files=("${SUDO_HOME}"/.ssh/*.pub)
-          if [[ ${#files[@]} -gt 0 ]]; then
-            user_cp "${files[@]}" "${TARGET_DIR}/"
-          fi
-        )
         copy_ssh_config "${TARGET_DIR}"
         chown -R ${SUDO_UID}:${SUDO_GID} "${TARGET_DIR}"
 
