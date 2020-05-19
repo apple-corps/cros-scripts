@@ -6,30 +6,10 @@
 
 check_compiler_flags()
 {
-  local binary="$1"
-  local flags=false
-  local fortify=true
-  local stack=true
-  ${readelf} -p .GCC.command.line "${binary}" | \
-  {
-    while read flag ; do
-      flags=true
-      case "${flag}" in
-        *"-U_FORTIFY_SOURCE"*)
-          fortify=false
-          ;;
-        *"-fno-stack-protector"*)
-          stack=false
-          ;;
-      esac
-    done
-    if ! ${flags}; then
-      echo "File not built with -frecord-gcc-switches: ${binary}"
-      return
-    fi
-    ${fortify} || echo "File not built with -D_FORTIFY_SOURCE: ${binary}"
-    ${stack} || echo "File not built with -fstack-protector: ${binary}"
-  }
+  # TODO(crbug.com/1061666): We don't build with -frecord-gcc-switches
+  # anymore, so these checks don't work. Disable for now, re-enable once
+  # rewritten to work with -grecord-gcc-switches.
+  return
 }
 
 check_linker_flags()
