@@ -298,8 +298,10 @@ generate_locales() {
     # Force jobs=1 to work around locale-gen weirdness where it simultaneously
     # wants to and doesn't want to run multiple jobs (and complains about it).
     # crbug.com/761153
-    chroot "${FLAGS_chroot}" env LC_ALL=C locale-gen -q -u \
-      -j 1 -G "$(printf '%s\n' "${gen_locales[@]}")"
+    # Force PATH to the right value inside the SDK in case the host distro has
+    # its own incompatible setup.
+    chroot "${FLAGS_chroot}" env LC_ALL=C PATH='/bin:/sbin:/usr/bin:/usr/sbin' \
+      locale-gen -q -u -j 1 -G "$(printf '%s\n' "${gen_locales[@]}")"
   fi
 }
 
