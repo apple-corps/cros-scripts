@@ -577,15 +577,6 @@ early_enter_chroot eselect python update
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet --ignore-world portage
 
-# Clear out openrc if it's installed as we don't want it.
-if [[ -e "${FLAGS_chroot}/usr/share/openrc" ]]; then
-  info "Uninstalling openrc"
-  early_enter_chroot env CLEAN_DELAY=0 emerge -qC sys-apps/openrc
-  # Now update baselayout to get our functions.sh.  The unmerge
-  # above removed our copy in the process.
-  early_enter_chroot emerge -uNvq sys-apps/baselayout
-fi
-
 # Add chromite into python path.
 for python_path in "${FLAGS_chroot}/usr/lib/"python*.*; do
   python_path+="/site-packages"
@@ -593,32 +584,12 @@ for python_path in "${FLAGS_chroot}/usr/lib/"python*.*; do
   sudo ln -s -fT "${CHROOT_TRUNK_DIR}"/chromite "${python_path}"/chromite
 done
 
-# The stage3 contains an old version of ncurses, which causes a slot conflict
-# later when we try to setup the toolchains.  Update it here to the latest
-# version, which gracefully handles the slot issues.
-info "Updating ncurses"
-early_enter_chroot emerge -uNvq sys-libs/ncurses
-
-# Update these packages early because they cause build failures when they're
-# concurrently emerged during the main update below.
-# Specific packages:
-#   sys-apps/sandbox upgrade breaks dev-libs/nss, also needed by newer libtool.
-#   sys-devel/patch 2.6 misapplies git patches in dev-embedded/coreboot-sdk.
-#   older sys-devel/automake makes media-libs/freetype build flaky.
-#   glibc 2.26+ needs a newer bison.
-info "Updating preinstalled build tools"
-early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${EMERGE_JOBS} \
-  sys-apps/sandbox '>=sys-devel/patch-2.7' sys-devel/automake sys-devel/bison
-
 # Now that many of the fundamental packages should be in a good state, update
 # the host toolchain.  We have to do this step by step ourselves to avoid races
 # when building tools that are actively used (e.g. updating the assembler while
 # also compiling other packages that use the assembler).
 # https://crbug.com/715788
 info "Updating host toolchain"
-if [[ ! -e "${FLAGS_chroot}/usr/bin/crossdev" ]]; then
-  early_enter_chroot ${EMERGE_CMD} -uNv crossdev
-fi
 TOOLCHAIN_ARGS=( --deleteold )
 if [[ "${FLAGS_usepkg}" == "${FLAGS_FALSE}" ]]; then
   TOOLCHAIN_ARGS+=( --nousepkg )
@@ -636,10 +607,6 @@ early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${USEPKGONLY} ${EMERGE_JOBS} \
 # Note: early_enter_chroot executes as root.
 early_enter_chroot "${CHROOT_TRUNK_DIR}/chromite/bin/cros_setup_toolchains" \
     --hostonly "${TOOLCHAIN_ARGS[@]}"
-
-info "Running emerge curl sudo gentoolkit ..."
-early_enter_chroot ${EMERGE_CMD} -uNv ${USEPKG} ${EMERGE_JOBS} \
-  pbzip2 dev-libs/openssl net-misc/curl sudo app-portage/gentoolkit
 
 info "Updating Perl modules"
 early_enter_chroot \
