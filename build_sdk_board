@@ -125,15 +125,21 @@ if [[ ${#TOOLCHAIN_PACKAGES[@]} -eq 0 ]]; then
 fi
 PACKAGES=( system virtual/target-sdk world )
 
+run_emerge() {
+  local cmd=( ${EMERGE_CMD} "$@" )
+  info "Running: ${cmd[*]}"
+  sudo -E "${cmd[@]}"
+}
+
 # First, rebuild all packages from scratch. This is needed to make sure
 # we rebuild all chroot packages.
 
 # We build the toolchain by hand to avoid race conditions where the toolchain
 # is used by other packages that we're building.  See https://crbug.com/906289.
-sudo -E ${EMERGE_CMD} "${TOOLCHAIN_PACKAGES[@]}"
+run_emerge "${TOOLCHAIN_PACKAGES[@]}"
 
 # Then build everything else.
-sudo -E $EMERGE_CMD --emptytree --with-bdeps=y \
+run_emerge --emptytree --with-bdeps=y \
   --exclude "${TOOLCHAIN_PACKAGES[*]}" \
   "${PACKAGES[@]}" virtual/target-sdk-nobdeps
 sudo eclean -d packages
@@ -141,12 +147,12 @@ sudo eclean -d packages
 # Next, install our rebuilt packages into our separate root.
 HOST_FLAGS="--root=$BOARD_ROOT --update --verbose --deep --root-deps"
 HOST_FLAGS+=" --newuse --usepkgonly"
-sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=y "${PACKAGES[@]}"
+run_emerge $HOST_FLAGS --with-bdeps=y "${PACKAGES[@]}"
 # Install our rebuilt packages from the nobdeps target into our separate root
 # without their build-time deps.  We also avoid adding this target to the
 # world set so that subsequent update_chroot commands won't re-import the
 # build deps.
-sudo -E $EMERGE_CMD $HOST_FLAGS --with-bdeps=n --oneshot \
+run_emerge $HOST_FLAGS --with-bdeps=n --oneshot \
   virtual/target-sdk-nobdeps
 sudo cp -a "${PKGDIR}" $BOARD_ROOT/packages
 
