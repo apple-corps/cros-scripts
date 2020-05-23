@@ -97,7 +97,7 @@ create_dev_install_lists() {
   for pkg in "${pkgs[@]}" ; do
     (
       emerge-${BOARD} --color n --pretend --quiet --emptytree --cols \
-        --root-deps=rdeps --with-bdeps=n --usepkgonly ${pkg} | \
+        --root-deps=rdeps --with-bdeps=n ${pkg} | \
         awk '$2 ~ /\// {print $2 "-" $3}' | \
         sort > "${pkgs_out}/${pkg##*/}.packages"
       pipestatus=${PIPESTATUS[*]}
