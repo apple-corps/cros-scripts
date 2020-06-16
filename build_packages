@@ -326,10 +326,20 @@ if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
 
   # Calculate only the ebuild changes from the emerge simulation ignoring
   # the virtual packages and the forced rebuild of autotest-all package.
+  # The lines of the following block do the following operations:
+  # 1. Do a pretend `emerge` command to get a list of what would be built.
+  # 2. Filter to only packages that will be installed to the board sysroot.
+  # 3. Filter to only packages that would be built from source and rewrite the
+  #    line from Portage's full output to only $CATEGORY/$PACKAGE
+  # 4. Remove any package that starts with 'virtual' or matches
+  #    'chromeos-base/autotest-all'.
+  # 5. Sort the output and remove any duplicate entries.
   BASE_INSTALL_PKGS=( $( \
     sudo -E "${EMERGE_CMD[@]}" "${SIM_EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
+    grep -e 'to /build/' | \
     sed -n -E '/^\[ebuild /{s:^[^]]+\] +::;s: .*::;p}' | \
-    grep -v -e '^virtual/' -e '^chromeos-base/autotest-all' | sort -u ) )
+    grep -v -e '^virtual/' -e '^chromeos-base/autotest-all' | \
+    sort -u ) )
 
   MOD_PKGS=()
   if [[ "${#BASE_INSTALL_PKGS[@]}" -gt 0 ]]; then
