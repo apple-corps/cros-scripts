@@ -324,6 +324,19 @@ if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
     )
   fi
 
+  # cros-workon packages are always going to be force reinstalled, so we add
+  # the forced reinstall behavior to the modified package calculation. This is
+  # necessary to include when a user has already installed a 9999 ebuild and is
+  # now reinstalling that package with additional local changes, because
+  # otherwise the modified package calculation would not see that a 'new'
+  # package is being installed.
+  if [[ ${#CROS_WORKON_PKGS[@]} -gt 0 ]]; then
+    SIM_EMERGE_FLAGS+=(
+      --reinstall-atoms="${CROS_WORKON_PKGS[*]}"
+      --usepkg-exclude="${CROS_WORKON_PKGS[*]}"
+    )
+  fi
+
   # Calculate only the ebuild changes from the emerge simulation ignoring
   # the virtual packages and the forced rebuild of autotest-all package.
   # The lines of the following block do the following operations:
@@ -331,19 +344,19 @@ if [[ "${FLAGS_withrevdeps}" -eq "${FLAGS_TRUE}" ]]; then
   # 2. Filter to only packages that will be installed to the board sysroot.
   # 3. Filter to only packages that would be built from source and rewrite the
   #    line from Portage's full output to only $CATEGORY/$PACKAGE
-  # 4. Remove any package that starts with 'virtual' or matches
-  #    'chromeos-base/autotest-all'.
+  # 4. Filter the list of packages to a heuristic set of packages known to have
+  #    incorrectly specified dependencies.
   # 5. Sort the output and remove any duplicate entries.
   BASE_INSTALL_PKGS=( $( \
     sudo -E "${EMERGE_CMD[@]}" "${SIM_EMERGE_FLAGS[@]}" "${PACKAGES[@]}" | \
     grep -e 'to /build/' | \
     sed -n -E '/^\[ebuild /{s:^[^]]+\] +::;s: .*::;p}' | \
-    grep -v -e '^virtual/' -e '^chromeos-base/autotest-all' | \
+    grep -E '/(chromeos-config.*|coreboot-private-files.*|tast-build-deps)$' | \
     sort -u ) )
 
   MOD_PKGS=()
   if [[ "${#BASE_INSTALL_PKGS[@]}" -gt 0 ]]; then
-    info "New packages being installed: ${BASE_INSTALL_PKGS[*]}."
+    info "Forced rebuild packages detected: ${BASE_INSTALL_PKGS[*]}."
     # Convert specific versions into base package names
     MOD_PKGS+=( $(\
     equery-${FLAGS_board} list -p -o --format='$category/$name' \
