@@ -476,7 +476,7 @@ setup_env() {
 
     chroot_cache='/var/cache/chromeos-cache'
     debug "Setting up shared cache dir directory."
-    user_mkdir "${FLAGS_cache_dir}"/distfiles/{target,host}
+    user_mkdir "${FLAGS_cache_dir}"/distfiles
     user_mkdir "${FLAGS_chroot}/${chroot_cache}"
     setup_mount "${FLAGS_cache_dir}" "--bind" "${chroot_cache}"
     # TODO(build): remove this as of 12/01/12.

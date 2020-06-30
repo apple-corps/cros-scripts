@@ -280,14 +280,6 @@ EOF
    # these are defined as w/in the chroot.
    bare_chroot chown "${SUDO_USER}:portage" /var/cache/chromeos-chrome
 
-   # These are created for compatibility while transitioning
-   # make.conf and friends over to the new location.
-   # TODO(ferringb): remove this 01/13 or so.
-   ln -s ../../cache/chromeos-cache/distfiles/host \
-     "${FLAGS_chroot}/var/lib/portage/distfiles"
-   ln -s ../../cache/chromeos-cache/distfiles/target \
-     "${FLAGS_chroot}/var/lib/portage/distfiles-target"
-
    # Add chromite/bin and depot_tools into the path globally; note that the
    # chromite wrapper itself might also be found in depot_tools.
    # We rely on 'env-update' getting called below.
