@@ -262,5 +262,5 @@ rm -rf "${TEMP_IMG}"
 echo "Created image at ${FLAGS_to}"
 
 echo "You can start the image with:"
-echo "cros_vm --start --image-path ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
-
+echo "cros_vm --start --board ${FLAGS_board} \
+--image-path ${FLAGS_to}/${DEFAULT_QEMU_IMAGE}"
