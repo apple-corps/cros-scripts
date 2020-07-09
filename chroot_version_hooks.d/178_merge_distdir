@@ -36,7 +36,7 @@ for srcdir in target host; do
   # Merge the files.
   rm -f "${srcdir}"/*._checksum_failure_.*
   for f in "${srcdir}"/*; do
-    if [[ ! -e "${f##*/}" ]]; then
+    if [[ -e "${f}" && ! -e "${f##*/}" ]]; then
       mv "${f}" ./ || exit 1
     fi
   done
