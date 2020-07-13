@@ -411,13 +411,14 @@ if [ -z "$INSTALL_VBLOCK" ]; then
   die "Could not copy the vblock from stateful."
 fi
 
-# Build the recovery kernel.
 FACTORY_ROOT="${BOARD_ROOT}/factory-root"
-RECOVERY_KERNEL_FLAGS="recovery_ramfs tpm i2cdev vfat kernel_compress_xz -kernel_afdo"
-USE="${USE} ${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
-  die "Cannot emerge custom kernel"
 
-if [ -z "$FLAGS_kernel_image" ]; then
+if [ -z "${FLAGS_kernel_image}" ]; then
+  # Build the recovery kernel.
+  RECOVERY_KERNEL_FLAGS="recovery_ramfs tpm i2cdev vfat kernel_compress_xz"
+  RECOVERY_KERNEL_FLAGS="${RECOVERY_KERNEL_FLAGS} -kernel_afdo"
+  USE="${USE} ${RECOVERY_KERNEL_FLAGS}" emerge_custom_kernel "$FACTORY_ROOT" ||
+    die "Cannot emerge custom kernel"
   create_recovery_kernel_image
   echo "Recovery kernel created at $RECOVERY_KERNEL_IMAGE"
 else
