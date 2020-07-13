@@ -100,6 +100,26 @@ get_install_vblock() {
   echo "$out"
 }
 
+calculate_kernel_hash() {
+  local img="$1"
+
+  local partition_num_kern_a kern_offset kern_size kern_tmp
+
+  partition_num_kern_a="$(get_image_partition_number "${img}" "KERN-A")"
+  kern_offset="$(partoffset "${img}" "${partition_num_kern_a}")"
+  kern_size="$(partsize "${img}" "${partition_num_kern_a}")"
+  kern_tmp=$(mktemp)
+
+  dd if="${FLAGS_image}" bs=512 count="${kern_size}" \
+     skip="${kern_offset}" of="${kern_tmp}" 1>&2
+  # We're going to use the real signing block.
+  if [[ "${FLAGS_sync_keys}" -eq "${FLAGS_TRUE}" ]]; then
+    dd if="${INSTALL_VBLOCK}" of="${kern_tmp}" conv=notrunc 1>&2
+  fi
+  sha256sum "${kern_tmp}" | cut -f1 -d' '
+  rm "${kern_tmp}"
+}
+
 create_recovery_kernel_image() {
   local sysroot="$FACTORY_ROOT"
   local vmlinuz="$sysroot/boot/vmlinuz"
@@ -119,24 +139,9 @@ create_recovery_kernel_image() {
   # recovery image generation.  (Alternately, it means an image can be created,
   # modified for recovery, then passed to a signer which can then sign both
   # partitions appropriately without needing any external dependencies.)
-  local partition_num_kern_a=$(get_image_partition_number "${RECOVERY_IMAGE}" \
-    "KERN-A")
-  local kern_offset=$(partoffset "${RECOVERY_IMAGE}" "${partition_num_kern_a}")
-  local kern_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_kern_a}")
-  local kern_tmp=$(mktemp)
-  local kern_hash=
 
-  dd if="${RECOVERY_IMAGE}" bs=512 count=$kern_size \
-     skip=$kern_offset of="$kern_tmp" 1>&2
-  # We're going to use the real signing block.
-  if [ $FLAGS_sync_keys -eq $FLAGS_TRUE ]; then
-    dd if="$INSTALL_VBLOCK" of="$kern_tmp" conv=notrunc 1>&2
-  fi
-  local kern_hash=$(sha256sum "$kern_tmp" | cut -f1 -d' ')
-  rm "$kern_tmp"
-  # Force all of the file writes to complete, in case it's necessary for
-  # crbug.com/954188
-  sync
+  local kern_hash
+  kern_hash="$(calculate_kernel_hash "${FLAGS_image}")"
 
   # TODO(wad) add FLAGS_boot_args support too.
   ${SCRIPTS_DIR}/build_kernel_image.sh \
@@ -153,19 +158,18 @@ create_recovery_kernel_image() {
     --public="recovery_key.vbpubk" \
     --private="recovery_kernel_data_key.vbprivk" \
     --keyblock="recovery_kernel.keyblock" 1>&2 || die "build_kernel_image"
-  #sudo mount | sed 's/^/16651 /'
-  #sudo losetup -a | sed 's/^/16651 /'
-  trap - RETURN
+}
 
+update_efi_partition() {
   # Update the EFI System Partition configuration so that the kern_hash check
   # passes.
-  local block_size=$(get_block_size)
-
   RECOVERY_DEV=$(loopback_partscan "${RECOVERY_IMAGE}")
   local partition_num_efi_system=$(get_image_partition_number \
     "${RECOVERY_IMAGE}" "EFI-SYSTEM")
 
-  local efi_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_efi_system}")
+  local efi_size kern_hash
+  efi_size=$(partsize "${RECOVERY_IMAGE}" "${partition_num_efi_system}")
+  kern_hash="$(calculate_kernel_hash "${RECOVERY_IMAGE}")"
 
   if [[ ${efi_size} -ne 0 ]]; then
     local efi_dir=$(mktemp -d)
@@ -179,10 +183,8 @@ create_recovery_kernel_image() {
       "$efi_dir/efi/boot/grub.cfg" || true
     safe_umount "$efi_dir"
     rmdir "$efi_dir"
-    sudo losetup -d ${RECOVERY_DEV}
   fi
-
-  trap - RETURN
+  sudo losetup -d "${RECOVERY_DEV}"
 }
 
 install_recovery_kernel() {
@@ -202,18 +204,17 @@ install_recovery_kernel() {
     return 1
   fi
 
-  # Backup original kernel to KERN-B
-  dd if="$RECOVERY_IMAGE" of="$RECOVERY_IMAGE" bs=512 \
-     count=$kern_a_size \
-     skip=$kern_a_offset \
-     seek=$kern_b_offset \
-     conv=notrunc
-
   # We're going to use the real signing block.
   if [ $FLAGS_sync_keys -eq $FLAGS_TRUE ]; then
     dd if="$INSTALL_VBLOCK" of="$RECOVERY_IMAGE" bs=512 \
        seek=$kern_b_offset \
        conv=notrunc
+  fi
+
+  local kernel_img_bytes
+  kernel_img_bytes="$(stat -c %s "${RECOVERY_KERNEL_IMAGE}")"
+  if [[ "${kernel_img_bytes}" -gt "$(( kern_a_size * 512 ))" ]]; then
+    die "Kernel image is larger than $(( kern_a_size * 512 / 1048576 )) MiB."
   fi
 
   # Install the recovery kernel as primary.
@@ -278,34 +279,36 @@ find_sectors_needed() {
   echo $(( sectors_needed + sectors_needed / 10 ))
 }
 
-maybe_resize_stateful() {
-  # If we're not minimizing, then just copy and go.
-  if [ $FLAGS_minimize_image -eq $FLAGS_FALSE ]; then
-    return 0
-  fi
+# Copy the given list of files from old stateful partition to new stateful
+# partition.
+# Args:
+#  $1: source image filename
+#  $2: destination image filename
+copy_stateful() {
+  local src_img="$1"
+  local dst_img="$2"
 
   local old_stateful_offset old_stateful_mnt sectors_needed
   local small_stateful new_stateful_mnt
 
   # Mount the old stateful partition so we can copy selected values
   # off of it.
-  local partition_num_state=$(get_image_partition_number \
-    "${FLAGS_image}" "STATE")
-  old_stateful_offset=$(partoffset "$FLAGS_image" "${partition_num_state}")
+  local partition_num_state
+  partition_num_state=$(get_image_partition_number "${dst_img}" "STATE")
   old_stateful_mnt=$(mktemp -d)
 
-  IMAGE_DEV=$(loopback_partscan "${FLAGS_image}")
-  sudo mount ${IMAGE_DEV}p${partition_num_state} $old_stateful_mnt
+  IMAGE_DEV=$(loopback_partscan "${src_img}")
+  sudo mount "${IMAGE_DEV}p${partition_num_state}" "${old_stateful_mnt}"
 
-  sectors_needed=$(find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}")
+  sectors_needed="$(cgpt show -i "${partition_num_state}" -n -s "${dst_img}")"
 
   # Rebuild the image with stateful partition sized by sectors_needed.
   small_stateful=$(mktemp)
-  dd if=/dev/zero of="$small_stateful" bs=512 \
+  dd if=/dev/zero of="${small_stateful}" bs=512 \
     count="${sectors_needed}" 1>&2
-  trap "rm $small_stateful; sudo losetup -d ${IMAGE_DEV} || true" RETURN
+  trap "rm ${small_stateful}; sudo losetup -d ${IMAGE_DEV} || true" RETURN
   # Don't bother with ext3 for such a small image.
-  /sbin/mkfs.ext2 -F -b 4096 "$small_stateful" 1>&2
+  /sbin/mkfs.ext2 -F -b 4096 "${small_stateful}" 1>&2
 
   # If it exists, we need to copy the vblock over to stateful
   # This is the real vblock and not the recovery vblock.
@@ -336,24 +339,129 @@ maybe_resize_stateful() {
   trap - RETURN
   switch_to_strict_mode
 
-  # Create a recovery image of the right size
-  # TODO(wad) Make the developer script case create a custom GPT with
-  # just the kernel image and stateful.
-  update_partition_table "${FLAGS_image}" "$small_stateful" \
-                         "${sectors_needed}" \
-                         "${RECOVERY_IMAGE}" 1>&2
+  local dst_start
+  dst_start="$(cgpt show -i "${partition_num_state}" -b "${dst_img}")"
+  dd if="${small_stateful}" of="${dst_img}" conv=notrunc bs=512 \
+    seek="${dst_start}" count="${sectors_needed}" status=none
+  return 0
+}
+
+# Calculates the number of sectors required for stateful partition.
+# or returns the source stateful partition size if --minimize_image not present.
+calculate_stateful_blocks() {
+  local partition_num_state
+  partition_num_state="$(get_image_partition_number "${FLAGS_image}" "STATE")"
+
+  # If --minimize_image not present, use the partition size from source image,
+  # (not recovery image, it's hard-coded to 2MiB).
+  if [[ "${FLAGS_minimize_image}" -eq "${FLAGS_FALSE}" ]]; then
+    cgpt show -i "${partition_num_state}" -n -s "${FLAGS_image}"
+    return 0
+  fi
+
+  local old_stateful_mnt
+  old_stateful_mnt="$(mktemp -d)"
+
+  IMAGE_DEV=$(loopback_partscan "${FLAGS_image}")
+  sudo mount "${IMAGE_DEV}p${partition_num_state}" "${old_stateful_mnt}"
+
+  # Print the minimum number of sectors needed.
+  find_sectors_needed "${old_stateful_mnt}" "${WHITELIST}"
+
+  # Cleanup everything.
+  safe_umount "${old_stateful_mnt}"
+  rmdir "${old_stateful_mnt}"
+  sudo losetup -d "${IMAGE_DEV}"
+
+  return 0
+}
+
+# Creates an empty image using the recovery layout and calculated stateful size.
+create_image() {
+  local dst_img="$1"
+
+  local stateful_blocks
+  stateful_blocks="$(calculate_stateful_blocks)"
+
+  # Remove dst_img first otherwise build_gpt_image won't create a new one
+  # with correct layout.
+  rm -f "${dst_img}"
+
+  # Temporarily disable set -u because there's some empty array expansion in
+  # build_gpt_image.
+  set +u
+  build_gpt_image "${dst_img}" recovery "STATE:=$(( stateful_blocks * 512 ))"
+  set -u
+}
+
+# Copy the partitions one by one from source image to destination image,
+# except that KERN-A is moved to KERN-B.
+# Args:
+#  $1: source image filename
+#  $2: destination image filename
+copy_partitions() {
+  local src_img="$1"
+  local dst_img="$2"
+
+  local part=0
+  while :; do
+    : $(( part += 1 ))
+    local src_start
+    src_start="$(cgpt show -i "${part}" -b "${src_img}")"
+    if [[ "${src_start}" -eq 0 ]]; then
+      # No more partitions to copy.
+      break
+    fi
+
+    # Load source partition details.
+    local size label
+    size="$(cgpt show -i "${part}" -s "${src_img}")"
+    label="$(cgpt show -i "${part}" -l "${src_img}")"
+    if [[ "${size}" -eq 0 ]]; then
+      continue
+    fi
+
+    local dst_part="${part}"
+    # Move KERN-A to KERN-B.
+    if [[ ${label} == 'KERN-A' ]]; then
+      dst_part="$(get_image_partition_number "${dst_img}" 'KERN-B')"
+    fi
+
+    local dst_start dst_size
+    dst_start="$(cgpt show -i "${dst_part}" -b "${dst_img}")"
+    dst_size="$(cgpt show -i "${dst_part}" -s "${dst_img}")"
+
+    if [[ "${label}" == 'STATE' && \
+          "${FLAGS_minimize_image}" -eq "${FLAGS_TRUE}" ]]; then
+      copy_stateful "${src_img}" "${dst_img}"
+    elif [[ ${label} == 'KERN-B' ]]; then
+      : # Skip KERN-B.
+    else
+      # Copy other partition as-is.
+      if [[ "${size}" -gt "${dst_size}" ]]; then
+        die "Partition #${part} larger than the destination partition"
+      fi
+      dd if="${src_img}" of="${dst_img}" conv=notrunc bs=512 \
+         skip="${src_start}" seek="${dst_start}" count="${size}" \
+         status=none
+      sync
+    fi
+  done
   return 0
 }
 
 cleanup() {
   set +e
-  if [ -n "${RECOVERY_DEV}" ]; then
-    sudo losetup -d ${RECOVERY_DEV}
+  if [[ -n "${RECOVERY_DEV}" ]]; then
+    sudo losetup -d "${RECOVERY_DEV}"
   fi
-  if [ "$FLAGS_image" != "$RECOVERY_IMAGE" ]; then
-    rm "$RECOVERY_IMAGE"
+  if [[ -n "${IMAGE_DEV}" ]]; then
+    sudo losetup -d "${IMAGE_DEV}"
   fi
-  rm "$INSTALL_VBLOCK"
+  if [[ "${FLAGS_image}" != "${RECOVERY_IMAGE}" ]]; then
+    rm "${RECOVERY_IMAGE}"
+  fi
+  rm "${INSTALL_VBLOCK}"
 }
 
 
@@ -381,27 +489,11 @@ RECOVERY_KERNEL_IMAGE=\
 STATEFUL_DIR="$IMAGE_DIR/stateful_partition"
 SCRIPTS_DIR=${SCRIPT_ROOT}
 RECOVERY_DEV=""
-
-# Mounts gpt image and sets up var, /usr/local and symlinks.
-# If there's a dev payload, mount stateful
-#  offset=$(partoffset "${FLAGS_from}/${filename}" 1)
-#  sudo mount ${ro_flag} -o loop,offset=$(( offset * 512 )) \
-#    "${FLAGS_from}/${filename}" "${FLAGS_stateful_mountpt}"
-# If not, resize stateful to 1 sector.
-#
+IMAGE_DEV=""
 
 if [ $FLAGS_kernel_image_only -eq $FLAGS_TRUE -a \
      -n "$FLAGS_kernel_image" ]; then
   die_notrace "Cannot use --kernel_image_only with --kernel_image"
-fi
-
-if [ $FLAGS_modify_in_place -eq $FLAGS_TRUE ]; then
-  if [ $FLAGS_minimize_image -eq $FLAGS_TRUE ]; then
-    die_notrace "Cannot use --modify_in_place and --minimize_image together."
-  fi
-  RECOVERY_IMAGE="${FLAGS_image}"
-else
-  cp "${FLAGS_image}" "${RECOVERY_IMAGE}"
 fi
 
 echo "Creating recovery image from ${FLAGS_image}"
@@ -433,7 +525,14 @@ fi
 
 trap cleanup EXIT
 
-maybe_resize_stateful  # Also copies the image if needed.
+if [[ "${FLAGS_modify_in_place}" -eq "${FLAGS_TRUE}" ]]; then
+  # Implement in-place modification by creating a temp image and copy it back
+  # to the source image path later.
+  RECOVERY_IMAGE="$(mktemp)"
+fi
+create_image "${RECOVERY_IMAGE}"
+copy_partitions "${FLAGS_image}" "${RECOVERY_IMAGE}"
+sync
 
 if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
   stateful_mnt=$(mktemp -d)
@@ -448,6 +547,11 @@ if [ $FLAGS_decrypt_stateful -eq $FLAGS_TRUE ]; then
 fi
 
 install_recovery_kernel
+update_efi_partition
+
+if [[ "${FLAGS_modify_in_place}" -eq "${FLAGS_TRUE}" ]]; then
+  mv "${RECOVERY_IMAGE}" "${FLAGS_image}"
+fi
 
 echo "Recovery image created at $RECOVERY_IMAGE"
 command_completed

@@ -38,14 +38,16 @@ get_disk_layout_path() {
 }
 
 write_partition_script() {
-  local image_type=$1
-  local partition_script_path=$2
+  local image_type="$1"
+  local partition_script_path="$2"
+  local adjust_part="$3"
   get_disk_layout_path
 
   local temp_script_file=$(mktemp)
 
   sudo mkdir -p "$(dirname "${partition_script_path}")"
-  cgpt_py write "${image_type}" "${DISK_LAYOUT_PATH}" \
+  cgpt_py ${adjust_part:+--adjust_part "${adjust_part}"} \
+          write "${image_type}" "${DISK_LAYOUT_PATH}" \
           "${temp_script_file}"
   sudo mv "${temp_script_file}" "${partition_script_path}"
   sudo chmod a+r "${partition_script_path}"
@@ -524,10 +526,13 @@ mk_fs() {
 build_gpt_image() {
   local outdev="$1"
   local disk_layout="$2"
+  local adjust_part="$3"
 
   # Build the partition table and partition script.
-  local partition_script_path="$(dirname "${outdev}")/partition_script.sh"
-  write_partition_script "${disk_layout}" "${partition_script_path}"
+  local partition_script_path
+  partition_script_path="$(dirname "${outdev}")/partition_script.sh"
+  write_partition_script "${disk_layout}" "${partition_script_path}" \
+    "${adjust_part}"
   run_partition_script "${outdev}" "${partition_script_path}"
 
   # Emit the gpt scripts so we can use them from here on out.
