@@ -7,10 +7,6 @@ generate_licensing()
 {
   local PKG="${CATEGORY}/${PF}"
 
-  if [[ "${ENABLE_LICENSING}" != "Y" ]]; then
-    return
-  fi
-
   # This expands to something like
   # /build/x86-alex/tmp/portage/dev-util/libc-bench-0.0.1-r6
   # Run FEATURES='noclean' emerge-x86-alex libc-bench to prevent having the
