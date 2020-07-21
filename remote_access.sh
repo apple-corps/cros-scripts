@@ -269,7 +269,7 @@ cleanup_remote_access() {
 remote_access_init() {
   TMP_PRIVATE_KEY=$TMP/private_key
   TMP_KNOWN_HOSTS=$TMP/known_hosts
-  TMP_CONTROL_FILE="${TMP}/ssh_control%r@%h:%p"
+  TMP_CONTROL_FILE="${TMP}/ssh_control-%C"
 
   if [ -z "$FLAGS_remote" ]; then
     echo "Please specify --remote=<IP-or-hostname> of the Chromium OS instance"
