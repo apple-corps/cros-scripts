@@ -17,7 +17,7 @@ declare -A _comp_cache
 # {subcmd1,subcmd2,subcmd3}
 _subcmds_from_help() {
   sed -n -e '/commands:/,$p' \
-    | egrep -o '\{[[:alnum:]_-,]+\}' | sort -u \
+    | egrep -o '\{[[:alnum:]_,-]+\}' | sort -u \
     | tr -d '{}' | tr ',' ' '
   return ${PIPESTATUS[0]}
 }
