@@ -626,7 +626,7 @@ enter_chroot "${CHROOT_TRUNK_DIR}/src/scripts/update_chroot" "${UPDATE_ARGS[@]}"
 
 # The java-config package atm does not support $ROOT.  Select a default
 # VM ourselves until that gets fixed upstream.
-enter_chroot sudo java-config --set-system-vm 1
+enter_chroot sudo eselect java-vm set system openjdk-bin-11
 
 CHROOT_EXAMPLE_OPT=""
 if [[ "$FLAGS_chroot" != "$DEFAULT_CHROOT_DIR" ]]; then
