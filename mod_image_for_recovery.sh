@@ -387,11 +387,12 @@ create_image() {
   # with correct layout.
   rm -f "${dst_img}"
 
-  # Temporarily disable set -u because there's some empty array expansion in
-  # build_gpt_image.
-  set +u
-  build_gpt_image "${dst_img}" recovery "STATE:=$(( stateful_blocks * 512 ))"
-  set -u
+  # Build the partition table.
+  local partition_script_path
+  partition_script_path="$(dirname "${dst_img}")/partition_script.sh"
+  write_partition_script recovery "${partition_script_path}" \
+    "STATE:=$(( stateful_blocks * 512 ))"
+  run_partition_script "${dst_img}" "${partition_script_path}"
 }
 
 # Copy the partitions one by one from source image to destination image,

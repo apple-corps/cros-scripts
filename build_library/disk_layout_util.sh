@@ -526,13 +526,11 @@ mk_fs() {
 build_gpt_image() {
   local outdev="$1"
   local disk_layout="$2"
-  local adjust_part="$3"
 
   # Build the partition table and partition script.
   local partition_script_path
   partition_script_path="$(dirname "${outdev}")/partition_script.sh"
-  write_partition_script "${disk_layout}" "${partition_script_path}" \
-    "${adjust_part}"
+  write_partition_script "${disk_layout}" "${partition_script_path}"
   run_partition_script "${outdev}" "${partition_script_path}"
 
   # Emit the gpt scripts so we can use them from here on out.
