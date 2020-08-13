@@ -270,6 +270,7 @@ cat <<EOF - "${FLAGS_working_dir}/boot.config" >> "${config}"
 loglevel=${FLAGS_loglevel}
 init=/sbin/init
 cros_secure
+drm.trace=0x106
 EOF
 
 if [[ "${FLAGS_arch}" = "x86" || "${FLAGS_arch}" = "amd64" ]]; then
