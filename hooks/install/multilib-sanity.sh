@@ -35,6 +35,12 @@ bad_path_exists() {
 # Main entry point for this hook.
 check_multilib() {
   local paths=()
+
+  case "${CATEGORY}/${PN}" in
+    # Needs to install a 64-bit archive on arm32 builds.
+    chromeos-base/google-breakpad) return ;;
+  esac
+
   case ${ARCH} in
   arm|x86)
     if ! bad_path_exists "lib64"; then
