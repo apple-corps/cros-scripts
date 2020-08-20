@@ -473,10 +473,8 @@ create_base_image() {
     # stateful since we created a symlink for those. We ignore the
     # symlink in this package since the directory /usr/local/var
     # exists in the target image when dev_install runs.
-    # TODO(deymo): Move dev-only-extras.tbz2 outside packages. See
-    # crbug.com/448178 for details.
-    sudo tar -cf "${BOARD_ROOT}/packages/dev-only-extras.tbz2" -I pbzip2 \
-      --exclude=var -C "${root_fs_dir}/usr/local" .
+    sudo tar -cf "${BOARD_ROOT}/packages/dev-only-extras.tar.xz" \
+      -I 'xz -9 -T0' --exclude=var -C "${root_fs_dir}/usr/local" .
 
     create_dev_install_lists "${root_fs_dir}"
   fi
