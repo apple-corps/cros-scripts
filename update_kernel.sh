@@ -154,10 +154,13 @@ learn_arch() {
 make_kernelimage() {
   local bootloader_path
   local kernel_image
-  local boot_path="/build/${FLAGS_board}/boot"
+  local boot_path="/build/${FLAGS_board}"
   local config_path="$(mktemp /tmp/config.txt.XXXXX)"
-  if [[ ${FLAGS_hv} -eq ${FLAGS_TRUE} && -d "${boot_path}/hv" ]]; then
-    boot_path+="/hv"
+  if [[ ${FLAGS_hv} -eq ${FLAGS_TRUE} && \
+        -d "${boot_path}/build/manatee/boot" ]]; then
+    boot_path+="/build/manatee/boot"
+  else
+    boot_path+="/boot"
   fi
   if [[ "${FLAGS_arch}" == "arm" || "${FLAGS_arch}" == "arm64" ]]; then
     name="bootloader.bin"

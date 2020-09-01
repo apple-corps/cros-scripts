@@ -499,16 +499,28 @@ create_base_image() {
   else
     cpmv="mv"
   fi
-  [ -e "${root_fs_dir}"/boot/Image-* ] && \
-    sudo "${cpmv}" "${root_fs_dir}"/boot/Image-* "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/zImage-* ] && \
-    sudo "${cpmv}" "${root_fs_dir}"/boot/zImage-* "${BUILD_DIR}/boot_images"
-  [ -e "${root_fs_dir}"/boot/vmlinuz-* ] && \
-    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinuz-* "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/vmlinuz ] && \
-    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinuz "${BUILD_DIR}/boot_images"
-  [ -L "${root_fs_dir}"/boot/vmlinux.uimg ] && \
-    sudo "${cpmv}" "${root_fs_dir}"/boot/vmlinux.uimg \
+
+  # Bootable kernel image for ManaTEE enabled targets is located at
+  # directory /build/manatee/boot and included only in bootable partition.
+  # If no manatee USE flag is specified the standard /boot location
+  # is used, optionally including kernel image in final build image.
+  local boot_dir
+  if has "manatee" "$(portageq-${FLAGS_board} envvar USE)"; then
+    boot_dir="${root_fs_dir}/build/manatee/boot"
+  else
+    boot_dir="${root_fs_dir}/boot"
+  fi
+
+  [ -e "${boot_dir}"/Image-* ] && \
+    sudo "${cpmv}" "${boot_dir}"/Image-* "${BUILD_DIR}/boot_images"
+  [ -L "${boot_dir}"/zImage-* ] && \
+    sudo "${cpmv}" "${boot_dir}"/zImage-* "${BUILD_DIR}/boot_images"
+  [ -e "${boot_dir}"/vmlinuz-* ] && \
+    sudo "${cpmv}" "${boot_dir}"/vmlinuz-* "${BUILD_DIR}/boot_images"
+  [ -L "${boot_dir}"/vmlinuz ] && \
+    sudo "${cpmv}" "${boot_dir}"/vmlinuz "${BUILD_DIR}/boot_images"
+  [ -L "${boot_dir}"/vmlinux.uimg ] && \
+    sudo "${cpmv}" "${boot_dir}"/vmlinux.uimg \
         "${BUILD_DIR}/boot_images"
 
   # Calculate package sizes within the built rootfs for reporting purposes.
