@@ -156,6 +156,9 @@ make_kernelimage() {
   local kernel_image
   local boot_path="/build/${FLAGS_board}/boot"
   local config_path="$(mktemp /tmp/config.txt.XXXXX)"
+  if [[ ${FLAGS_hv} -eq ${FLAGS_TRUE} && -d "${boot_path}/hv" ]]; then
+    boot_path+="/hv"
+  fi
   if [[ "${FLAGS_arch}" == "arm" || "${FLAGS_arch}" == "arm64" ]]; then
     name="bootloader.bin"
     bootloader_path="${SRC_ROOT}/build/images/${FLAGS_board}/latest/${name}"
@@ -168,9 +171,6 @@ make_kernelimage() {
       truncate -s 512 "${bootloader_path}"
     fi
     kernel_image="${boot_path}/vmlinux.uimg"
-  elif [[ ${FLAGS_hv} -eq ${FLAGS_TRUE} && -d "${boot_path}/hv" ]]; then
-    bootloader_path="/lib64/bootstub/bootstub.efi"
-    kernel_image="${boot_path}/hv/vmlinuz"
   else
     bootloader_path="/lib64/bootstub/bootstub.efi"
     kernel_image="${boot_path}/vmlinuz"
