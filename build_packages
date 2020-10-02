@@ -311,7 +311,9 @@ if [[ ${#CROS_WORKON_PKGS[@]} -gt 0 ]]; then
   # Collect all installed packages that depend on active cros_workon packages.
   WORKON_PKG_CONSUMERS=()
   mapfile -t WORKON_PKG_CONSUMERS < <( \
-    equery-${FLAGS_board} -q depends "${CROS_WORKON_PKGS[@]}" | sort -u )
+    equery-${FLAGS_board} -q depends "${CROS_WORKON_PKGS[@]}" | \
+    sort -u | \
+    grep -Ev "^\s*$" )
 
   # Transform this list of packages with versions in to a list of just
   # $CATEGORY/$NAME entries, since we don't want to pass packages with explicit
