@@ -283,7 +283,7 @@ boot=local
 noresume
 noswap
 i915.modeset=1
-nmi_watchdog=panic,lapic
+nmi_watchdog=panic
 EOF
   WORK="${WORK} ${FLAGS_working_dir}/config.txt"
 
