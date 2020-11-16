@@ -105,9 +105,6 @@ BAD_VAR_PACKAGES = {
     'chromeos-base/chromeos-initramfs',
     # https://crbug.com/1054646
     'chromeos-base/devserver',
-    # https://crbug.com/1007402
-    'chromeos-base/factory',
-    'chromeos-base/factory-board',
     'dev-python/django',
     'media-gfx/sane-backends',
     'media-sound/alsa-utils',
