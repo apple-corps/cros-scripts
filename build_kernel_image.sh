@@ -6,6 +6,12 @@
 
 # Helper script that generates the signed kernel image
 
+# All kernel command line changes must update the security base lines in
+# the signer.  It rejects any settings it does not recognize and breaks the
+# build. So any kernel parameter changes that are made here needs to be
+# reflected in ensure_secure_kernelparams.config and deployed to production
+# signing before landed here.
+
 SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 . "${SCRIPT_ROOT}/common.sh" || exit 1
 
