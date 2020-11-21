@@ -6,8 +6,8 @@
 main() {
   SCRIPT="$(realpath "$0")"
   SCRIPT_DIR="$(dirname "${SCRIPT}")"
-  if ! "${SCRIPT_DIR}/../filesystem-sanity.py" "${ED:-${D:-}}"; then
-    die "Filesystem layout is not sane"
+  if ! "${SCRIPT_DIR}/../filesystem-layout.py" "${ED:-${D:-}}"; then
+    die "Filesystem layout is not valid"
   fi
 }
 main "$@"
