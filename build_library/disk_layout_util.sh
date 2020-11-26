@@ -396,8 +396,6 @@ mk_fs() {
   local fs_bytes fs_label fs_format fs_options fs_block_size offset fs_type
   fs_format=$(get_filesystem_format ${image_type} ${part_num})
   fs_options="$(get_filesystem_options ${image_type} ${part_num})"
-  # Split the fs_options into an array.
-  local fs_options_arr=(${fs_options})
   if [ -z "${fs_format}" ]; then
     # We only make fs for partitions that specify a format.
     return 0
@@ -426,67 +424,8 @@ mk_fs() {
     die "No free loopback device to create partition."
   fi
 
-  case ${fs_format} in
-  ext[234])
-    # When mke2fs supports the same values for -U as tune2fs does, the
-    # following conditionals can be removed and ${fs_uuid} can be used
-    # as the value of the -U option as-is.
-    local uuid_option=()
-    if [[ "${fs_uuid}" == "clear" ]]; then
-      fs_uuid="00000000-0000-0000-0000-000000000000"
-    fi
-    if [[ "${fs_uuid}" != "random" ]]; then
-      uuid_option=( -U "${fs_uuid}" )
-    fi
-    sudo mkfs.${fs_format} -F -q -O ext_attr \
-        "${uuid_option[@]}" \
-        -E lazy_itable_init=0 \
-        -b ${fs_block_size} \
-        "${fs_options_arr[@]}" \
-        "${part_dev}" "$((fs_bytes / fs_block_size))"
-    # We need to redirect from stdin and clear the prompt variable to make
-    # sure tune2fs doesn't throw up random prompts on us.  We know that the
-    # command below is what we want and is safe (it's a new FS).
-    unset TUNE2FS_FORCE_PROMPT
-    sudo tune2fs -L "${fs_label}" \
-        -c 0 \
-        -i 0 \
-        -T 20091119110000 \
-        -m 0 \
-        -r 0 \
-        -e remount-ro \
-        "${part_dev}" </dev/null
-    ;;
-  fat12|fat16|fat32)
-    sudo mkfs.vfat -F ${fs_format#fat} -n "${fs_label}" "${part_dev}" \
-        "${fs_options_arr[@]}"
-    ;;
-  fat|vfat)
-    # -I flag is needed to ignore a (we think) false error about formatting
-    # a device that already has partitions on it
-    sudo mkfs.vfat -I -n "${fs_label}" "${part_dev}" "${fs_options_arr[@]}"
-    ;;
-  squashfs)
-    # Creates an empty squashfs filesystem so unsquashfs works.
-    local squash_dir="$(mktemp -d --suffix=.squashfs)"
-    local squash_file="$(mktemp --suffix=.squashfs)"
-    # Make sure / has the right permission. "-all-root" will change the uid/gid.
-    chmod 0755 "${squash_dir}"
-    # If there are errors in mkquashfs they are sent to stderr, but in the
-    # normal case a lot of useless information is sent to stdout.
-    mksquashfs "${squash_dir}" "${squash_file}" -noappend -all-root \
-        -no-progress -no-recovery "${fs_options_arr[@]}" >/dev/null
-    rmdir "${squash_dir}"
-    sudo dd if="${squash_file}" of="${part_dev}" bs=4096 status=none
-    rm "${squash_file}"
-    ;;
-  btrfs)
-    sudo mkfs.${fs_format} -b "$((fs_bytes))" -d single -m single -M \
-      -L "${fs_label}" -O "${fs_options_arr[@]}" "${part_dev}"
-    ;;
-  *)
-    die "Unknown fs format '${fs_format}' for part ${part_num}";;
-  esac
+  fs_create "${fs_uuid}" "${fs_label}" "${fs_bytes}" "${fs_block_size}" \
+      "${fs_format}" "${fs_options}" "${part_dev}"
 
   local mount_dir="$(mktemp -d)"
   local cmds=(
