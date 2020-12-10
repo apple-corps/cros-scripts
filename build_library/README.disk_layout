@@ -107,7 +107,7 @@ Here is an example disk layout with comments.
         # (block_size * fs_blocks / 1024 / 1024 == MiB).
         "fs_size": "2048 MiB",
 
-        # Special handling of this partition. Expand is only supported value.
+        # Special handling of this partition.
         "features":["expand"],
 
         # Optional, default 'random'. Explicitly define the partition uuid.
@@ -207,6 +207,7 @@ Legal fs_format values:
 
 Features values:
   expand
+  last_partition
 
 
 
@@ -220,8 +221,9 @@ http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format
     images to be exactly large enough to hold files.
 
     On installation, its size will be expanded to use all available space
-    on the target drive. If it does not contain a valid file system, it will
-    be formatted to ext4 on system boot.
+    on the target drive, leaving room for a 'last_partition' if it exists.
+    If it does not contain a valid file system, it will be formatted on
+    system boot.
 
   Partition 2 - Kernel Slot A
     Contains the recovery kernel on recovery images. Contains the standard
@@ -258,6 +260,14 @@ http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format
     Only used with legacy boot bioses (especially during VM Testing). If
     installation/update don't detect a secure bios (ie: ChromeOS hardware), then
     GRUB/UBoot, or other bios boot files/kernels will be installed here.
+
+  Partition 13 - MiniOS A (src/platform2/minios)
+    Partition at the beginning of disk. MiniOS A will have priority over
+    MiniOS B when booting.
+
+  Partition 14 - MiniOS B
+    Has feature 'last_partition' which ensures that it is placed at the
+    end of the disk.
 
 
 Inheritance Rules:

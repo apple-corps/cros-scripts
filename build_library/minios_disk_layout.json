@@ -1,0 +1,30 @@
+{
+  # For MiniOS testing purposes only. Do not use.
+  "parent": "disk_layout_v2.json",
+  "metadata": {
+    "block_size": 512,
+    "fs_block_size": 4096,
+    "fs_align": "2 MiB"
+  },
+  "layouts": {
+    # common is the standard layout template.
+    "common": [
+      {
+        # MiniOS A partition.
+        "num": 13,
+        "label": "MiniOS-A",
+        "type": "kernel",
+        "size": "64 MiB"
+      },
+      {
+        # MiniOS B partition.
+        "num": 14,
+        "label": "MiniOS-B",
+        "type": "kernel",
+        "size": "64 MiB",
+        # Places partition at the end of disk.
+        "features": ["last_partition"]
+      }
+    ]
+  }
+}

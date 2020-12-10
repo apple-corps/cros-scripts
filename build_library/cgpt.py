@@ -357,7 +357,7 @@ def LoadPartitionConfig(filename):
       'size', 'fs_size', 'fs_options', 'erase_block_size', 'hybrid_mbr',
       'reserved_erase_blocks', 'max_bad_erase_blocks', 'external_gpt',
       'page_size', 'size_min', 'fs_size_min'))
-  valid_features = set(('expand',))
+  valid_features = set(('expand', 'last_partition'))
 
   config = _LoadStackedPartitionConfig(filename)
   try:
@@ -541,6 +541,7 @@ def GetTableTotals(config, partitions):
   ret = {
       'expand_count': 0,
       'expand_min': 0,
+      'last_partition_count': 0,
       'byte_count': start_sector,
   }
 
@@ -559,6 +560,8 @@ def GetTableTotals(config, partitions):
       ret['expand_min'] += partition['bytes']
     else:
       ret['byte_count'] += partition['bytes']
+    if 'last_partition' in partition['features']:
+      ret['last_partition_count'] += 1
 
   # Account for the secondary GPT header and table.
   ret['byte_count'] += SECONDARY_GPT_BYTES
@@ -569,6 +572,11 @@ def GetTableTotals(config, partitions):
   if ret['expand_count'] > 1:
     raise InvalidLayout('1 expand partition allowed, %d requested'
                         % ret['expand_count'])
+
+  # Only one partition can be last on the disk.
+  if ret['last_partition_count'] > 1:
+    raise InvalidLayout('Only one last partition allowed, %d requested'
+                        % ret['last_partition_count'])
 
   # We lose some extra bytes from the alignment which are now not considered in
   # min_disk_size because partitions are aligned on the fly. Adding
@@ -805,6 +813,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
 
   metadata = GetMetadataPartition(partitions)
   stateful = None
+  last_part = None
   # Set up the expanding partition size and write out all the cgpt add
   # commands.
   for partition in partitions:
@@ -814,6 +823,11 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     partition['var'] = GetFullPartitionSize(partition, metadata)
     if 'expand' in partition['features']:
       stateful = partition
+      continue
+
+    # Save the last partition to place at the end of the disk..
+    if 'last_partition' in partition['features']:
+      last_part = partition
       continue
 
     if (partition.get('type') in ['data', 'rootfs'] and partition['bytes'] > 1):
@@ -842,7 +856,24 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
     lines += fs_align_snippet + [
         'blocks=$(( numsecs - (curr + %d) / block_size ))' %
         SECONDARY_GPT_BYTES,
+    ]
+    if last_part is not None:
+      lines += [
+          'reserved_blocks=$(( (%s + block_size - 1) / block_size ))'
+          % last_part['var'],
+          ': $(( blocks = blocks - reserved_blocks ))',
+      ]
+    lines += [
         gpt_add % (stateful['num'], stateful['type'], stateful['label']),
+        ': $(( curr += blocks * block_size ))',
+    ]
+
+  if last_part is not None:
+    lines += [
+        'reserved_blocks=$(( (%s + block_size - 1) / block_size ))'
+        % last_part['var'],
+        'blocks=$((reserved_blocks))',
+        gpt_add % (last_part['num'], last_part['type'], last_part['label']),
     ]
 
   # Set default priorities and retry counter on kernel partitions.
