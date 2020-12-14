@@ -838,7 +838,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
           ': $(( curr += blocks * block_size ))',
       ]
 
-  if stateful != None:
+  if stateful is not None:
     lines += fs_align_snippet + [
         'blocks=$(( numsecs - (curr + %d) / block_size ))' %
         SECONDARY_GPT_BYTES,
@@ -1581,7 +1581,7 @@ def GetParser():
         arg, text = line.split(':', 1)
         args_help[arg.strip()] = text.strip()
 
-    argspec = inspect.getargspec(func)
+    argspec = inspect.getfullargspec(func)
     # Skip the first argument as that'll be the options field.
     args = argspec.args[1:]
 
