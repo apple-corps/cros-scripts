@@ -29,6 +29,8 @@ DEFINE_boolean syslinux $FLAGS_TRUE "Update the syslinux kernel (including /boot
 DEFINE_boolean bootonce $FLAGS_FALSE "Mark kernel partition as boot once"
 DEFINE_boolean remote_bootargs $FLAGS_FALSE "Use bootargs from running kernel on target"
 DEFINE_boolean firmware $FLAGS_FALSE "Also update firmwares (/lib/firmware)"
+DEFINE_boolean ab_update $FLAGS_FALSE "Update the kernel in the non-booting \
+kernel slot, similar to an AB update"
 DEFINE_string boot_command "" "Command to run on remote after update (after reboot if applicable)"
 
 ORIG_ARGS=("$@")
@@ -68,6 +70,7 @@ load_default_partition_numbers() {
   PARTITION_NUM_KERN_A=2
   PARTITION_NUM_ROOT_A=3
   PARTITION_NUM_KERN_B=4
+  PARTITION_NUM_ROOT_B=5
   PARTITION_NUM_EFI_SYSTEM=12
 }
 
@@ -88,6 +91,15 @@ learn_partition_and_ro() {
   else
     REMOTE_VERITY=${FLAGS_FALSE}
     info "System is not using verity: updating firmware and modules"
+  fi
+  if [[ ${FLAGS_ab_update} -eq ${FLAGS_TRUE} ]]; then
+    if [[ "${REMOTE_OUT}" == "${FLAGS_device}${PARTITION_NUM_ROOT_A}" ]]; then
+      FLAGS_partition="${FLAGS_device}${PARTITION_NUM_KERN_B}"
+      FLAGS_rootfs="${FLAGS_device}${PARTITION_NUM_ROOT_B}"
+    else
+      FLAGS_partition="${FLAGS_device}${PARTITION_NUM_KERN_A}"
+      FLAGS_rootfs="${FLAGS_device}${PARTITION_NUM_ROOT_A}"
+    fi
   fi
   if [[ -z "${FLAGS_rootfs}" ]]; then
     FLAGS_rootfs="${REMOTE_OUT}"
