@@ -695,6 +695,9 @@ CHROOT_PASSTHRU=(
   # The default ~/.bash_profile in chroot will cd to $CHROOT_CWD instead of
   # ~/trunk/src/script if that environment variable is set.
   "CHROOT_CWD=${FLAGS_working_dir}"
+
+  # We don't want to auto-update depot_tools inside of the SDK as we manage it.
+  "DEPOT_TOOLS_UPDATE=0"
 )
 
 # Needs to be set here because setup_env runs in a subshell.
