@@ -623,6 +623,14 @@ setup_env() {
     for fn in "${FILES_TO_COPY_TO_CHROOT[@]}"; do
       copy_into_chroot_if_exists "${SUDO_HOME}/${fn}" "/home/${SUDO_USER}/${fn}"
     done
+
+    # Map in credentials account for log-writing access.
+    log_cert_dir="/creds/service_accounts/"
+    log_cert_file="service-account-chromeos-datastore-writer-prod.json"
+    copy_into_chroot_if_exists "${log_cert_dir}${log_cert_file}" \
+      "/home/${SUDO_USER}/${log_cert_file}"
+
+
     setup_git
     promote_api_keys
 
