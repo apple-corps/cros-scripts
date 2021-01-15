@@ -96,8 +96,16 @@ create_dev_install_lists() {
   local pids=()
   for pkg in "${pkgs[@]}" ; do
     (
+      # We need to restrict the depgraph of the OS to binpkgs only as that is
+      # used to determine what is baked into the rootfs.  When building that
+      # from source, there's a lot more packages, but they aren't shipped, so
+      # we want to make them installable after the fact.
+      local usepkg
+      if [[ "${pkg}" == "virtual/target-os" ]]; then
+        usepkg="--usepkgonly"
+      fi
       emerge-${BOARD} --color n --pretend --quiet --emptytree --cols \
-        --root-deps=rdeps --with-bdeps=n ${pkg} | \
+        --root-deps=rdeps --with-bdeps=n ${usepkg} ${pkg} | \
         awk '$2 ~ /\// {print $2 "-" $3}' | \
         sort > "${pkgs_out}/${pkg##*/}.packages"
       pipestatus=${PIPESTATUS[*]}
