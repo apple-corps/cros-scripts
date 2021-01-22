@@ -140,7 +140,7 @@ run_emerge "${TOOLCHAIN_PACKAGES[@]}"
 
 # Then build everything else.
 run_emerge --emptytree --with-bdeps=y \
-  --exclude "${TOOLCHAIN_PACKAGES[*]}" \
+  --exclude --verbose "${TOOLCHAIN_PACKAGES[*]}" \
   "${PACKAGES[@]}" virtual/target-sdk-nobdeps
 sudo eclean -d packages
 
