@@ -26,13 +26,6 @@ DEFINE_string adjust_part "" \
   "Adjustments to apply to the partition table"
 DEFINE_string board "${DEFAULT_BOARD}" \
   "Board for which the image was built"
-DEFINE_boolean factory $FLAGS_FALSE \
-    "Modify the image for manufacturing testing"
-DEFINE_boolean factory_install $FLAGS_FALSE \
-    "Modify the image for factory install shim"
-
-# We default to TRUE so the buildbot gets its image.
-DEFINE_boolean force_copy ${FLAGS_FALSE} "Always rebuild test image"
 DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
 DEFINE_string disk_layout "2gb-rootfs-updatable" \
