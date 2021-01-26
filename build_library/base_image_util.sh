@@ -104,9 +104,13 @@ create_dev_install_lists() {
       if [[ "${pkg}" == "virtual/target-os" ]]; then
         usepkg="--usepkgonly"
       fi
+      # Need to filter out BDEPENDS installed into the /.  We rely on the output
+      # from portage to look like:
+      #   R    sys-libs/zlib 1.2.11
+      #   R    virtual/rust 1.47.0-r6 to /build/betty/
       emerge-${BOARD} --color n --pretend --quiet --emptytree --cols \
         --root-deps=rdeps --with-bdeps=n ${usepkg} ${pkg} | \
-        awk '$2 ~ /\// {print $2 "-" $3}' | \
+        awk '($2 ~ /\// && $4 == "to") {print $2 "-" $3}' | \
         sort > "${pkgs_out}/${pkg##*/}.packages"
       pipestatus=${PIPESTATUS[*]}
       [[ ${pipestatus// } -eq 0 ]]
