@@ -27,8 +27,6 @@ DEFINE_string from "" \
   "Directory containing rootfs.image and mbr.image"
 DEFINE_string disk_layout "2gb-rootfs-updatable" \
   "The disk layout type to use for this image."
-DEFINE_string state_image "" \
-  "Stateful partition image (defaults to creating new statful partition)"
 DEFINE_boolean test_image "${FLAGS_FALSE}" \
   "Acquires image from ${CHROMEOS_TEST_IMAGE_NAME} instead of " \
   "${CHROMEOS_IMAGE_NAME}."
@@ -150,31 +148,27 @@ SRC_ROOTFS="${SRC_DEV}"p3
 SRC_KERN="${SRC_DEV}"p4
 SRC_OEM="${SRC_DEV}"p8
 SRC_ESP="${SRC_DEV}"p12
-if [ -n "${FLAGS_state_image}" ]; then
-  TEMP_STATE="${FLAGS_state_image}"
-else
-  STATEFUL_SIZE_BYTES=$(get_filesystem_size "${FLAGS_disk_layout}" 1)
-  STATEFUL_SIZE_MEGABYTES=$(( STATEFUL_SIZE_BYTES / 1024 / 1024 ))
-  original_image_size=$(bd_safe_size "${SRC_STATE}")
-  if [ "${original_image_size}" -gt "${STATEFUL_SIZE_BYTES}" ]; then
-    if [ $(( original_image_size - STATEFUL_SIZE_BYTES )) -lt \
-        $(( 1024 * 1024 )) ]; then
-      # cgpt.py sometimes makes the stateful a tiny bit larger to
-      # counteract alignment losses.
-      # This is fine -- just keep using the slightly larger partition as it is.
-      TEMP_STATE="${SRC_STATE}"
-    else
-      die "Cannot resize stateful image to smaller than original. Exiting."
-    fi
+STATEFUL_SIZE_BYTES=$(get_filesystem_size "${FLAGS_disk_layout}" 1)
+STATEFUL_SIZE_MEGABYTES=$(( STATEFUL_SIZE_BYTES / 1024 / 1024 ))
+original_image_size=$(bd_safe_size "${SRC_STATE}")
+if [ "${original_image_size}" -gt "${STATEFUL_SIZE_BYTES}" ]; then
+  if [ $(( original_image_size - STATEFUL_SIZE_BYTES )) -lt \
+      $(( 1024 * 1024 )) ]; then
+    # cgpt.py sometimes makes the stateful a tiny bit larger to
+    # counteract alignment losses.
+    # This is fine -- just keep using the slightly larger partition as it is.
+    TEMP_STATE="${SRC_STATE}"
   else
-    echo "Resizing stateful partition to ${STATEFUL_SIZE_MEGABYTES}MB"
-    # Extend the original file size to the new size.
-    TEMP_STATE="${TEMP_DIR}"/stateful
-    # Create TEMP_STATE as a regular user so a regular user can delete it.
-    sudo dd if="${SRC_STATE}" bs=16M status=none > "${TEMP_STATE}"
-    sudo e2fsck -pf "${TEMP_STATE}"
-    sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
+    die "Cannot resize stateful image to smaller than original. Exiting."
   fi
+else
+  echo "Resizing stateful partition to ${STATEFUL_SIZE_MEGABYTES}MB"
+  # Extend the original file size to the new size.
+  TEMP_STATE="${TEMP_DIR}"/stateful
+  # Create TEMP_STATE as a regular user so a regular user can delete it.
+  sudo dd if="${SRC_STATE}" bs=16M status=none > "${TEMP_STATE}"
+  sudo e2fsck -pf "${TEMP_STATE}"
+  sudo resize2fs "${TEMP_STATE}" ${STATEFUL_SIZE_MEGABYTES}M
 fi
 TEMP_PMBR="${TEMP_DIR}"/pmbr
 dd if="${SRC_IMAGE}" of="${TEMP_PMBR}" bs=512 count=1
