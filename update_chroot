@@ -81,7 +81,7 @@ if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_FALSE}" ]; then
     TOOLCHAIN_FLAGS+=( --nousepkg )
   fi
   # Expand the path before sudo, as root doesn't have the same path magic.
-  sudo -E $(type -p cros_setup_toolchains) "${TOOLCHAIN_FLAGS[@]}"
+  info_run sudo -E $(type -p cros_setup_toolchains) "${TOOLCHAIN_FLAGS[@]}"
 fi
 
 # Make sure depot_tools is bootstrapped, so that it can build chromeos-chrome.
@@ -96,7 +96,7 @@ EMERGE_CMD="${CHROMITE_BIN}/parallel_emerge"
 info "Rebuilding Portage cache"
 # Before running any emerge operations, regenerate the Portage dependency cache
 # in parallel.
-"${EMERGE_CMD[@]}" --regen --quiet
+info_run "${EMERGE_CMD[@]}" --regen --quiet
 
 info "Updating the SDK"
 
@@ -131,14 +131,15 @@ done
 
 # Second pass, update everything else.
 EMERGE_FLAGS+=( --deep )
-sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
+info_run sudo -E ${EMERGE_CMD} "${EMERGE_FLAGS[@]}" virtual/target-sdk world
 
 # Install post cross packages if binary pkgs are available.
 if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
   # Install nobdeps packages only when binary pkgs are available, since we don't
   # want to accidentally pull in build deps for a rebuild.
   EMERGE_FLAGS=( -uNv --with-bdeps=n --oneshot --getbinpkg --deep --usepkgonly )
-  sudo -E "${EMERGE_CMD}" "${EMERGE_FLAGS[@]}" virtual/target-sdk-nobdeps
+  info_run sudo -E "${EMERGE_CMD}" "${EMERGE_FLAGS[@]}" \
+    virtual/target-sdk-nobdeps
 fi
 
 # Automatically discard all CONFIG_PROTECT'ed files. Those that are
@@ -151,8 +152,8 @@ printf '%s\nYES\n' -9 | sudo etc-update
 
 # Finally clean out any stale binpkgs we've accumulated.
 if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
-  info "Running 'eclean -d packages' to clean up stale binpkgs"
-  sudo eclean -d packages
+  info "Cleaning stale binpkgs"
+  info_run sudo eclean -d packages
 fi
 
 command_completed

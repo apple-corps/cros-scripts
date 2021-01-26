@@ -126,9 +126,7 @@ fi
 PACKAGES=( system virtual/target-sdk world )
 
 run_emerge() {
-  local cmd=( ${EMERGE_CMD} "$@" )
-  info "Running: ${cmd[*]}"
-  sudo -E "${cmd[@]}"
+  info_run sudo -E ${EMERGE_CMD} "$@"
 }
 
 # First, rebuild all packages from scratch. This is needed to make sure

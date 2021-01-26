@@ -122,6 +122,12 @@ error() {
   _message "${V_BOLD_RED}ERROR   " "$*"
 }
 
+# Log the command we're about to run, then run it.
+# Useful for long running commands that often need debugging from builders.
+info_run() {
+  info "Running: $*"
+  "$@"
+}
 
 # For all die functions, they must explicitly force set +eu;
 # no reason to have them cause their own crash if we're in the middle

@@ -276,7 +276,7 @@ fi
 info "Rebuilding Portage cache"
 # Before running any emerge operations, regenerate the Portage dependency cache
 # in parallel.
-"${EMERGE_CMD[@]}" --regen --quiet
+info_run "${EMERGE_CMD[@]}" --regen --quiet
 
 # Verify that all packages can be emerged from scratch, without any
 # backtracking. Only print the output if this step fails.
@@ -460,7 +460,7 @@ info "Merging board packages now"
     trap "'${goma_ctl}' stop" EXIT
   fi
 
-  sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" \
+  info_run sudo -E "${EMERGE_CMD[@]}" "${EMERGE_FLAGS[@]}" "${PACKAGES[@]}" \
     --useoldpkg-atoms="${CRITICAL_SDK_PACKAGES[*]}" \
     --rebuild-exclude="${CRITICAL_SDK_PACKAGES[*]}"
 )
@@ -469,7 +469,7 @@ echo "Builds complete"
 
 if [[ ${FLAGS_withdebugsymbols} -eq ${FLAGS_TRUE} ]]; then
   info "fetching the debug symbols"
-  sudo -E "${CHROMITE_BIN}/cros_install_debug_syms" \
+  info_run sudo -E "${CHROMITE_BIN}/cros_install_debug_syms" \
     "--board=${FLAGS_board}" "--all"
 fi
 
