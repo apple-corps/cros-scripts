@@ -15,9 +15,6 @@ SCRIPT_ROOT=$(dirname "$(readlink -f "$0")")
 # Need to be inside the chroot to load chromeos-common.sh
 assert_inside_chroot
 
-# Load functions and constants for chromeos-install
-. /usr/share/misc/chromeos-common.sh || exit 1
-
 # Default values for creating VM's.
 DEFAULT_QEMU_IMAGE="chromiumos_qemu_image.bin"
 
