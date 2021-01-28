@@ -566,7 +566,11 @@ setup_env() {
       done < <(sed -e 's:#.*::' "${local_mounts}")
     fi
 
-    CHROME_ROOT="$(readlink -f "$FLAGS_chrome_root" || :)"
+    if [[ -n "${FLAGS_chrome_root}" ]]; then
+      if ! CHROME_ROOT="$(readlink -f "${FLAGS_chrome_root}")"; then
+        die_notrace "${FLAGS_chrome_root} does not exist."
+      fi
+    fi
     if [ -z "$CHROME_ROOT" ]; then
       CHROME_ROOT="$(cat "${FLAGS_chroot}${CHROME_ROOT_CONFIG}" \
         2>/dev/null || :)"
