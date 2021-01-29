@@ -444,6 +444,7 @@ fi
 # being upgraded transitively via BDEPEND relations.
 CRITICAL_SDK_PACKAGES=(
   "dev-lang/rust"
+  "dev-lang/go"
   "sys-libs/glibc"
   "sys-devel/gcc"
 )
