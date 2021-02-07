@@ -381,6 +381,7 @@ COMMON_INSTALL_MASK="
   *.a
   *.c
   *.cc
+  *.cmake
   *.go
   *.la
   *.h
