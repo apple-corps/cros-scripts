@@ -44,6 +44,7 @@ fi
 
 # Turn on bash debug support if available for backtraces.
 shopt -s extdebug 2>/dev/null
+set +E
 
 # Output a backtrace. Optional parameter allows hiding the last
 # frame(s) so functions like "die()" can hide their additional
