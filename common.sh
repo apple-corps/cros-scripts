@@ -403,6 +403,7 @@ COMMON_INSTALL_MASK="
   /etc/init.d
   /etc/runlevels
   /etc/selinux/intermediates
+  /etc/xinetd.d
   /firmware
   /lib/modules/*/vdso
   /lib/rc
