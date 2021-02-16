@@ -313,6 +313,12 @@ create_base_image() {
   # Run udevadm to generate /etc/udev/hwdb.bin
   run_udevadm_hwdb "${root_fs_dir}"
 
+  # Clean-up the *.hwdb, we don't need them at runtime
+  # but we cannot put them in the INSTALL_MASK else
+  # the hwdb.bin generation above won't do anything.
+  sudo rm -rf "${root_fs_dir}/lib/udev/hwdb.d" \
+              "${root_fs_dir}/etc/udev/hwdb.d" || :
+
   # File searches /usr/share even if it's installed in /usr/local.  Add a
   # symlink so it works in dev images & when using dev_install.  Unless it's
   # already installed.  https://crbug.com/210493
