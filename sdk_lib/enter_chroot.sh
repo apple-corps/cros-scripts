@@ -508,7 +508,8 @@ setup_env() {
 
         local known_hosts="${SUDO_HOME}/.ssh/known_hosts"
         if [[ -e ${known_hosts} ]]; then
-          truncate -s 0 "${TARGET_DIR}/known_hosts"
+          # Ensure there is a file to bind mount onto for setup_mount.
+          touch "${TARGET_DIR}/known_hosts"
           setup_mount "${known_hosts}" --bind "${target_ssh}/known_hosts"
         fi
         copy_ssh_config "${TARGET_DIR}"
