@@ -49,14 +49,12 @@ mount_image() {
   if [[ -n "${4:-}" ]]; then
     MOUNT_GPT_OPTIONS+=( --esp_mountpt "$4" )
   fi
-  local mode_flag=()
-  if [[ -n "${5:-}" ]]; then
-    mode_flag+=("$5")
-  fi
-  _check_mount_image_flags "${mode_flag[@]}"
+  # Bash returns an empty array for mode_flag if $@ has less than 5 elements.
+  local mode_flag=( "${@:5:1}" )
+  _check_mount_image_flags "${mode_flag[@]:+${mode_flag[@]}}"
 
   "${SCRIPTS_DIR}/mount_gpt_image.sh" "${MOUNT_GPT_OPTIONS[@]}" \
-    "${mode_flag[@]}"
+    "${mode_flag[@]:+${mode_flag[@]}}"
 }
 
 # Usage: unmount_image
