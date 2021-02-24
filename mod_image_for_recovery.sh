@@ -94,7 +94,6 @@ get_install_vblock() {
 
   safe_umount "$stateful_mnt"
   sudo losetup -d ${IMAGE_DEV}
-  trap - RETURN
   rmdir "$stateful_mnt"
   switch_to_strict_mode
   echo "$out"
@@ -249,7 +248,6 @@ install_recovery_kernel() {
     safe_umount "$esp_mnt"
     rmdir "$esp_mnt"
     sudo losetup -d ${RECOVERY_DEV}
-    trap - RETURN
     switch_to_strict_mode
   fi
 
@@ -306,7 +304,9 @@ copy_stateful() {
   small_stateful=$(mktemp)
   dd if=/dev/zero of="${small_stateful}" bs=512 \
     count="${sectors_needed}" 1>&2
-  trap "rm ${small_stateful}; sudo losetup -d ${IMAGE_DEV} || true" RETURN
+  trap "rm ${small_stateful}; sudo losetup -d ${IMAGE_DEV} || true; cleanup" \
+    EXIT
+
   # Don't bother with ext3 for such a small image.
   /sbin/mkfs.ext2 -F -b 4096 "${small_stateful}" 1>&2
 
@@ -336,13 +336,14 @@ copy_stateful() {
   rmdir "$old_stateful_mnt"
   rmdir "$new_stateful_mnt"
   sudo losetup -d ${IMAGE_DEV}
-  trap - RETURN
+  trap cleanup EXIT
   switch_to_strict_mode
 
   local dst_start
   dst_start="$(cgpt show -i "${partition_num_state}" -b "${dst_img}")"
   dd if="${small_stateful}" of="${dst_img}" conv=notrunc bs=512 \
     seek="${dst_start}" count="${sectors_needed}" status=none
+  rm "${small_stateful}"
   return 0
 }
 

@@ -516,7 +516,6 @@ mk_fs() {
   fs_umount "${part_dev}" "${mount_dir}" "${fs_format}" "${fs_options}"
   fs_remove_mountpoint "${mount_dir}"
   sudo losetup -d ${image_dev}
-  trap - RETURN
 }
 
 # Creates the gpt image for the given disk layout. In addition to creating
