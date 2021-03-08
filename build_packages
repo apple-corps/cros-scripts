@@ -83,6 +83,8 @@ DEFINE_boolean withfactory "${FLAGS_TRUE}" \
   "Build factory installer."
 DEFINE_boolean withtest "${FLAGS_TRUE}" \
   "Build packages required for testing."
+DEFINE_boolean expandedbinhosts "${FLAGS_FALSE}" \
+  "Allow expanded binhost inheritance."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
 # packages between boards that are built locally, so that the total time
@@ -193,6 +195,11 @@ if [[ -n ${FLAGS_board_root} ]]; then
 fi
 if [ "${FLAGS_cleanbuild}" -eq "${FLAGS_TRUE}" ]; then
   UPDATE_ARGS+=( --force )
+fi
+if [[ "${FLAGS_expandedbinhosts}" -eq "${FLAGS_TRUE}" ]]; then
+  UPDATE_ARGS+=( --more-binhosts )
+else
+  UPDATE_ARGS+=( --fewer-binhosts )
 fi
 
 setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
