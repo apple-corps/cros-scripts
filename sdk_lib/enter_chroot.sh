@@ -521,6 +521,11 @@ setup_env() {
       fi
     fi
 
+    if [[ -d "${SUDO_HOME}/.config/chromite" ]]; then
+      setup_mount "${SUDO_HOME}/.config/chromite" "--bind" \
+        "/home/${SUDO_USER}/.config/chromite"
+    fi
+
     # A reference to the DEPOT_TOOLS path may be passed in by cros_sdk.
     if [ -n "${DEPOT_TOOLS}" ]; then
       debug "Mounting depot_tools"
