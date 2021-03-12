@@ -90,7 +90,7 @@ DEFINE_boolean withfactory "${FLAGS_TRUE}" \
   "Build factory installer."
 DEFINE_boolean withtest "${FLAGS_TRUE}" \
   "Build packages required for testing."
-DEFINE_boolean expandedbinhosts "${FLAGS_FALSE}" \
+DEFINE_boolean expandedbinhosts "${FLAGS_TRUE}" \
   "Allow expanded binhost inheritance."
 
 # The --reuse_pkgs_from_local_boards flag tells Portage to share binary
@@ -204,9 +204,7 @@ if [[ "${FLAGS_skip_setup_board}" -eq "${FLAGS_FALSE}" ]]; then
   if [ "${FLAGS_cleanbuild}" -eq "${FLAGS_TRUE}" ]; then
     UPDATE_ARGS+=( --force )
   fi
-  if [[ "${FLAGS_expandedbinhosts}" -eq "${FLAGS_TRUE}" ]]; then
-    UPDATE_ARGS+=( --more-binhosts )
-  else
+  if [[ "${FLAGS_expandedbinhosts}" -eq "${FLAGS_FALSE}" ]]; then
     UPDATE_ARGS+=( --fewer-binhosts )
   fi
 
