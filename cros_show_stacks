@@ -144,7 +144,7 @@ main() {
   fi
 
   local modules_file="${TMP}/modules"
-  for dump in ${FLAGS_ARGV}; do
+  for dump in "${FLAGS_ARGV[@]}"; do
     dump=$(remove_quotes "${dump}")
     if [ $(get_kind "${dump}") == "minidump" ]; then
       # Find all DSOs and executables listed in lines like:
@@ -161,13 +161,14 @@ main() {
     FLAGS_breakpad_root=/build/${FLAGS_board}/usr/lib/debug/breakpad
   fi
 
-  for dump in ${FLAGS_ARGV}; do
+  for dump in "${FLAGS_ARGV[@]}"; do
     dump=$(remove_quotes "${dump}")
     if [ $(get_kind "${dump}") = "minidump" ]; then
-      info "Dumping stack for $(basename ${dump}) with ${FLAGS_breakpad_root}:"
+      info "Dumping stack for $(basename "${dump}")" \
+        "with ${FLAGS_breakpad_root}:"
       ${MINIDUMP_STACKWALK} "${dump}" "${FLAGS_breakpad_root}" 2> /dev/null
     else
-      info "Dumping kcrash $(basename ${dump}):"
+      info "Dumping kcrash $(basename "${dump}"):"
       cat "${dump}"
     fi
     echo ""
