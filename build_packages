@@ -73,6 +73,8 @@ DEFINE_boolean norebuild "${FLAGS_FALSE}" \
   "Don't automatically rebuild dependencies."
 DEFINE_boolean skip_chroot_upgrade "${FLAGS_FALSE}" \
   "Don't run the chroot upgrade automatically; use with care."
+DEFINE_boolean skip_setup_board "${FLAGS_FALSE}" \
+  "Don't run setup_board. Implies skip_chroot_upgrade and skip_toolchain_update."
 DEFINE_boolean skip_toolchain_update "${FLAGS_FALSE}" \
   "Don't update toolchain automatically."
 DEFINE_boolean withdev "${FLAGS_TRUE}" \
@@ -168,41 +170,43 @@ if [[ -z "${FLAGS_board}" ]]; then
   exit 1
 fi
 
-# Before we can run any tools, we need to update chroot or setup_board.
-UPDATE_ARGS=()
-if [[ -n ${FLAGS_accept_licenses} ]]; then
-  UPDATE_ARGS+=( --accept-licenses "${FLAGS_accept_licenses}" )
-fi
-if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --usepkg )
-else
-  UPDATE_ARGS+=( --nousepkg )
-fi
-if [[ "${FLAGS_jobs}" -ne -1 ]]; then
-  UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )
-fi
-if [ "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --reuse-pkgs-from-local-boards )
-fi
-if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --skip-toolchain-update )
-fi
-if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --skip-chroot-upgrade )
-fi
-if [[ -n ${FLAGS_board_root} ]]; then
-  UPDATE_ARGS+=( --board-root "${FLAGS_board_root}" )
-fi
-if [ "${FLAGS_cleanbuild}" -eq "${FLAGS_TRUE}" ]; then
-  UPDATE_ARGS+=( --force )
-fi
-if [[ "${FLAGS_expandedbinhosts}" -eq "${FLAGS_TRUE}" ]]; then
-  UPDATE_ARGS+=( --more-binhosts )
-else
-  UPDATE_ARGS+=( --fewer-binhosts )
-fi
+if [[ "${FLAGS_skip_setup_board}" -eq "${FLAGS_FALSE}" ]]; then
+  # Before we can run any tools, we need to update chroot or setup_board.
+  UPDATE_ARGS=()
+  if [[ -n ${FLAGS_accept_licenses} ]]; then
+    UPDATE_ARGS+=( --accept-licenses "${FLAGS_accept_licenses}" )
+  fi
+  if [ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ]; then
+    UPDATE_ARGS+=( --usepkg )
+  else
+    UPDATE_ARGS+=( --nousepkg )
+  fi
+  if [[ "${FLAGS_jobs}" -ne -1 ]]; then
+    UPDATE_ARGS+=( --jobs=${FLAGS_jobs} )
+  fi
+  if [ "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ]; then
+    UPDATE_ARGS+=( --reuse-pkgs-from-local-boards )
+  fi
+  if [ "${FLAGS_skip_toolchain_update}" -eq "${FLAGS_TRUE}" ]; then
+    UPDATE_ARGS+=( --skip-toolchain-update )
+  fi
+  if [ "${FLAGS_skip_chroot_upgrade}" -eq "${FLAGS_TRUE}" ]; then
+    UPDATE_ARGS+=( --skip-chroot-upgrade )
+  fi
+  if [[ -n ${FLAGS_board_root} ]]; then
+    UPDATE_ARGS+=( --board-root "${FLAGS_board_root}" )
+  fi
+  if [ "${FLAGS_cleanbuild}" -eq "${FLAGS_TRUE}" ]; then
+    UPDATE_ARGS+=( --force )
+  fi
+  if [[ "${FLAGS_expandedbinhosts}" -eq "${FLAGS_TRUE}" ]]; then
+    UPDATE_ARGS+=( --more-binhosts )
+  else
+    UPDATE_ARGS+=( --fewer-binhosts )
+  fi
 
-setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
+  setup_board --quiet --board=${FLAGS_board} "${UPDATE_ARGS[@]}"
+fi
 
 sudo_clear_shadow_locks "/build/${FLAGS_board}"
 PORTAGE_BINHOST=$(portageq-${FLAGS_board} envvar 'PORTAGE_BINHOST')
