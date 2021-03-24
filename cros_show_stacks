@@ -13,8 +13,8 @@ SCRIPT_ROOT=$(dirname $(readlink -f "$0"))
 
 assert_inside_chroot
 
-MINIDUMP_DUMP=/usr/bin/minidump_dump
-MINIDUMP_STACKWALK=/usr/bin/minidump_stackwalk
+MINIDUMP_DUMP=minidump_dump
+MINIDUMP_STACKWALK=minidump_stackwalk
 USING_REMOTE=0
 
 DEFINE_string board "${DEFAULT_BOARD}" \
