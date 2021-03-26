@@ -304,14 +304,9 @@ EOF
 
    target="${FLAGS_chroot}/etc/profile.d"
    mkdir -p "${target}"
-   cat << EOF > "${target}/chromiumos-niceties.sh"
-# Niceties for interactive logins. (cr) denotes this is a chroot, the
-# __git_branch_ps1 prints current git branch in ./ . The $r behavior is to
-# make sure we don't reset the previous $? value which later formats in
-# $PS1 might rely on.
-PS1='\$(r=\$?; __git_branch_ps1 "(%s) "; exit \$r)'"\${PS1}"
-PS1="(cr) \${PS1}"
-EOF
+   ln -sfT \
+     "/mnt/host/source/chromite/sdk/etc/profile.d/50-chromiumos-niceties.sh" \
+     "${target}/50-chromiumos-niceties.sh"
 
    # Select a small set of locales for the user if they haven't done so
    # already.  This makes glibc upgrades cheap by only generating a small
