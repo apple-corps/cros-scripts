@@ -74,7 +74,8 @@ DEFINE_boolean norebuild "${FLAGS_FALSE}" \
 DEFINE_boolean skip_chroot_upgrade "${FLAGS_FALSE}" \
   "Don't run the chroot upgrade automatically; use with care."
 DEFINE_boolean skip_setup_board "${FLAGS_FALSE}" \
-  "Don't run setup_board. Implies skip_chroot_upgrade and skip_toolchain_update."
+  "Don't run setup_board. Implies skip_chroot_upgrade and" \
+  "skip_toolchain_update."
 DEFINE_boolean skip_toolchain_update "${FLAGS_FALSE}" \
   "Don't update toolchain automatically."
 DEFINE_boolean withdev "${FLAGS_TRUE}" \
