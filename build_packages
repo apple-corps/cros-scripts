@@ -67,6 +67,8 @@ For the fastest builds, use --nowithautotest --noworkon.
 # not needed for the typical developer workflow.
 DEFINE_string accept_licenses "" \
   "Licenses to append to the accept list."
+DEFINE_boolean eclean "${FLAGS_TRUE}" \
+  "Run eclean to delete old binpkgs."
 DEFINE_integer jobs -1 \
   "How many packages to build in parallel at maximum."
 DEFINE_boolean norebuild "${FLAGS_FALSE}" \
@@ -289,6 +291,13 @@ info "Rebuilding Portage cache"
 # Before running any emerge operations, regenerate the Portage dependency cache
 # in parallel.
 info_run "${EMERGE_CMD[@]}" --regen --quiet
+
+# Clean out any stale binpkgs we've accumulated. This is done immediately after
+# regenerating the cache in case ebuilds have been removed (e.g. from a revert).
+if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
+  info "Cleaning stale binpkgs"
+  info_run "eclean-${FLAGS_board}" packages
+fi
 
 # Verify that all packages can be emerged from scratch, without any
 # backtracking. Only print the output if this step fails.

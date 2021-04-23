@@ -43,6 +43,7 @@ DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
 DEFINE_string cache_dir "" "Directory to store caches within."
 DEFINE_boolean useimage $FLAGS_FALSE "Mount the chroot on a loopback image."
+DEFINE_boolean eclean "${FLAGS_TRUE}" "Run eclean to delete old binpkgs."
 
 # Parse command line flags.
 FLAGS_HELP="usage: $SCRIPT_NAME [flags]"
@@ -558,6 +559,14 @@ fi
 # Add version of stage3 for update checks.
 echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 
+# Clean out any stale binpkgs that might be in a warm cache. This is done
+# immediately after unpacking the tarball in case ebuilds have been removed
+# (e.g. from a revert).
+if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
+  info "Cleaning stale binpkgs"
+  early_enter_chroot eclean packages
+fi
+
 # Switch SDK python to Python 3 by default.
 early_enter_chroot eselect python update
 
@@ -608,7 +617,7 @@ fi
 # Update chroot.
 # Skip toolchain update because it already happened above, and the chroot is
 # not ready to emerge all cross toolchains.
-UPDATE_ARGS=( --skip_toolchain_update )
+UPDATE_ARGS=( --skip_toolchain_update --noeclean )
 if [[ "${FLAGS_usepkg}" == "${FLAGS_TRUE}" ]]; then
   UPDATE_ARGS+=( --usepkg )
 else

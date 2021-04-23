@@ -31,8 +31,7 @@ DEFINE_boolean skip_toolchain_update $FLAGS_FALSE \
   "Don't update the toolchains."
 DEFINE_string toolchain_boards "" \
   "Extra toolchains to setup for the specified boards."
-DEFINE_boolean eclean ${FLAGS_TRUE} \
-  "Run eclean to delete old binpkgs after updating the chroot."
+DEFINE_boolean eclean "${FLAGS_TRUE}" "Run eclean to delete old binpkgs."
 
 # Parse command line flags
 FLAGS "$@" || exit 1
@@ -96,6 +95,13 @@ info "Rebuilding Portage cache"
 # in parallel.
 info_run "${EMERGE_CMD[@]}" --regen --quiet
 
+# Clean out any stale binpkgs we've accumulated. This is done immediately after
+# regenerating the cache in case ebuilds have been removed (e.g. from a revert).
+if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
+  info "Cleaning stale binpkgs"
+  info_run sudo eclean packages
+fi
+
 info "Updating the SDK"
 
 EMERGE_FLAGS=( -uNv --with-bdeps=y )
@@ -148,9 +154,10 @@ printf '%s\nYES\n' -9 | sudo etc-update
 # If the user still has old perl modules installed, update them.
 "${SCRIPTS_DIR}/build_library/perl_rebuild.sh"
 
-# Finally clean out any stale binpkgs we've accumulated.
-if [[ ${FLAGS_eclean} -eq ${FLAGS_TRUE} ]]; then
-  info "Cleaning stale binpkgs"
+# Deep clean any stale binpkgs. This includes any binary packages that do not
+# correspond to a currently installed package (different versions are kept).
+if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
+  info "Deep cleaning stale binpkgs"
   info_run sudo eclean -d packages
 fi
 
