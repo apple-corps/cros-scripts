@@ -915,7 +915,7 @@ def WriteLayoutFunction(options, sfile, func, image_type, config):
   lines += ['${GPT} show ${target}']
 
   if _HasExternalGpt(partitions):
-    lines += ['flashrom -w -iRW_GPT:${gptfile} --fast-verify']
+    lines += ['flashrom -w -iRW_GPT:${gptfile} --noverify-all']
 
   sfile.write('%s\n}\n' % '\n  '.join(lines))
 
