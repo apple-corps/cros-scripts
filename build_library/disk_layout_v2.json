@@ -98,7 +98,7 @@
         "type": "rootfs",
         "fs_format": "ext2",
         "fs_options": {
-          "squashfs": "-noI -comp lzo -Xalgorithm lzo1x_999 -Xcompression-level 9",
+          "squashfs": "-noI -no-exports -comp lzo -Xalgorithm lzo1x_999 -Xcompression-level 9",
           "btrfs": "skinny-metadata"
         },
         "size": "4096 MiB",
