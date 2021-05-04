@@ -12,14 +12,14 @@
       {
         # MiniOS A partition.
         "num": 13,
-        "label": "MiniOS-A",
+        "label": "MINIOS-A",
         "type": "kernel",
         "size": "64 MiB"
       },
       {
         # MiniOS B partition.
         "num": 14,
-        "label": "MiniOS-B",
+        "label": "MINIOS-B",
         "type": "kernel",
         "size": "64 MiB",
         # Places partition at the end of disk.
