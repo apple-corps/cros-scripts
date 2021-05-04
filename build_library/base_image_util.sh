@@ -571,4 +571,9 @@ create_base_image() {
     ${SCRIPTS_DIR}/bin/cros_make_image_bootable "${BUILD_DIR}" \
       ${image_name} ${USE_DEV_KEYS} --adjust_part="${FLAGS_adjust_part}"
   fi
+
+  # Build minios kernel and put it in the MINIOS-A partition of the image.
+  if has "minios" "$(portageq-${FLAGS_board} envvar USE)"; then
+    build_minios --board "${BOARD}" --image "${BUILD_DIR}/${image_name}"
+  fi
 }
