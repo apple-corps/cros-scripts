@@ -25,6 +25,21 @@
         # Places partition at the end of disk.
         "features": ["last_partition"]
       }
+    ],
+    # Used for bootable USB installs (not recovery).
+    "usb": [
+      {
+        # MiniOS Slot B unused on usb.
+        "num": 14,
+        "size": "2 MiB"
+      }
+    ],
+    "recovery": [
+      {
+        # MiniOS Slot B unused on recovery.
+        "num": 14,
+        "size": "2 MiB"
+      }
     ]
   }
 }
