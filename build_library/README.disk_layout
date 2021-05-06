@@ -261,11 +261,11 @@ http://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format
     installation/update don't detect a secure bios (ie: ChromeOS hardware), then
     GRUB/UBoot, or other bios boot files/kernels will be installed here.
 
-  Partition 13 - MiniOS A (src/platform2/minios)
+  Partition 9 - MiniOS A (src/platform2/minios)
     Partition at the beginning of disk. MiniOS A will have priority over
     MiniOS B when booting.
 
-  Partition 14 - MiniOS B
+  Partition 10 - MiniOS B
     Has feature 'last_partition' which ensures that it is placed at the
     end of the disk.
 
