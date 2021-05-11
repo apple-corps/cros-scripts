@@ -217,7 +217,7 @@ info "PORTAGE_BINHOST: ${PORTAGE_BINHOST}"
 
 
 # Setup all the emerge command/flags.
-EMERGE_FLAGS=( -uDNv --backtrack=30 --newrepo )
+EMERGE_FLAGS=( -uDNv --backtrack=30 --newrepo --with-test-deps y )
 
 EMERGE_CMD=(
   "${CHROMITE_BIN}/parallel_emerge"
