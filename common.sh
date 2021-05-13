@@ -805,6 +805,11 @@ reinterpret_path_for_chroot() {
   fi
 }
 
+# Echo a list of cross-* ebuilds to exclude from eclean.
+get_eclean_exclusions() {
+  qlist -IC ^cross-
+}
+
 switch_to_strict_mode() {
   # Set up strict execution mode; note that the trap
   # must follow switch_to_strict_mode, else it will have no effect.

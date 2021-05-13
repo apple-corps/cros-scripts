@@ -564,7 +564,9 @@ echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
 # (e.g. from a revert).
 if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
   info "Cleaning stale binpkgs"
-  early_enter_chroot eclean packages
+  early_enter_chroot /bin/bash -c '
+    source /mnt/host/source/src/scripts/common.sh &&
+    eclean -e <(get_eclean_exclusions) packages'
 fi
 
 # Switch SDK python to Python 3 by default.

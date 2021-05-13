@@ -296,7 +296,7 @@ info_run "${EMERGE_CMD[@]}" --regen --quiet
 # regenerating the cache in case ebuilds have been removed (e.g. from a revert).
 if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
   info "Cleaning stale binpkgs"
-  info_run "eclean-${FLAGS_board}" packages
+  get_eclean_exclusions | "eclean-${FLAGS_board}" -e /dev/stdin packages
 fi
 
 # Verify that all packages can be emerged from scratch, without any

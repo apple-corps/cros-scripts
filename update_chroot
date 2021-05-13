@@ -99,7 +99,7 @@ info_run "${EMERGE_CMD[@]}" --regen --quiet
 # regenerating the cache in case ebuilds have been removed (e.g. from a revert).
 if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
   info "Cleaning stale binpkgs"
-  info_run sudo eclean packages
+  get_eclean_exclusions | sudo eclean -e /dev/stdin packages
 fi
 
 info "Updating the SDK"
@@ -158,7 +158,7 @@ printf '%s\nYES\n' -9 | sudo etc-update
 # correspond to a currently installed package (different versions are kept).
 if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
   info "Deep cleaning stale binpkgs"
-  info_run sudo eclean -d packages
+  get_eclean_exclusions | sudo eclean -e /dev/stdin -d packages
 fi
 
 command_completed
