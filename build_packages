@@ -38,6 +38,8 @@ DEFINE_boolean cleanbuild "${FLAGS_FALSE}" \
   "Perform a clean build; delete sysroot if it exists before building."
 DEFINE_boolean internal "${FLAGS_FALSE}" \
   "Build the internal version of chrome (set the chrome_internal USE flag)."
+DEFINE_boolean pretend "${FLAGS_FALSE}" \
+  "Don't build packages, just display which packages would have been installed."
 
 # The --board_root flag specifies the environment variables ROOT and PKGDIR.
 # This allows fetching and emerging of all packages to specified board_root.
@@ -231,6 +233,10 @@ if [[ "${FLAGS_use_any_chrome}" -eq "${FLAGS_TRUE}" ]]; then
 fi
 
 EMERGE_CMD+=( ${EXTRA_BOARD_FLAGS} )
+
+if [[ "${FLAGS_pretend}" -eq "${FLAGS_TRUE}" ]]; then
+  EMERGE_FLAGS+=( "--pretend" )
+fi
 
 if [[ "${FLAGS_usepkg}" -eq "${FLAGS_TRUE}" ||
       "${FLAGS_reuse_pkgs_from_local_boards}" -eq "${FLAGS_TRUE}" ||
