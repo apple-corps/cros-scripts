@@ -122,8 +122,13 @@ if [ "${FLAGS_test}" = "${FLAGS_TRUE}" ]; then
   rm -f "${workpath}/.tested"
 fi
 
+# See if the ebuild declares CROS_WORKON_OUTOFTREE_BUILD=1.
+is_cros_workon_outoftree_build() {
+  grep -qs '^CROS_WORKON_OUTOFTREE_BUILD=.*1' "${pkgfile}"
+}
+
 workdir="${workpath}/work/${workon_name}"
-if [ ! -h "${workdir}" ]; then
+if [[ ! -h "${workdir}" ]] && ! is_cros_workon_outoftree_build; then
   warn "Cleaning up stale workdir: ${workdir}"
   FLAGS_reconf="${FLAGS_TRUE}"  # To force symlinking in the user's src dir.
 fi
