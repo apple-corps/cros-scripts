@@ -143,10 +143,12 @@ if [ "${FLAGS_reconf}" = "${FLAGS_TRUE}" ]; then
 else
   rm -f "${workpath}/.compiled"
   envf="${workpath}/temp/environment"
-  for v in ${PASS_THROUGH_VARS[@]}; do
-    # We delete it independently in case the var wasn't set initially.
-    sed -i -e "/^declare .. ${v}=/d" "${envf}"
-    printf 'declare -x %s="%s"\n' "${v}" "${!v}" >> "${envf}"
-  done
+  if [[ -f "${envf}" ]]; then
+    for v in ${PASS_THROUGH_VARS[@]}; do
+      # We delete it independently in case the var wasn't set initially.
+      sed -i -e "/^declare .. ${v}=/d" "${envf}"
+      printf 'declare -x %s="%s"\n' "${v}" "${!v}" >> "${envf}"
+    done
+  fi
 fi
 exec "${EBUILDCMD}" "${pkgfile}" ${clean} "${to_do}"
