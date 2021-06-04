@@ -136,10 +136,6 @@
     # Used for factory install images.
     "factory_install": [
       {
-        "num": 12,
-        "size": "32 MiB"
-      },
-      {
         "num": 3,
         "size": "420 MiB",
         "fs_size": "400 MiB"
