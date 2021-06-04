@@ -416,12 +416,14 @@ setup_env() {
     if grep -q configfs /proc/filesystems; then
       setup_mount none "-t configfs" /sys/kernel/config
     fi
+    # We expose /dev so we can access loopback & USB drives for flashing.
     setup_mount /dev "--rbind" /dev
-    if [[ -d /run ]]; then
-      setup_mount /run "--bind" /run
-      if [[ -d /run/shm && ! -L /run/shm ]]; then
-        setup_mount /run/shm "--bind" /run/shm
-      fi
+    # We shouldn't need access to any /run state, so don't mount it.  Some
+    # distros (e.g. Ubuntu) might have /dev/shm symlinked to /run/shm.
+    local run_shm="${FLAGS_chroot}/run/shm"
+    if [[ ! -d "${run_shm}" ]]; then
+      mkdir -p "${run_shm}"
+      chmod 1777 "${run_shm}"
     fi
 
     # Do this early as it's slow and only needs basic mounts (above).
