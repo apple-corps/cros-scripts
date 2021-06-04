@@ -253,8 +253,8 @@ summarize() {
   info "Note that the device must be accessible over the network."
   info "A base image will not work in this mode, but a test or dev image will."
   if [[ $# -ge 3 ]]; then
-    info "To convert it to a VM image, use:"
-    info "  ./image_to_vm.sh --from=${dir_path} --board=${BOARD} $3"
+    info "To run the image in a virtual machine, use:"
+    info "  cros_vm --start --image-path=${dir_path}/${img} --board=${BOARD}"
   fi
   echo
 }
