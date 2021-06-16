@@ -17,26 +17,43 @@ cat > "${ROOT_FS_DIR}/usr/share/fwupd/remotes.d/vendor/fwupd-tests.xml" <<EOF
 <!-- Extracted from https://github.com/fwupd/fwupd/blob/HEAD/data/installed-tests/fwupd-tests.xml -->
 <components version="0.9" origin="lvfs">
   <component type="firmware">
-    <id>fakedevice.firmware</id>
-    <name>FakeDevice Firmware</name>
+    <id>org.fwupd.fakedevice.firmware</id>
+    <name>FakeDevice</name>
     <summary>Firmware for the ACME Corp Integrated Webcam</summary>
-    <developer_name>ACME Corp</developer_name>
-    <project_license>GPL-2.0+</project_license>
-    <description><p>Updating the firmware on your webcam device improves performance and adds new features.</p></description>
-    <url type="homepage">http://www.acme.com/</url>
-    <releases>
-      <release version="1.2.4" timestamp="1497499200" urgency="medium">
-        <size type="installed">17</size>
-        <size type="download">1163</size>
-        <location>https://fwupd.org/downloads/fakedevice124.cab</location>
-        <checksum filename="fakedevice124.cab" target="container" type="sha1">fc0aabcf98bf3546c91270f2941f0acd0395dd79</checksum>
-        <checksum filename="fakedevice124.bin" target="content" type="sha1">2b8546ba805ad10bf8a2e5ad539d53f303812ba5</checksum>
-        <description><p>Fixes another bug with the flux capacitor to prevent time going backwards.</p></description>
-      </release>
-    </releases>
+    <description>
+      <p>Updating the firmware on your webcam device improves performance and adds new features.</p>
+    </description>
     <provides>
       <firmware type="flashed">b585990a-003e-5270-89d5-3705a17f9a43</firmware>
     </provides>
+    <url type="homepage">http://www.acme.com/</url>
+    <metadata_license>CC0-1.0</metadata_license>
+    <project_license>GPL-2.0+</project_license>
+    <developer_name>ACME Corp</developer_name>
+    <releases>
+      <release version="1.2.4" timestamp="1497484800" urgency="medium">
+        <location>https://fwupd.org/downloads/3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f-fakedevice124.cab</location>
+        <checksum type="sha1" filename="3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f-fakedevice124.cab" target="container">cffec02f8094d10552b68967425613d72d72ac02</checksum>
+        <checksum type="sha256" filename="3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f-fakedevice124.cab" target="container">3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f</checksum>
+        <checksum type="sha1" filename="fakedevice124.bin" target="content">2f822cbe6280d4472272fe0c2a3cb8b7f5dbd327</checksum>
+        <checksum type="sha256" filename="fakedevice124.bin" target="content">4a4782bef39a8082e2c298301d24cdf91e6b874a9e4a2faa920b29e634a8b736</checksum>
+        <description>
+          <p>Fixes another bug with the flux capacitor to prevent time going backwards.</p>
+        </description>
+        <size type="installed">10</size>
+        <size type="download">24493</size>
+        <artifacts>
+          <artifact type="binary">
+            <location>https://fwupd.org/downloads/3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f-fakedevice124.cab</location>
+            <filename>fakedevice124.cab</filename>
+            <checksum type="sha1">cffec02f8094d10552b68967425613d72d72ac02</checksum>
+            <checksum type="sha256">3fab34cfa1ef97238fb24c5e40a979bc544bb2b0967b863e43e7d58e0d9a923f</checksum>
+            <size type="installed">10</size>
+            <size type="download">24493</size>
+          </artifact>
+        </artifacts>
+      </release>
+    </releases>
   </component>
 </components>
 EOF
