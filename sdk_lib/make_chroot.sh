@@ -323,14 +323,6 @@ mkdir -p "${FLAGS_chroot}/${CHROOT_TRUNK_DIR}" \
 # first time we invoke update_chroot (further down in this script).
 create_bootstrap_host_setup "${FLAGS_chroot}"
 
-if ! early_enter_chroot bash -c 'type -P pbzip2' >/dev/null ; then
-  # This chroot lacks pbzip2 early on, so we need to disable it.
-  early_env+=(
-    PORTAGE_BZIP2_COMMAND="bzip2"
-    PORTAGE_BUNZIP2_COMMAND="bunzip2"
-  )
-fi
-
 # Run all the init stuff to setup the env.
 init_setup
 
