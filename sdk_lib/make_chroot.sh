@@ -273,9 +273,6 @@ if [[ "${FLAGS_eclean}" -eq "${FLAGS_TRUE}" ]]; then
     eclean -e <(get_eclean_exclusions) packages'
 fi
 
-# Switch SDK python to Python 3 by default.
-early_enter_chroot eselect python update
-
 info "Updating portage"
 early_enter_chroot emerge -uNv --quiet --ignore-world portage
 
