@@ -566,29 +566,4 @@ enter_chroot "${CHROOT_TRUNK_DIR}/src/scripts/update_chroot" "${UPDATE_ARGS[@]}"
 # VM ourselves until that gets fixed upstream.
 enter_chroot sudo eselect java-vm set system openjdk-bin-11
 
-CHROOT_EXAMPLE_OPT=""
-if [[ "$FLAGS_chroot" != "$DEFAULT_CHROOT_DIR" ]]; then
-  CHROOT_EXAMPLE_OPT="--chroot=$FLAGS_chroot"
-fi
-
 command_completed
-
-cat <<EOF
-
-${CROS_LOG_PREFIX:-cros_sdk}: All set up.  To enter the chroot, run:
-$ cros_sdk --enter $CHROOT_EXAMPLE_OPT
-
-CAUTION: Do *NOT* rm -rf the chroot directory; if there are stale bind
-mounts you may end up deleting your source tree too.  To unmount and
-delete the chroot cleanly, use:
-$ cros_sdk --delete $CHROOT_EXAMPLE_OPT
-
-EOF
-
-is_nfs() {
-  [[ $(stat -f -L -c %T "$1") == "nfs" ]]
-}
-
-if is_nfs "${SUDO_HOME}"; then
-  warn "${SUDO_HOME} is on NFS. This is untested. Send patches if it's broken."
-fi
