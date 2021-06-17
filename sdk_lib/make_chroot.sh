@@ -136,15 +136,6 @@ EOF
    ln -sf "${CHROOT_TRUNK_DIR}/src/third_party/portage-stable" \
      "${FLAGS_chroot}"/"${PORTAGE_STABLE_OVERLAY}"
 
-   # Some operations need an mtab.
-   ln -sfT /proc/mounts "${FLAGS_chroot}/etc/mtab"
-
-   # Set up sudoers.  Inside the chroot, the user can sudo without a password.
-   # (Safe enough, since the only way into the chroot is to 'sudo chroot', so
-   # the user's already typed in one sudo password...)
-   # Make sure the sudoers.d subdir exists as older stage3 base images lack it.
-   mkdir -p "${FLAGS_chroot}/etc/sudoers.d"
-
    # Use the standardized upgrade script to setup proxied vars.
    load_environment_whitelist
    "${SCRIPT_ROOT}/sdk_lib/rewrite-sudoers.d.sh" \
@@ -243,15 +234,6 @@ en_US ISO-8859-1
 en_US.UTF-8 UTF-8
 EOF
    fi
-
-   # Automatically change to scripts directory.
-   echo 'cd ${CHROOT_CWD:-~/trunk/src/scripts}' \
-       | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bash_profile"
-
-   # Enable bash completion for build scripts.
-   printf '%s\n' "# Set up bash autocompletion." \
-        ". ~/trunk/src/scripts/bash_completion" \
-       | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
 }
 
 CHROOT_TRUNK="${CHROOT_TRUNK_DIR}"
@@ -272,16 +254,6 @@ for type in http ftp all; do
       CHROOT_PASSTHRU+=("$value")
    fi
 done
-
-# Reset internal vars to force them to the 'inside the chroot' value;
-# since user directories now exist, this can do the upgrade in place.
-set_chroot_trunk_dir "${FLAGS_chroot}" poppycock
-
-echo
-info "Setting up mounts..."
-# Set up necessary mounts and make sure we clean them up on exit.
-mkdir -p "${FLAGS_chroot}/${CHROOT_TRUNK_DIR}" \
-    "${FLAGS_chroot}/${DEPOT_TOOLS_DIR}" "${FLAGS_chroot}/run"
 
 # Create a special /etc/make.conf.host_setup that we use to bootstrap
 # the chroot.  The regular content for the file will be generated the
