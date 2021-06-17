@@ -46,7 +46,6 @@ FLAGS "$@" || exit 1
 eval set -- "${FLAGS_ARGV}"
 
 CROS_LOG_PREFIX=cros_sdk:make_chroot
-SUDO_HOME=$(eval echo ~"${SUDO_USER}")
 
 # Set the right umask for chroot creation.
 umask 022
@@ -253,10 +252,6 @@ EOF
    printf '%s\n' "# Set up bash autocompletion." \
         ". ~/trunk/src/scripts/bash_completion" \
        | user_append "${FLAGS_chroot}/home/${SUDO_USER}/.bashrc"
-
-   if [[ -f "${SUDO_HOME}/.cros_chroot_init" ]]; then
-     warn "~/.cros_chroot_init is no longer supported"
-   fi
 }
 
 CHROOT_TRUNK="${CHROOT_TRUNK_DIR}"
