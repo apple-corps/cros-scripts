@@ -60,12 +60,6 @@ switch_to_strict_mode
 
 . "${SCRIPT_ROOT}"/sdk_lib/make_conf_util.sh
 
-PRIMARY_GROUP=$(id -g -n "${SUDO_USER}")
-PRIMARY_GROUP_ID=$(id -g "${SUDO_USER}")
-
-FULLNAME="ChromeOS Developer"
-DEFGROUPS="${PRIMARY_GROUP},adm,cdrom,floppy,audio,video,portage"
-
 USEPKG=""
 USEPKGONLY=""
 if [[ $FLAGS_usepkg -eq $FLAGS_TRUE ]]; then
@@ -119,27 +113,6 @@ bare_chroot() {
 user_append() {
   cat >> "$1"
   chown ${SUDO_UID}:${SUDO_GID} "$1"
-}
-
-init_users () {
-   info "Adding user/group..."
-   # Add the necessary groups to the chroot.
-   # Duplicate GIDs are allowed here in order to ensure that the required
-   # groups are the same inside and outside the chroot.
-   # TODO(dpursell): Handle when PRIMARY_GROUP exists in the chroot already
-   # with a different GID; groupadd will not create the new GID in that case.
-   bare_chroot groupadd -f -o -g "${PRIMARY_GROUP_ID}" "${PRIMARY_GROUP}"
-   # Add ourselves as a user inside the chroot.
-   # We need the UID to match the host user's. This can conflict with
-   # a particular chroot UID. At the same time, the added user has to
-   # be a primary user for the given UID for sudo to work, which is
-   # determined by the order in /etc/passwd. Let's put ourselves on top
-   # of the file.
-   bare_chroot useradd -o -G "${DEFGROUPS}" -g "${PRIMARY_GROUP}" \
-     -u "${SUDO_UID}" -s /bin/bash -m -c "${FULLNAME}" "${SUDO_USER}"
-   # Because passwd generally isn't sorted and the entry ended up at the
-   # bottom, it is safe to just take it and move it to top instead.
-   sed -e '1{h;d};$!{H;d};$G' -i "${FLAGS_chroot}/etc/passwd"
 }
 
 init_setup () {
@@ -304,9 +277,6 @@ for type in http ftp all; do
       CHROOT_PASSTHRU+=("$value")
    fi
 done
-
-# Set up users, if needed, before mkdir/mounts below.
-init_users
 
 # Reset internal vars to force them to the 'inside the chroot' value;
 # since user directories now exist, this can do the upgrade in place.
