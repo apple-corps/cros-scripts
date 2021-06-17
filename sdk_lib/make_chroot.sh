@@ -36,8 +36,6 @@ assert_root_user
 DEFINE_string chroot "$DEFAULT_CHROOT_DIR" \
   "Destination dir for the chroot environment."
 DEFINE_boolean usepkg $FLAGS_TRUE "Use binary packages to bootstrap."
-DEFINE_boolean delete $FLAGS_FALSE "Delete an existing chroot."
-DEFINE_boolean replace $FLAGS_FALSE "Overwrite existing chroot, if any."
 DEFINE_integer jobs -1 "How many packages to build in parallel at maximum."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
@@ -61,9 +59,7 @@ umask 022
 # TODO: replace shflags with something less error-prone, or contribute a fix.
 switch_to_strict_mode
 
-[[ "${FLAGS_delete}" == "${FLAGS_FALSE}" ]] && \
-  [[ -z "${FLAGS_cache_dir}" ]] && \
-  die "--cache_dir is required"
+[[ -z "${FLAGS_cache_dir}" ]] && die "--cache_dir is required"
 
 . "${SCRIPT_ROOT}"/sdk_lib/make_conf_util.sh
 
@@ -120,49 +116,12 @@ bare_chroot() {
     chroot "${FLAGS_chroot}" "$@"
 }
 
-cleanup() {
-  # Clean up mounts
-  safe_umount_tree "${FLAGS_chroot}"
-
-  # Destroy LVM loopback setup if we can find a VG associated with our path.
-  local chroot_img="${FLAGS_chroot}.img"
-  [[ -f "$chroot_img" ]] || return 0
-
-  local chroot_dev=$(losetup -j "$chroot_img" | cut -f1 -d:)
-  local chroot_vg=$(find_vg_name "$FLAGS_chroot" "$chroot_dev")
-  if [ -n "$chroot_vg" ] && vgs "$chroot_vg" >&/dev/null; then
-    info "Removing VG $chroot_vg."
-    vgremove -f "$chroot_vg" --noudevsync
-  fi
-  if [ -n "$chroot_dev" ]; then
-    info "Detaching $chroot_dev."
-    losetup -d "$chroot_dev"
-  fi
-}
-
 # Appends stdin to the given file name as the sudo user.
 #
 # $1 - The output file name.
 user_append() {
   cat >> "$1"
   chown ${SUDO_UID}:${SUDO_GID} "$1"
-}
-
-delete_existing() {
-  # Delete old chroot dir.
-  local chroot_img="${FLAGS_chroot}.img"
-  if [[ ! -e "$FLAGS_chroot" && ! -f "$chroot_img" ]]; then
-    return
-  fi
-  info "Cleaning up old mount points and loopback device..."
-  cleanup
-  info "Deleting $FLAGS_chroot..."
-  rm -rf "$FLAGS_chroot"
-  if [[ -f "$chroot_img" ]]; then
-    info "Deleting $chroot_img..."
-    rm -f "$chroot_img"
-  fi
-  info "Done."
 }
 
 init_users () {
@@ -461,13 +420,6 @@ EOF
     info "Mounted existing chroot image."
   fi
 }
-
-# Handle deleting an existing environment.
-if [[ $FLAGS_delete  -eq $FLAGS_TRUE || \
-  $FLAGS_replace -eq $FLAGS_TRUE ]]; then
-  delete_existing
-  [[ $FLAGS_delete -eq $FLAGS_TRUE ]] && exit 0
-fi
 
 CHROOT_TRUNK="${CHROOT_TRUNK_DIR}"
 PORTAGE="${SRC_ROOT}/third_party/portage"
