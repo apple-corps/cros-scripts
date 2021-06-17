@@ -431,7 +431,6 @@ ECLASS_OVERLAY="${OVERLAYS_ROOT}/eclass-overlay"
 PORTAGE_STABLE_OVERLAY="${OVERLAYS_ROOT}/stable"
 CROSSDEV_OVERLAY="${OVERLAYS_ROOT}/crossdev"
 CHROOT_OVERLAY="${OVERLAYS_ROOT}/chromiumos"
-CHROOT_STATE="${FLAGS_chroot}/etc/debian_chroot"
 CHROOT_VERSION="${FLAGS_chroot}/etc/cros_chroot_version"
 CHROOT_IMAGE="${FLAGS_chroot}.img"
 
@@ -454,11 +453,7 @@ mkdir -p "$FLAGS_chroot"
 [[ -f "$CHROOT_VERSION" && "$(<$CHROOT_VERSION)" != "0" ]] && exit 0
 
 echo
-if [[ -f "${CHROOT_STATE}" ]]; then
-  info "stage3 already set up.  Skipping..."
-elif [[ -z "${FLAGS_stage3_path}" ]]; then
-  die_notrace "Please use --stage3_path when bootstrapping"
-else
+if [[ -n "${FLAGS_stage3_path}" ]]; then
   info "Unpacking stage3..."
   unpack_tarball "${FLAGS_stage3_path}" "${FLAGS_chroot}"
   rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
@@ -471,7 +466,7 @@ if [[ ! -e "${CHROOT_VERSION}" ]]; then
 fi
 
 # Set up users, if needed, before mkdir/mounts below.
-[ -f $CHROOT_STATE ] || init_users
+init_users
 
 # Reset internal vars to force them to the 'inside the chroot' value;
 # since user directories now exist, this can do the upgrade in place.
@@ -488,10 +483,6 @@ mkdir -p "${FLAGS_chroot}/${CHROOT_TRUNK_DIR}" \
 # first time we invoke update_chroot (further down in this script).
 create_bootstrap_host_setup "${FLAGS_chroot}"
 
-if ! [ -f "$CHROOT_STATE" ];then
-  INITIALIZE_CHROOT=1
-fi
-
 if ! early_enter_chroot bash -c 'type -P pbzip2' >/dev/null ; then
   # This chroot lacks pbzip2 early on, so we need to disable it.
   early_env+=(
@@ -500,16 +491,8 @@ if ! early_enter_chroot bash -c 'type -P pbzip2' >/dev/null ; then
   )
 fi
 
-if [ -z "${INITIALIZE_CHROOT}" ];then
-  info "chroot already initialized.  Skipping..."
-else
-  # Run all the init stuff to setup the env.
-  init_setup
-fi
-
-# Add file to indicate that it is a chroot.
-# Add version of stage3 for update checks.
-echo "STAGE3=${FLAGS_stage3_path}" > "${CHROOT_STATE}"
+# Run all the init stuff to setup the env.
+init_setup
 
 # Clean out any stale binpkgs that might be in a warm cache. This is done
 # immediately after unpacking the tarball in case ebuilds have been removed
@@ -562,11 +545,8 @@ info "Updating Perl modules"
 early_enter_chroot \
   "${CHROOT_TRUNK_DIR}/src/scripts/build_library/perl_rebuild.sh"
 
-if [ -n "${INITIALIZE_CHROOT}" ]; then
-  # If we're creating a new chroot, we also want to set it to the latest
-  # version.
-  enter_chroot run_chroot_version_hooks --init-latest
-fi
+# If we're creating a new chroot, we also want to set it to the latest version.
+enter_chroot run_chroot_version_hooks --init-latest
 
 # Update chroot.
 # Skip toolchain update because it already happened above, and the chroot is
