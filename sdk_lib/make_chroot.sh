@@ -122,14 +122,6 @@ user_append() {
 }
 
 init_users () {
-   info "Set timezone..."
-   # date +%Z has trouble with daylight time, so use host's info.
-   rm -f "${FLAGS_chroot}/etc/localtime"
-   if [ -f /etc/localtime ] ; then
-     cp /etc/localtime "${FLAGS_chroot}/etc"
-   else
-     ln -sf /usr/share/zoneinfo/PST8PDT "${FLAGS_chroot}/etc/localtime"
-   fi
    info "Adding user/group..."
    # Add the necessary groups to the chroot.
    # Duplicate GIDs are allowed here in order to ensure that the required
