@@ -37,8 +37,6 @@ DEFINE_string chroot "$DEFAULT_CHROOT_DIR" \
   "Destination dir for the chroot environment."
 DEFINE_boolean usepkg $FLAGS_TRUE "Use binary packages to bootstrap."
 DEFINE_integer jobs -1 "How many packages to build in parallel at maximum."
-DEFINE_string stage3_path "" \
-  "Use the stage3 located on this path."
 DEFINE_string cache_dir "" "Directory to store caches within."
 DEFINE_boolean eclean "${FLAGS_TRUE}" "Run eclean to delete old binpkgs."
 
@@ -296,18 +294,6 @@ EOF
    fi
 }
 
-unpack_tarball() {
-  local tarball_path="$1"
-  local dest_dir="$2"
-  local decompress
-  case "${tarball_path}" in
-    *.tbz2|*.tar.bz2) decompress=$(type -p pbzip2 || echo bzip2) ;;
-    *.tar.xz) decompress=$(type -p pixz || echo xz) ;;
-    *) die "Unknown tarball compression: ${tarball_path}" ;;
-  esac
-  ${decompress} -dc <"${tarball_path}" | tar -xp -C "${dest_dir}"
-}
-
 CHROOT_TRUNK="${CHROOT_TRUNK_DIR}"
 PORTAGE="${SRC_ROOT}/third_party/portage"
 OVERLAY="${SRC_ROOT}/third_party/chromiumos-overlay"
@@ -318,7 +304,6 @@ ECLASS_OVERLAY="${OVERLAYS_ROOT}/eclass-overlay"
 PORTAGE_STABLE_OVERLAY="${OVERLAYS_ROOT}/stable"
 CROSSDEV_OVERLAY="${OVERLAYS_ROOT}/crossdev"
 CHROOT_OVERLAY="${OVERLAYS_ROOT}/chromiumos"
-CHROOT_VERSION="${FLAGS_chroot}/etc/cros_chroot_version"
 
 # Pass proxy variables into the environment.
 for type in http ftp all; do
@@ -327,26 +312,6 @@ for type in http ftp all; do
       CHROOT_PASSTHRU+=("$value")
    fi
 done
-
-# Create the destination directory.
-mkdir -p "$FLAGS_chroot"
-
-# If the version contains something non-zero, we were already created and this
-# is just a re-mount.
-[[ -f "$CHROOT_VERSION" && "$(<$CHROOT_VERSION)" != "0" ]] && exit 0
-
-echo
-if [[ -n "${FLAGS_stage3_path}" ]]; then
-  info "Unpacking stage3..."
-  unpack_tarball "${FLAGS_stage3_path}" "${FLAGS_chroot}"
-  rm -f "$FLAGS_chroot/etc/"make.{globals,conf.user}
-fi
-
-# Ensure that we properly detect when we are inside the chroot.
-# We'll force this to the latest version at the end as needed.
-if [[ ! -e "${CHROOT_VERSION}" ]]; then
-  echo "0" > "${CHROOT_VERSION}"
-fi
 
 # Set up users, if needed, before mkdir/mounts below.
 init_users
