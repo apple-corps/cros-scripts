@@ -40,7 +40,6 @@ DEFINE_integer jobs -1 "How many packages to build in parallel at maximum."
 DEFINE_string stage3_path "" \
   "Use the stage3 located on this path."
 DEFINE_string cache_dir "" "Directory to store caches within."
-DEFINE_boolean useimage $FLAGS_FALSE "Mount the chroot on a loopback image."
 DEFINE_boolean eclean "${FLAGS_TRUE}" "Run eclean to delete old binpkgs."
 
 # Parse command line flags.
@@ -308,119 +307,6 @@ unpack_tarball() {
   ${decompress} -dc <"${tarball_path}" | tar -xp -C "${dest_dir}"
 }
 
-# Find a usable VG name for a given path and device.  If there is an existing
-# VG associated with the device, it will be returned.  If not, find an unused
-# name in the format cros_<safe_path>_NNN, where safe_path is an escaped version
-# of the last 90 characters of the path and NNN is a counter.  Example:
-# /home/user/chromiumos/chroot/ -> cros_home+user+chromiumos+chroot_000.
-# If no unused name with this pattern can be found, return an empty string.
-find_vg_name() {
-  local chroot_path="$1"
-  local chroot_dev="$2"
-  chroot_path=${chroot_path##/}
-  chroot_path=${chroot_path%%/}
-  chroot_path=${chroot_path//[^A-Za-z0-9_+.-]/+}
-  chroot_path=${chroot_path: -$((${#chroot_path} < 90 ? ${#chroot_path} : 90))}
-  local vg_name=""
-  if [ -n "$chroot_dev" ]; then
-    vg_name=$(pvs -q --noheadings -o vg_name "$chroot_dev" 2>/dev/null | \
-              sed -e 's/^ *//')
-  fi
-  if [ -z "$vg_name" ]; then
-    local counter=0
-    vg_name=$(printf "cros_%s_%03d" "$chroot_path" "$counter")
-    while [ "$counter" -lt 1000 ] && vgs "$vg_name" >&/dev/null; do
-      counter=$((counter + 1))
-      vg_name=$(printf "cros_%s_%03d" "$chroot_path" "$counter")
-    done
-    if [ "$counter" -gt 999 ]; then
-      vg_name=""
-    fi
-  fi
-  echo "$vg_name"
-}
-
-# Create a loopback image and mount it on the chroot path so that we can take
-# snapshots before building.  If an image already exists, try to mount it.  The
-# chroot is initially mounted inside a temporary shared chroot.build subtree
-# that should have already been set up by the parent process, and then bind
-# mounted into the correct final location.  The purpose of this indirection is
-# so that processes outside our mount namespace can see the top-level chroot
-# after we finish.
-mount_chroot_image() {
-  local chroot_image="$1"
-  local mount_path="$2"
-
-  # Make sure there's an image.
-  local existing_chroot=0
-  local chroot_dev=""
-  if [ -f "$chroot_image" ]; then
-    info "Attempting to reuse existing image file ${chroot_image}"
-    chroot_dev=$(losetup -j "$chroot_image" | cut -f1 -d:)
-    existing_chroot=1
-  else
-    dd if=/dev/null of="$chroot_image" bs=1G seek=500 >&/dev/null
-  fi
-
-  # Get/scan a loopback device attached to our image.
-  if [ -n "$chroot_dev" ]; then
-    pvscan -q "$chroot_dev" >&/dev/null
-  else
-    chroot_dev=$(losetup -f "$chroot_image" --show)
-  fi
-
-  # Find/create a VG on the loopback device.
-  chroot_vg=$(find_vg_name "$mount_path" "$chroot_dev")
-  if [ -z "$chroot_vg" ]; then
-    die_notrace "Unable to find usable VG name for ${mount_path}."
-  fi
-  if vgs "$chroot_vg" >&/dev/null; then
-    vgchange -q -a y --noudevsync "$chroot_vg" >/dev/null || :
-  else
-    vgcreate -q "$chroot_vg" "$chroot_dev" >/dev/null
-  fi
-
-  # Find/create an LV inside our VG.  If the LV is new, also create the FS.
-  # We need to pass --noudevsync to lvcreate because we're running inside
-  # a separate IPC namespace from the udev process.
-  if lvs "$chroot_vg/chroot" >&/dev/null; then
-    lvchange -q -ay "$chroot_vg/chroot" --noudevsync >/dev/null || :
-  else
-    lvcreate -q -L 499G -T "${chroot_vg}/thinpool" -V500G -n chroot \
-        --noudevsync >/dev/null
-    mke2fs -q -m 0 -t ext4 "/dev/${chroot_vg}/chroot"
-  fi
-
-  # Mount the FS into a directory that should have been set up as a shared
-  # subtree by our parent process, then bind mount it into the place where
-  # it belongs.  The parent will take care of moving the mount to the correct
-  # final place on the outside of our mount namespace after we exit.
-  local temp_chroot="${FLAGS_chroot}.build/chroot"
-  if ! mount -text4 -onoatime "/dev/${chroot_vg}/chroot" "$temp_chroot"; then
-    local chroot_example_opt=""
-    if [[ "$mount_path" != "$DEFAULT_CHROOT_DIR" ]]; then
-      chroot_example_opt="--chroot=$FLAGS_chroot"
-    fi
-
-    die_notrace <<EOF
-
-Unable to mount ${chroot_vg}/chroot on ${temp_chroot}.  Check for corrupted
-image ${chroot_image}, or run
-
-cros_sdk --delete $chroot_example_opt
-
-to clean up an old chroot first.
-
-EOF
-  fi
-  mount --make-private "$temp_chroot"
-  mount --bind "$temp_chroot" "$mount_path"
-  mount --make-private "$mount_path"
-  if [ "$existing_chroot" = "1" ]; then
-    info "Mounted existing chroot image."
-  fi
-}
-
 CHROOT_TRUNK="${CHROOT_TRUNK_DIR}"
 PORTAGE="${SRC_ROOT}/third_party/portage"
 OVERLAY="${SRC_ROOT}/third_party/chromiumos-overlay"
@@ -432,7 +318,6 @@ PORTAGE_STABLE_OVERLAY="${OVERLAYS_ROOT}/stable"
 CROSSDEV_OVERLAY="${OVERLAYS_ROOT}/crossdev"
 CHROOT_OVERLAY="${OVERLAYS_ROOT}/chromiumos"
 CHROOT_VERSION="${FLAGS_chroot}/etc/cros_chroot_version"
-CHROOT_IMAGE="${FLAGS_chroot}.img"
 
 # Pass proxy variables into the environment.
 for type in http ftp all; do
@@ -444,9 +329,6 @@ done
 
 # Create the destination directory.
 mkdir -p "$FLAGS_chroot"
-
-[[ $FLAGS_useimage -eq $FLAGS_TRUE ]] && \
-  mount_chroot_image "$CHROOT_IMAGE" "$FLAGS_chroot"
 
 # If the version contains something non-zero, we were already created and this
 # is just a re-mount.
