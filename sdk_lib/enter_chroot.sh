@@ -402,22 +402,7 @@ setup_env() {
     install -C -m644 /etc/hosts ${FLAGS_chroot}/etc/hosts
 
     debug "Mounting chroot environment."
-    mount --make-rslave /
-    if grep -q -e "${FLAGS_chroot}[[:space:]]" /proc/mounts; then
-      debug "Changing $FLAGS_chroot to a private subtree."
-      mount --make-private "$FLAGS_chroot"
-    fi
     MOUNT_CACHE=$(echo $(awk '{print $2}' /proc/mounts))
-    setup_mount none "-t proc" /proc
-    setup_mount none "-t sysfs" /sys
-    if grep -q binfmt_misc /proc/filesystems; then
-      setup_mount binfmt_misc "-t binfmt_misc" /proc/sys/fs/binfmt_misc
-    fi
-    if grep -q configfs /proc/filesystems; then
-      setup_mount none "-t configfs" /sys/kernel/config
-    fi
-    # We expose /dev so we can access loopback & USB drives for flashing.
-    setup_mount /dev "--rbind" /dev
     # We shouldn't need access to any /run state, so don't mount it.  Some
     # distros (e.g. Ubuntu) might have /dev/shm symlinked to /run/shm.
     local run_shm="${FLAGS_chroot}/run/shm"
@@ -428,8 +413,6 @@ setup_env() {
 
     # Do this early as it's slow and only needs basic mounts (above).
     generate_locales &
-
-    setup_mount "${FLAGS_trunk}" "--rbind" "${CHROOT_TRUNK_DIR}"
 
     debug "Setting up referenced repositories if required."
     REFERENCE_DIR=$(git_config_path --file  \
