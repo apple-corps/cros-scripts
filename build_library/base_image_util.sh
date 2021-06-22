@@ -574,6 +574,7 @@ create_base_image() {
 
   # Build minios kernel and put it in the MINIOS-A partition of the image.
   if has "minios" "$(portageq-${FLAGS_board} envvar USE)"; then
-    build_minios --board "${BOARD}" --image "${BUILD_DIR}/${image_name}"
+    build_minios --board "${BOARD}" --image "${BUILD_DIR}/${image_name}" \
+      --version "${CHROMEOS_VERSION_STRING}"
   fi
 }
