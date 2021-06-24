@@ -209,6 +209,7 @@ EOF
      "${FLAGS_chroot}/etc/portage/make.profile"
 
    # Create make.conf.user .
+   rm -f "${FLAGS_chroot}"/etc/make.conf.user
    cat <<\EOF > "${FLAGS_chroot}"/etc/make.conf.user
 # This file is useful for doing global (chroot and all board) changes.
 # Tweak emerge settings, ebuild env, etc...
