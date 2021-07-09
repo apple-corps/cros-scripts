@@ -14,7 +14,7 @@
         # MiniOS A partition.
         "num": 9,
         "label": "MINIOS-A",
-        "type": "kernel",
+        "type": "minios",
         "size": "128 MiB"
       },
       {
@@ -108,7 +108,7 @@
         # MiniOS B partition.
         "num": 10,
         "label": "MINIOS-B",
-        "type": "kernel",
+        "type": "minios",
         "size": "128 MiB",
         # Places partition at the end of disk.
         "features": ["last_partition"]
