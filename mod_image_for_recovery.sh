@@ -405,16 +405,8 @@ copy_partitions() {
   local src_img="$1"
   local dst_img="$2"
 
-  local part=0
-  while :; do
-    : $(( part += 1 ))
-    local src_start
-    src_start="$(cgpt show -i "${part}" -b "${src_img}")"
-    if [[ "${src_start}" -eq 0 ]]; then
-      # No more partitions to copy.
-      break
-    fi
-
+  local part
+  for part in $("${GPT}" show -n -q "${src_img}" | awk '{print $3}'); do
     # Load source partition details.
     local size label
     size="$(cgpt show -i "${part}" -s "${src_img}")"
@@ -443,6 +435,7 @@ copy_partitions() {
       if [[ "${size}" -gt "${dst_size}" ]]; then
         die "Partition #${part} larger than the destination partition"
       fi
+      local src_start="$(cgpt show -i "${part}" -b "${src_img}")"
       dd if="${src_img}" of="${dst_img}" conv=notrunc bs=512 \
          skip="${src_start}" seek="${dst_start}" count="${size}" \
          status=none
