@@ -27,8 +27,7 @@ DEFINE_string from "" \
 DEFINE_string disk_layout "2gb-rootfs-updatable" \
   "The disk layout type to use for this image."
 DEFINE_boolean test_image "${FLAGS_FALSE}" \
-  "Acquires image from ${CHROMEOS_TEST_IMAGE_NAME} instead of " \
-  "${CHROMEOS_IMAGE_NAME}."
+  "Use ${CHROMEOS_TEST_IMAGE_NAME} instead of ${CHROMEOS_IMAGE_NAME}."
 DEFINE_string to "" \
   "Destination folder for VM output file(s)"
 
