@@ -130,7 +130,8 @@
       {
         # MINIOS-B partitions are not filled with anything on USB images.
         "num": 10,
-        "size": "2 MiB"
+        "size": "2 MiB",
+        "type": "reserved"
       }
     ],
     # Used for factory install images.
@@ -150,7 +151,8 @@
       },
       {
         "num": 10,
-        "size": "2 MiB"
+        "size": "2 MiB",
+        "type": "reserved"
       }
     ],
     "recovery": [
@@ -183,7 +185,8 @@
       },
       {
         "num": 10,
-        "size": "2 MiB"
+        "size": "2 MiB",
+        "type": "reserved"
       }
     ],
     # Huge rootfs, suitable for VM only images, should not be used
@@ -200,7 +203,8 @@
       },
       {
         "num": 10,
-        "size": "2 MiB"
+        "size": "2 MiB",
+        "type": "reserved"
       }
     ]
   }
