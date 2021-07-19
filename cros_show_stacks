@@ -87,6 +87,8 @@ generate_symbols() {
 
 main() {
   FLAGS "$@" || usage
+  eval set -- "${FLAGS_ARGV}"
+
   local basename=$(basename "$0")
   TMP=$(mktemp -d /tmp/${basename}.XXXX)
   trap cleanup EXIT INT TERM
@@ -129,22 +131,23 @@ main() {
     info "Copying back ${crash_count} crashes."
     crashes="${unique_crashes}"
     local filesfrom="${TMP}/filesfrom"
-    FLAGS_ARGV=""
+    declare -a dumps
     for crash in ${crashes}; do
       echo "${crash}" >> "${filesfrom}"
-      FLAGS_ARGV="${FLAGS_ARGV} '${TMP}/$(basename ${crash})'"
+      dumps+=( "${TMP}/$(basename "${crash}")" )
     done
+    set -- "$@" "${dumps[@]}"
     remote_rsync_from "${filesfrom}" "${TMP}"
     if [ ${FLAGS_clean} -eq ${FLAGS_TRUE} ]; then
       remote_sh "rm -rf ${remote_crash_dirs[*]}"
     fi
   else
-    [ -n "${FLAGS_ARGV}" ] || usage
+    [[ $# -gt 0 ]] || usage
     [ -n "${FLAGS_board}" ] || die_notrace "--board is required."
   fi
 
   local modules_file="${TMP}/modules"
-  for dump in "${FLAGS_ARGV[@]}"; do
+  for dump in "$@"; do
     dump=$(remove_quotes "${dump}")
     if [ $(get_kind "${dump}") == "minidump" ]; then
       # Find all DSOs and executables listed in lines like:
@@ -161,7 +164,7 @@ main() {
     FLAGS_breakpad_root=/build/${FLAGS_board}/usr/lib/debug/breakpad
   fi
 
-  for dump in "${FLAGS_ARGV[@]}"; do
+  for dump in "$@"; do
     dump=$(remove_quotes "${dump}")
     if [ $(get_kind "${dump}") = "minidump" ]; then
       info "Dumping stack for $(basename "${dump}")" \
