@@ -68,6 +68,7 @@ known_bad_oom() {
   chromeos-base/chromeos-bsp-endeavour-private|\
   chromeos-base/chromeos-bsp-gale|\
   chromeos-base/chromeos-bsp-hatch-private|\
+  chromeos-base/chromeos-bsp-mistral|\
   chromeos-base/chromeos-bsp-mobbase|\
   chromeos-base/chromeos-bsp-zork-private|\
   chromeos-base/chromeos-chrome|\
