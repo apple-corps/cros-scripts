@@ -57,9 +57,14 @@ known_bad_oom() {
   chromeos-base/chaps|\
   chromeos-base/chromeos-accelerometer-init|\
   chromeos-base/chromeos-activate-date|\
+  chromeos-base/chromeos-activate-date-ultima|\
   chromeos-base/chromeos-adb-env|\
   chromeos-base/chromeos-auth-config|\
+  chromeos-base/chromeos-bsp-atlas|\
+  chromeos-base/chromeos-bsp-baseboard-asurada|\
+  chromeos-base/chromeos-bsp-baseboard-cherry|\
   chromeos-base/chromeos-bsp-baseboard-gru|\
+  chromeos-base/chromeos-bsp-baseboard-herobrine|\
   chromeos-base/chromeos-bsp-baseboard-kukui|\
   chromeos-base/chromeos-bsp-baseboard-oak|\
   chromeos-base/chromeos-bsp-baseboard-trogdor|\
@@ -70,10 +75,15 @@ known_bad_oom() {
   chromeos-base/chromeos-bsp-hatch-private|\
   chromeos-base/chromeos-bsp-mistral|\
   chromeos-base/chromeos-bsp-mobbase|\
+  chromeos-base/chromeos-bsp-nocturne|\
+  chromeos-base/chromeos-bsp-veyron|\
+  chromeos-base/chromeos-bsp-veyron-private|\
+  chromeos-base/chromeos-bsp-wilco|\
   chromeos-base/chromeos-bsp-zork-private|\
   chromeos-base/chromeos-chrome|\
   chromeos-base/chromeos-config-tools|\
   chromeos-base/chromeos-cr50-scripts|\
+  chromeos-base/chromeos-ec-driver-init|\
   chromeos-base/chromeos-firewall-init|\
   chromeos-base/chromeos-firewall-init-mobbase|\
   chromeos-base/chromeos-imageburner|\
@@ -136,6 +146,8 @@ known_bad_oom() {
   chromeos-base/permission_broker|\
   chromeos-base/power_manager|\
   chromeos-base/quickoffice|\
+  chromeos-base/rialto-cellular-autoconnect|\
+  chromeos-base/rialto-modem-watchdog|\
   chromeos-base/runtime_probe|\
   chromeos-base/shill|\
   chromeos-base/sirenia|\
@@ -179,6 +191,7 @@ known_bad_oom() {
   net-wireless/wpa_supplicant|\
   net-wireless/wpa_supplicant-2_8|\
   net-wireless/wpa_supplicant-2_9|\
+  sys-apps/apex-monitor|\
   sys-apps/cecservice|\
   sys-apps/huddly-falcon-updater|\
   sys-apps/huddly-monitor|\
@@ -186,6 +199,7 @@ known_bad_oom() {
   sys-apps/mimo-houston-mcu-updater|\
   sys-apps/mimo-monitor|\
   sys-apps/moblab|\
+  sys-apps/satlab|\
   sys-apps/upstart|\
   sys-apps/ureadahead|\
   sys-apps/usbguard|\
