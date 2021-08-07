@@ -8,7 +8,7 @@
 # You must already be cros_workon'ing the package in question.
 
 . /usr/share/misc/shflags || exit 1
-
+#GCLIENT_ROOT="/mnt/sdb1/build/duet/cr-os"
 GCLIENT_ROOT="/mnt/host/source"
 DEFAULT_BOARD="$(cat "${GCLIENT_ROOT}"/src/scripts/.default_board 2>/dev/null)"
 

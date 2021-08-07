@@ -8,6 +8,7 @@
 # a chromiumos setup. This assumes that all needed packages have been built into
 # the given target's root with binary packages turned on. This script will
 # build the Chrome OS image using only pre-built binary packages.
+set -x
 
 SCRIPT_ROOT="$(dirname "$(readlink -f "$0")")"
 # shellcheck source=build_library/build_common.sh

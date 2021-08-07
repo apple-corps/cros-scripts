@@ -1,0 +1,60 @@
+Chromium OS version information:
+    CHROME_BASE=
+    CHROME_BRANCH=94
+    CHROME_VERSION=
+    CHROMEOS_BUILD=14125
+    CHROMEOS_BRANCH=0
+    CHROMEOS_PATCH=2021_08_05_1857
+    CHROMEOS_VERSION_STRING=14125.0.2021_08_05_1857
+>>> Building file list for packages cleaning...
+>>> Your packages directory was already clean.
+B0291525-7694-A046-9E49-D4CE4002C0EF
+       start        size    part  contents
+           0           1          PMBR (Boot GUID: B0291525-7694-A046-9E49-D4CE4002C0EF)
+           1           1          Pri GPT header
+           2          32          Pri GPT table
+     5218304     8401025       1  Label: "STATE"
+                                  Type: Linux data
+                                  UUID: C0AE5381-D75A-DC49-9966-EA36D9778EDC
+          69       65536       2  Label: "KERN-A"
+                                  Type: ChromeOS kernel
+                                  UUID: A6CB5186-4785-284C-8FCB-0A6A69809B68
+                                  Attr: priority=15 tries=15 successful=0 
+      303104     4915200       3  Label: "ROOT-A"
+                                  Type: ChromeOS rootfs
+                                  UUID: 4F545DBF-5CC7-1F4C-9B35-65D8E31E3D43
+       65605       65536       4  Label: "KERN-B"
+                                  Type: ChromeOS kernel
+                                  UUID: D9E367CE-C39C-3B48-95DB-268CF719B625
+                                  Attr: priority=0 tries=0 successful=0 
+      299008        4096       5  Label: "ROOT-B"
+                                  Type: ChromeOS rootfs
+                                  UUID: C40A2C86-1471-8247-8BD0-51F95D2608B3
+          65           1       6  Label: "KERN-C"
+                                  Type: ChromeOS kernel
+                                  UUID: 59C3ED01-F65D-754D-9D17-14B35D50136F
+                                  Attr: priority=0 tries=0 successful=0 
+          66           1       7  Label: "ROOT-C"
+                                  Type: ChromeOS rootfs
+                                  UUID: 7312502E-8B9F-D74D-A4AC-57CCC2A81CB2
+      135168       32768       8  Label: "OEM"
+                                  Type: Linux data
+                                  UUID: B51DBB50-5C53-224A-A628-5AC29ADD5DCD
+          67           1       9  Label: "reserved"
+                                  Type: ChromeOS reserved
+                                  UUID: 25236C4E-77F8-F044-A9CF-D329E3AB9F3A
+          68           1      10  Label: "reserved"
+                                  Type: ChromeOS reserved
+                                  UUID: 1A6D0E7B-8378-4E46-B6F0-5825F17B187E
+          64           1      11  Label: "RWFW"
+                                  Type: ChromeOS firmware
+                                  UUID: 02BB9891-AED3-644F-9479-D87BDA3A280C
+      167936      131072      12  Label: "EFI-SYSTEM"
+                                  Type: EFI System Partition
+                                  UUID: B0291525-7694-A046-9E49-D4CE4002C0EF
+                                  Attr: legacy_boot=1 
+    13619344          32          Sec GPT table
+    13619376           1          Sec GPT header
+An error occurred in your build so your latest output directory is invalid.
+Running in non-interactive mode so deleting output directory.
+Deleted /mnt/host/source/src/build/images/kukui/R94-14125.0.2021_08_05_1857-a1

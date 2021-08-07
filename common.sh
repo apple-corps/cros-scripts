@@ -621,6 +621,7 @@ safe_umount() {
 # $1 - The file to back the new loopback device.
 # $2-$N - Additional arguments to pass to losetup.
 loopback_partscan() {
+  echo "!!!!!!!! GCLIENT ROOT: $GCLIENT_ROOT  !!!!!!!!!!!"
   local lb_dev image="$1"
   shift
 
@@ -637,6 +638,7 @@ loopback_partscan() {
     # This (perhaps) mounts the partitions as well.
     lb_dev=$(sudo losetup --show -f "$@" "${image}")
 
+    sudo losetup -l -a
     # Try to clean the slate by removing any existing parts (best effort).
     partx_d_out=$(sudo partx -v -d "${lb_dev}") || true
 
